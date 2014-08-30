@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+# Print commands and their arguments as they are executed.
+#set -x
+
+source /etc/mysql-bootstrap.conf
+
+get_option ()
+{
+	value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
+	echo ${value:-$3}
+}
+
+get_password ()
+{
+	echo $(head -n 4096 /dev/urandom | tr -cd '[:alnum:]' | head -c ${1})
+}
+
+OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
+OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
+OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
+
+if [ ${OPTS_FORCE_MYSQL_INSTALL} == "1" ]; then
+	echo "MySQL Database Installation: Purging datadir..."
+	rm -rf ${OPTS_MYSQL_DATA_DIR}/*
+fi
+
+if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
+
+	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
+
+	# Initialise MySQL Data Directory
+	/usr/bin/mysql_install_db --verbose --force --skip-name-resolve --tmpdir=${OPTS_MYSQL_DATA_DIR}
+
+	# Secure MySQL
+	echo "DELETE FROM mysql.user WHERE User='';" > /tmp/mysql-init
+	echo "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" >> /tmp/mysql-init
+	echo "DROP DATABASE IF EXISTS test;" >> /tmp/mysql-init
+	echo "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" >> /tmp/mysql-init
+	echo "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;" >> /tmp/mysql-init
+	echo "GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;" >> /tmp/mysql-init
+	echo "-- =============================================================================" >> /tmp/mysql-init
+	echo "-- Custom Initialisation SQL start" >> /tmp/mysql-init
+	echo "-- " >> /tmp/mysql-init
+	echo "${OPTS_CUSTOM_MYSQL_INIT_SQL}" >> /tmp/mysql-init
+	echo "-- " >> /tmp/mysql-init
+	echo "-- Custom Initialisation SQL end" >> /tmp/mysql-init
+	echo "-- -----------------------------------------------------------------------------" >> /tmp/mysql-init
+	echo "FLUSH PRIVILEGES;" >> /tmp/mysql-init
+
+	echo
+	echo $"Initialisation SQL:\n$(cat /tmp/mysql-init)"
+	
+	echo
+	echo "Initialising MySQL..."
+	/usr/bin/mysqld_safe --init-file=/tmp/mysql-init &
+
+	# Allow some time for the service to start
+	sleep 5
+
+	echo "Stopping MySQL..."
+	killall -15 mysqld
+
+	echo
+	echo "================================================================================"
+	echo "MySQL Credentials"
+	echo "--------------------------------------------------------------------------------"
+	echo "root@localhost : ${OPTS_MYSQL_ROOT_PASSWORD}"
+	echo "--------------------------------------------------------------------------------"
+	echo
+
+	# Wait for the MySQL daemon to stop
+	wait ${!}
+
+	rm -f /tmp/mysql-init
+else 
+	# Allow some time for supervisor_stdout to start
+	sleep 2
+fi
+
+exit 0
