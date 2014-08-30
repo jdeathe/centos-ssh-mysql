@@ -85,18 +85,18 @@ docker run \
 )
 
 # Adds SSH which can be usefull for TCP over SSH MySQL Workbench connections
-(
-set -x
-docker run \
-	${DOCKER_OPERATOR_OPTIONS} \
-	--name ${DOCKER_NAME} \
-	-p 3306:3306 \
-	-p 2400:22 \
-	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
-	--volumes-from ${VOLUME_CONFIG_NAME} \
-	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
-	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
-)
+#(
+#set -x
+#docker run \
+#	${DOCKER_OPERATOR_OPTIONS} \
+#	--name ${DOCKER_NAME} \
+#	-p 3306:3306 \
+#	-p 2400:22 \
+#	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
+#	--volumes-from ${VOLUME_CONFIG_NAME} \
+#	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
+#	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+#)
 
 if is_docker_container_name_running ${DOCKER_NAME} ; then
 	docker ps | grep -v -e "${DOCKER_NAME}/.*,.*" | grep ${DOCKER_NAME}
