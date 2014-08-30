@@ -19,7 +19,7 @@ Run up a container named ```mysql.pool-1.1.1``` from the docker image ```jdeathe
 
 ```
 $ docker run -d \
-  mysql.pool-1.1.1 \
+  --name mysql.pool-1.1.1 \
   -p 3306:3306 \
   -v /etc/services-config/mysql.pool-1.1.1/mysql:/etc/services-config/mysql \
   jdeathe/centos-ssh-mysql:latest
