@@ -31,6 +31,8 @@ Now you can verify it is initialised and running successfully by inspecting the 
 $ docker logs mysql.pool-1.1.1
 ```
 
-If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password.
+If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password. The mysql table data is persistent accross container restarts by mapping the MySQL data directory ```/var/lib/mysql``` to the Docker host's mysql services-data directory ```/var/services-data/mysql/pool-1```. For this service, "pool-1" indicates that this data directory can be shared among several containers of the same pool ID.
 
 ![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/master/images/docker-logs-mysql-bootstrap.png)
+
+*Note:* If you need a clean installation, (and wish to destroy all existing MySQL databases for the shared pool), simply remove the contents of ```/var/services-data/mysql/pool-1``` and restart the container using: ```docker restart mysql.pool-1.1.1```.
