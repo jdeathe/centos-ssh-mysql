@@ -24,3 +24,13 @@ $ docker run -d \
   -v /var/services-data/mysql/pool-1:/var/lib/mysql \
   jdeathe/centos-ssh-mysql:latest
 ```
+
+Now you can verify it is initialised and running successfully by inspecting the container's logs.
+
+```
+$ docker logs mysql.pool-1.1.1
+```
+
+If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password.
+
+![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/master/images/docker-logs-mysql-bootstrap.png)
