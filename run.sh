@@ -45,6 +45,7 @@ remove_docker_container_name ()
 
 # Configuration volume
 if [ ! "${VOLUME_CONFIG_NAME}" == "$(docker ps -a | grep -v -e \"${VOLUME_CONFIG_NAME}/.*,.*\" | grep -e '[ ]\{1,\}'${VOLUME_CONFIG_NAME} | grep -o ${VOLUME_CONFIG_NAME})" ]; then
+	if [ SSH_SERVICE_ENABLED == "true" ]; then
 (
 set -x
 	docker run \
@@ -55,6 +56,17 @@ set -x
 		busybox:latest \
 		/bin/true;
 )
+	else
+(
+set -x
+	docker run \
+		--name ${VOLUME_CONFIG_NAME} \
+		-v ${MOUNT_PATH_CONFIG}/${DOCKER_NAME}/supervisor:/etc/services-config/supervisor \
+		-v ${MOUNT_PATH_CONFIG}/${DOCKER_NAME}/mysql:/etc/services-config/mysql \
+		busybox:latest \
+		/bin/true;
+)
+	fi
 fi
 
 # Force replace container of same name if found to exist
@@ -72,6 +84,20 @@ else
 fi
 
 # In a sub-shell set xtrace - prints the docker command to screen for reference
+if [ SSH_SERVICE_ENABLED == "true" ]; then
+(
+set -x
+docker run \
+	${DOCKER_OPERATOR_OPTIONS} \
+	--name ${DOCKER_NAME} \
+	-p 3306:3306 \
+	-p 2400:22 \
+	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
+	--volumes-from ${VOLUME_CONFIG_NAME} \
+	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
+	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+)
+else
 (
 set -x
 docker run \
@@ -83,20 +109,7 @@ docker run \
 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
 )
-
-# Adds SSH which can be usefull for TCP over SSH MySQL Workbench connections
-#(
-#set -x
-#docker run \
-#	${DOCKER_OPERATOR_OPTIONS} \
-#	--name ${DOCKER_NAME} \
-#	-p 3306:3306 \
-#	-p 2400:22 \
-#	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
-#	--volumes-from ${VOLUME_CONFIG_NAME} \
-#	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
-#	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
-#)
+fi
 
 if is_docker_container_name_running ${DOCKER_NAME} ; then
 	docker ps | grep -v -e "${DOCKER_NAME}/.*,.*" | grep ${DOCKER_NAME}

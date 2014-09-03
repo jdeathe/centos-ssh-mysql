@@ -36,3 +36,38 @@ If it is the first run there should be additional output showing the initialisat
 ![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/master/images/docker-logs-mysql-bootstrap.png)
 
 *Note:* If you need a clean installation, (and wish to destroy all existing MySQL databases for the shared pool), simply remove the contents of ```/var/services-data/mysql/pool-1``` and restart the container using: ```docker restart mysql.pool-1.1.1```.
+
+## Instructions
+
+### (Optional) Configuration Data Volume
+
+Create a "data volume" for configuration, this allows you to share the same configuration between multiple docker containers and, by mounting a host directory into the data volume you can override the default configuration files provided.
+
+Make a directory on the docker host for storing container configuration files. This directory needs to contain everything from the directory [etc/services-config](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config)
+
+```
+$ mkdir -p /etc/services-config/mysql.pool-1.1.1
+```
+
+Create the data volume, mounting the applicable docker host's configuration directories to the associated  */etc/services-config/* sub-directories in the docker container. Docker will pull the busybox:latest image if you don't already have it available locally.
+
+```
+$ docker run \
+  --name volume-config.mysql.pool-1.1.1 \
+  -v /etc/services-config/mysql.pool-1.1.1/supervisor:/etc/services-config/supervisor \
+  -v /etc/services-config/mysql.pool-1.1.1/mysql:/etc/services-config/mysql \
+  busybox:latest \
+  /bin/true
+```
+
+If enabling the SSH service in the supervisor configuration you can define a persistent authorized key for SSH access by mounting the ssh.pool-1 directory and adding the key there.
+
+```
+$ docker run \
+  --name volume-config.mysql.pool-1.1.1 \
+  -v /etc/services-config/ssh.pool-1:/etc/services-config/ssh \
+  -v /etc/services-config/mysql.pool-1.1.1/supervisor:/etc/services-config/supervisor \
+  -v /etc/services-config/mysql.pool-1.1.1/mysql:/etc/services-config/mysql \
+  busybox:latest \
+  /bin/true
+```
