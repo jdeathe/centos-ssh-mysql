@@ -71,3 +71,29 @@ $ docker run \
   busybox:latest \
   /bin/true
 ```
+
+### Running
+
+To run the a docker container from this image you can use the included [run.sh](https://github.com/jdeathe/centos-ssh-mysql/blob/master/run.sh) and [run.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/run.conf) scripts. The helper script will stop any running container of the same name, remove it and run a new daemonised container on an unspecified host port. Alternatively you can use the following to make the service available on port 3306 of the docker host.
+
+```
+$ docker stop mysql.pool-1.1.1 && \
+  docker rm mysql.pool-1.1.1
+$ docker run -d \
+  --name mysql.pool-1.1.1 \
+  -p 3306:3306 \
+  --env MYSQL_SUBNET=% \
+  --volumes-from volume-config.mysql.pool-1.1.1 \
+  -v /var/services-data/mysql/pool-1:/var/lib/mysql \
+  jdeathe/centos-ssh-mysql:latest
+```
+
+The environmental variable ```MYSQL_SUBNET``` is optional but can be used\* with the [MySQL bootstrap configuration file](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/mysql-bootstrap.conf) to generate users with access to databases outside the localhost, (which is the default for the root user); in the example, the wildcard symbol, (%), is used to allow access from any host given the correct user and password.
+
+\**There is an example use case in the bootstrap configuration file.*
+
+Now you can verify it is initialised and running successfully by inspecting the container's logs:
+
+```
+$ docker logs mysql.pool-1.1.1
+```
