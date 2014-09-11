@@ -41,7 +41,32 @@ If it is the first run there should be additional output showing the initialisat
 
 ### (Optional) Configuration Data Volume
 
-Create a "data volume" for configuration, this allows you to share the same configuration between multiple docker containers and, by mounting a host directory into the data volume you can override the default configuration files provided.
+Create a "data volume" for configuration, this allows you to share the same configuration between multiple docker containers and, by mounting a host directory into the data volume you can override the default configuration files provided. The Configuration Volume is then used to provide access to the common configuration directories and files required by the service by way of the "```--volumes-from``` Docker run command.
+
+Each service that requires a common set of configuration files should use a single Configuration Volume as illustrated in the following diagram:
+
+```
++---------------------------------------------------+
+|                (Docker Host system)               |
+|                                                   |
+| /etc/service-config/<service-name>                |
+|                         +                         |
+|                         |                         |
+|            +============*===========+             |
+|            |  Configuration Volume  |             |
+|            |    Service Container   |             |
+|            +============*===========+             |
+|                         |                         |
+|         +---------------*---------------+         |
+|         |               |               |         |
+|   +=====*=====+   +=====*=====+   +=====*=====+   |
+|   |  Service  |   |  Service  |   |  Service  |   |
+|   | Container |   | Container |   | Container |   |
+|   |    (1)    |   |    (2)    |   |    (n)    |   |
+|   +===========+   +===========+   +===========+   |
++---------------------------------------------------+
+
+```
 
 Make a directory on the docker host for storing container configuration files. This directory needs to contain everything from the directory [etc/services-config](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config)
 
