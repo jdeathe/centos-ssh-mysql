@@ -122,3 +122,19 @@ Now you can verify it is initialised and running successfully by inspecting the 
 ```
 $ docker logs mysql.pool-1.1.1
 ```
+
+### Custom Configuration
+
+If using the optional data volume for container configuration you are able to customise the configuration. In the following examples your custom docker configuration files should be located on the Docker host under the directory ```/etc/service-config/<container-name>/``` where ```<container-name>``` should match the applicable container name such as "mysql.pool-1.1.1" in the examples.
+
+#### [mysql/mysql-bootstrap.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/mysql-bootstrap.conf)
+
+The bootstrap script initialises the app. It initialises the MySQL install with ```/usr/bin/mysql_install_db``` then secures the install and applies any custom SQL with ```/usr/bin/mysqld_safe``` - any test or root users and test databases are dropped, then a password for the localhost only MySQL root user is generated.
+
+#### [mysql/my.cnf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/my.cnf)
+
+MySQL can be configured via the my.cnf - refer to the MySQL documentation with respect to what settings are available.
+
+#### [supervisor/supervisord.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/supervisor/supervisord.conf)
+
+The supervisor service's configuration can also be overriden by editing the custom supervisord.conf file. It shouldn't be necessary to change the existing configuration here but you could include more [program:x] sections to run additional commands at startup.
