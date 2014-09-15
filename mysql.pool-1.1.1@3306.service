@@ -64,7 +64,6 @@ ExecStart=/bin/sudo /bin/bash -c \
     --privileged \
     --name %p \
     -p %i:3306 \
-    -p 2400:22 \
     --volumes-from volume-config.%p \
     -v /var/services-data/mysql/pool-1:/var/lib/mysql \
     jdeathe/centos-ssh-mysql:centos-6-1.0.0"
