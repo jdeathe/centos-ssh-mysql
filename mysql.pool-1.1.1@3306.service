@@ -36,8 +36,8 @@ ExecStartPre=/bin/sudo /bin/bash -c \
     /usr/bin/docker run \
       --name volume-config.%p \
       -v /etc/services-config/ssh.pool-1:/etc/services-config/ssh \
-      -v /etc/services-config/%p:/etc/services-config/supervisor \
-      -v /etc/services-config/%p:/etc/services-config/mysql \
+      -v /etc/services-config/%p/supervisor:/etc/services-config/supervisor \
+      -v /etc/services-config/%p/mysql:/etc/services-config/mysql \
       busybox:latest \
       /bin/true; \
   fi"
