@@ -45,10 +45,10 @@ ExecStartPre=/bin/sudo /bin/bash -c \
 # Initialisation: Pull or build image if required
 ExecStartPre=/bin/sudo /bin/bash -c \
   "if [ ! \"jdeathe/centos-ssh-mysql\" == \"$(/usr/bin/docker images | /bin/grep -e '^jdeathe/centos-ssh-mysql[ ]\{1,\}' | /bin/grep -o 'jdeathe/centos-ssh-mysql')\" ]; then \
-    if [ -f /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.0.0.tar.xz ]; then \
-      /usr/bin/xz -dc /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.0.0.tar.xz | /usr/bin/docker load; \
+    if [ -f /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.0.1.tar.xz ]; then \
+      /usr/bin/xz -dc /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.0.1.tar.xz | /usr/bin/docker load; \
     else \
-      /usr/bin/docker pull jdeathe/centos-ssh-mysql:centos-6-1.0.0; \
+      /usr/bin/docker pull jdeathe/centos-ssh-mysql:centos-6-1.0.1; \
     fi; \
   fi"
 
@@ -66,7 +66,7 @@ ExecStart=/bin/sudo /bin/bash -c \
     -p %i:3306 \
     --volumes-from volume-config.%p \
     -v /var/services-data/mysql/pool-1:/var/lib/mysql \
-    jdeathe/centos-ssh-mysql:centos-6-1.0.0"
+    jdeathe/centos-ssh-mysql:centos-6-1.0.1"
 
 ExecStartPost=/usr/bin/etcdctl set /services/mysql/pool-1/1.1 %H:%i
 
