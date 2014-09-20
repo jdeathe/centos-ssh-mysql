@@ -16,6 +16,8 @@ docker rm ${OPT_SERVICE_NAME_SHORT}
 cp ${OPT_SERVICE_NAME_FULL} /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable /etc/systemd/system/${OPT_SERVICE_NAME_FULL}
+
+echo "WARNING: This may take a while if pulling large container images for the first time..."
 systemctl restart ${OPT_SERVICE_NAME_FULL}
 
 sleep 10
