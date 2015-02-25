@@ -9,7 +9,7 @@ Included in the build is the EPEL repository and SSH, vi and MySQL are installed
 
 [Supervisor](http://supervisord.org/) is used to start mysqld (and optionally the sshd) daemon when a docker container based on this image is run. To enable simple viewing of stdout for the sshd subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with `docker logs <docker-container-name>`.
 
-SSH is not required in order to access a terminal for the running container the prefered method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/master/command-keys.md) for details on how to set this up.
+SSH is not required in order to access a terminal for the running container the prefered method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/command-keys.md) for details on how to set this up.
 
 If enabling and configuring SSH access, it is by public key authentication and, by default, the [Vagrant](http://www.vagrantup.com/) [insecure private key](https://github.com/mitchellh/vagrant/blob/master/keys/vagrant) is required.
 
@@ -33,7 +33,7 @@ $ docker logs mysql.pool-1.1.1
 
 If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password. The mysql table data is persistent accross container restarts by mapping the MySQL data directory ```/var/lib/mysql``` to the Docker host's mysql services-data directory ```/var/services-data/mysql/pool-1```. For this service, "pool-1" indicates that this data directory can be shared among several containers of the same pool ID.
 
-![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/master/images/docker-logs-mysql-bootstrap.png)
+![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysql-bootstrap.png)
 
 *Note:* If you need a clean installation, (and wish to destroy all existing MySQL databases for the shared pool), simply remove the contents of ```/var/services-data/mysql/pool-1``` and restart the container using: ```docker restart mysql.pool-1.1.1```.
 
@@ -68,7 +68,7 @@ Each service that requires a common set of configuration files should use a sing
 
 ```
 
-Make a directory on the docker host for storing container configuration files. This directory needs to contain everything from the directory [etc/services-config](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config)
+Make a directory on the docker host for storing container configuration files. This directory needs to contain everything from the directory [etc/services-config](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config)
 
 ```
 $ mkdir -p /etc/services-config/mysql.pool-1.1.1
@@ -99,7 +99,7 @@ $ docker run \
 
 ### Running
 
-To run the a docker container from this image you can use the included [run.sh](https://github.com/jdeathe/centos-ssh-mysql/blob/master/run.sh) and [run.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/run.conf) scripts. The helper script will stop any running container of the same name, remove it and run a new daemonised container on an unspecified host port. Alternatively you can use the following to make the service available on port 3306 of the docker host.
+To run the a docker container from this image you can use the included [run.sh](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.sh) and [run.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.conf) scripts. The helper script will stop any running container of the same name, remove it and run a new daemonised container on an unspecified host port. Alternatively you can use the following to make the service available on port 3306 of the docker host.
 
 ```
 $ docker stop mysql.pool-1.1.1 && \
@@ -113,7 +113,7 @@ $ docker run -d \
   jdeathe/centos-ssh-mysql:latest
 ```
 
-The environmental variable ```MYSQL_SUBNET``` is optional but can be used\* with the [MySQL bootstrap configuration file](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/mysql-bootstrap.conf) to generate users with access to databases outside the localhost, (which is the default for the root user); in the example, the wildcard symbol, (%), is used to allow access from any host given the correct user and password.
+The environmental variable ```MYSQL_SUBNET``` is optional but can be used\* with the [MySQL bootstrap configuration file](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/mysql/mysql-bootstrap.conf) to generate users with access to databases outside the localhost, (which is the default for the root user); in the example, the wildcard symbol, (%), is used to allow access from any host given the correct user and password.
 
 \**There is an example use case in the bootstrap configuration file.*
 
@@ -127,14 +127,14 @@ $ docker logs mysql.pool-1.1.1
 
 If using the optional data volume for container configuration you are able to customise the configuration. In the following examples your custom docker configuration files should be located on the Docker host under the directory ```/etc/service-config/<container-name>/``` where ```<container-name>``` should match the applicable container name such as "mysql.pool-1.1.1" in the examples.
 
-#### [mysql/mysql-bootstrap.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/mysql-bootstrap.conf)
+#### [mysql/mysql-bootstrap.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/mysql/mysql-bootstrap.conf)
 
 The bootstrap script initialises the app. It initialises the MySQL install with ```/usr/bin/mysql_install_db``` then secures the install and applies any custom SQL with ```/usr/bin/mysqld_safe``` - any test or root users and test databases are dropped, then a password for the localhost only MySQL root user is generated.
 
-#### [mysql/my.cnf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/mysql/my.cnf)
+#### [mysql/my.cnf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/mysql/my.cnf)
 
 MySQL can be configured via the my.cnf - refer to the MySQL documentation with respect to what settings are available.
 
-#### [supervisor/supervisord.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/master/etc/services-config/supervisor/supervisord.conf)
+#### [supervisor/supervisord.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/supervisor/supervisord.conf)
 
 The supervisor service's configuration can also be overriden by editing the custom supervisord.conf file. It shouldn't be necessary to change the existing configuration here but you could include more [program:x] sections to run additional commands at startup.
