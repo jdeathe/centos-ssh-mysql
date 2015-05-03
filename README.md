@@ -1,9 +1,13 @@
 centos-ssh-mysql
 ================
 
-Docker Image including CentOS-6, MySQL 5.1.
+Docker Image of CentOS-6 6.6 x86_64, MySQL 5.1.
 
-The Dockerfile can be used to build a base image that can be run as-is or used as the bases for other more specific builds.
+Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via a configuration data volume.
+
+## Overview & links
+
+The [Dockerfile](https://github.com/jdeathe/centos-ssh-mysql/blob/master/Dockerfile) can be used to build a base image that can be run as-is or used as the bases for other more specific builds.
 
 Included in the build is the EPEL repository and SSH, vi and MySQL are installed along with python-pip, supervisor and supervisor-stdout.
 
