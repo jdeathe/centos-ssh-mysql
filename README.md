@@ -13,7 +13,7 @@ Included in the build is the EPEL repository and SSH, vi and MySQL are installed
 
 [Supervisor](http://supervisord.org/) is used to start mysqld (and optionally the sshd) daemon when a docker container based on this image is run. To enable simple viewing of stdout for the sshd subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with `docker logs <docker-container-name>`.
 
-SSH is not required in order to access a terminal for the running container the prefered method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/command-keys.md) for details on how to set this up.
+SSH is not required in order to access a terminal for the running container the preferred method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/command-keys.md) for details on how to set this up.
 
 If enabling and configuring SSH access, it is by public key authentication and, by default, the [Vagrant](http://www.vagrantup.com/) [insecure private key](https://github.com/mitchellh/vagrant/blob/master/keys/vagrant) is required.
 
@@ -35,7 +35,7 @@ Now you can verify it is initialised and running successfully by inspecting the 
 $ docker logs mysql.pool-1.1.1
 ```
 
-If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password. The mysql table data is persistent accross container restarts by mapping the MySQL data directory ```/var/lib/mysql``` to the Docker host's mysql services-data directory ```/var/services-data/mysql/pool-1```. For this service, "pool-1" indicates that this data directory can be shared among several containers of the same pool ID.
+If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password. The mysql table data is persistent across container restarts by mapping the MySQL data directory ```/var/lib/mysql``` to the Docker host's mysql services-data directory ```/var/services-data/mysql/pool-1```. For this service, "pool-1" indicates that this data directory can be shared among several containers of the same pool ID.
 
 ![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysql-bootstrap.png)
 
@@ -89,7 +89,7 @@ $ docker run \
   /bin/true
 ```
 
-If enabling the SSH service in the supervisor configuration you can define a persistent authorized key for SSH access by mounting the ssh.pool-1 directory and adding the key there.
+If enabling the SSH service in the supervisor configuration you can define a persistent authorised key for SSH access by mounting the ssh.pool-1 directory and adding the key there.
 
 ```
 $ docker run \
@@ -141,4 +141,4 @@ MySQL can be configured via the my.cnf - refer to the MySQL documentation with r
 
 #### [supervisor/supervisord.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/supervisor/supervisord.conf)
 
-The supervisor service's configuration can also be overriden by editing the custom supervisord.conf file. It shouldn't be necessary to change the existing configuration here but you could include more [program:x] sections to run additional commands at startup.
+The supervisor service's configuration can also be overridden by editing the custom supervisord.conf file. It shouldn't be necessary to change the existing configuration here but you could include more [program:x] sections to run additional commands at startup.
