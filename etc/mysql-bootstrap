@@ -53,6 +53,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	
 	echo
 	echo "Initialising MySQL..."
+	/etc/init.d/mysqld stop && \
 	/usr/bin/mysqld_safe --init-file=/tmp/mysql-init &
 
 	# Allow some time for the service to start
