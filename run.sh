@@ -68,7 +68,7 @@ if [ ! "${VOLUME_CONFIG_NAME}" == "$(docker ps -a | grep -v -e \"${VOLUME_CONFIG
 	fi
 
 	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor -maxdepth 1 -type f) ]]; then
-			CMD=$(cp -R etc/services-config/supervisor/ ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor/)
+			CMD=$(cp -R etc/services-config/supervisor ${CONTAINER_MOUNT_PATH_CONFIG}/)
 			$CMD || sudo $CMD
 	fi
 
@@ -78,7 +78,7 @@ if [ ! "${VOLUME_CONFIG_NAME}" == "$(docker ps -a | grep -v -e \"${VOLUME_CONFIG
 	fi
 
 	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/mysql -maxdepth 1 -type f) ]]; then
-			CMD=$(cp -R etc/services-config/mysql/ ${CONTAINER_MOUNT_PATH_CONFIG}/mysql/)
+			CMD=$(cp -R etc/services-config/mysql ${CONTAINER_MOUNT_PATH_CONFIG}/)
 			$CMD || sudo $CMD
 	fi
 
