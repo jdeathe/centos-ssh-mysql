@@ -108,33 +108,24 @@ else
 	DOCKER_COMMAND=${@}
 fi
 
-# In a sub-shell set xtrace - prints the docker command to screen for reference
 if [ SSH_SERVICE_ENABLED == "true" ]; then
-(
-set -x
-docker run \
-	${DOCKER_OPERATOR_OPTIONS} \
-	--name ${DOCKER_NAME} \
-	-p 3306:3306 \
-	-p 2400:22 \
-	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
-	--volumes-from ${VOLUME_CONFIG_NAME} \
-	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
-	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
-)
+	DOCKER_PORT_OPTIONS="-p 3306:3306 -p 2400:22"
 else
+	DOCKER_PORT_OPTIONS="-p 3306:3306"
+fi
+
+# In a sub-shell set xtrace - prints the docker command to screen for reference
 (
 set -x
 docker run \
 	${DOCKER_OPERATOR_OPTIONS} \
 	--name ${DOCKER_NAME} \
-	-p 3306:3306 \
+	${DOCKER_PORT_OPTIONS} \
 	--env MYSQL_SUBNET=${MYSQL_SUBNET:-%} \
 	--volumes-from ${VOLUME_CONFIG_NAME} \
 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
 )
-fi
 
 if is_docker_container_name_running ${DOCKER_NAME} ; then
 	docker ps | awk -v pattern="${DOCKER_NAME}$" '$NF ~ pattern { print $0 ; }'
