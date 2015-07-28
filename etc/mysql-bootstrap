@@ -34,11 +34,16 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		SERVICE_GID=$(stat -c "%g" ${OPTS_MYSQL_DATA_DIR})
 
 		if [ "$SERVICE_UID" != "" ] && [ "$SERVICE_UID" != "0" ]; then
-			usermod -u $SERVICE_UID ${OPTS_MYSQL_SERVICE_USER}
+			usermod -u ${SERVICE_UID} ${OPTS_MYSQL_SERVICE_USER}
 		fi
 
 		if [ "$SERVICE_GID" != "" ] && [ "$SERVICE_GID" != "0" ]; then
-			groupmod -g $SERVICE_GID ${OPTS_MYSQL_SERVICE_USER}
+			groupmod -g ${SERVICE_GID} ${OPTS_MYSQL_SERVICE_USER}
+
+			# If the group already exists add it to the user's supplementary groups
+			if [ ! "$?" -eq "0" ]; then
+				usermod -G ${SERVICE_GID} ${OPTS_MYSQL_SERVICE_USER}
+			fi
 		fi
 	fi
 
