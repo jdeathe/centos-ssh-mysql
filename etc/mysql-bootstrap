@@ -17,6 +17,7 @@ get_password ()
 }
 
 OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
+OPTS_MYSQL_SERVICE_USER=$(get_option mysqld user "mysql")
 OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
 OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
 
@@ -26,6 +27,20 @@ if [ ${OPTS_FORCE_MYSQL_INSTALL} == "1" ]; then
 fi
 
 if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
+
+	# Adjust the UID/GID values of the service user to match a directory that could be a mounted volume
+	if [ -d ${OPTS_MYSQL_DATA_DIR} ]; then
+		SERVICE_UID=$(stat -c "%u" ${OPTS_MYSQL_DATA_DIR})
+		SERVICE_GID=$(stat -c "%g" ${OPTS_MYSQL_DATA_DIR})
+
+		if [ "$SERVICE_UID" != "" ] && [ "$SERVICE_UID" != "0" ]; then
+			usermod -u $SERVICE_UID ${OPTS_MYSQL_SERVICE_USER}
+		fi
+
+		if [ "$SERVICE_GID" != "" ] && [ "$SERVICE_GID" != "0" ]; then
+			groupmod -g $SERVICE_GID ${OPTS_MYSQL_SERVICE_USER}
+		fi
+	fi
 
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
 
