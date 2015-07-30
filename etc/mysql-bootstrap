@@ -53,7 +53,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
 
 	# Initialise MySQL Data Directory
-	/usr/bin/mysql_install_db --verbose --force --skip-name-resolve --tmpdir=${OPTS_MYSQL_DATA_DIR}
+	/usr/bin/mysql_install_db --verbose --force --skip-name-resolve --tmpdir=${OPTS_MYSQL_DATA_DIR} &
 
 	# Generate the initialisation SQL used secure MySQL
 	cat <<-EOT > /tmp/mysql-init
@@ -78,11 +78,12 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	cat <<-EOT
 		Initialisation SQL:
 		$(cat /tmp/mysql-init)
-
-		Initialising MySQL...
 	EOT
 
-	/etc/init.d/mysqld stop && \
+	# Wait for the MySQL system table installation to complete
+	wait ${!}
+
+	echo "Initialising MySQL..."
 	/usr/bin/mysqld_safe --init-file=/tmp/mysql-init &
 
 	# Allow some time for the service to start
