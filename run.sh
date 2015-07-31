@@ -44,7 +44,7 @@ remove_docker_container_name ()
 }
 
 # Configuration volume
-if [ ! "${VOLUME_CONFIG_NAME}" == "$(docker ps -a | grep -v -e \"${VOLUME_CONFIG_NAME}/.*,.*\" | grep -e '[ ]\{1,\}'${VOLUME_CONFIG_NAME} | grep -o ${VOLUME_CONFIG_NAME})" ]; then
+if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
 	# For configuration that is specific to the running container
 	CONTAINER_MOUNT_PATH_CONFIG=${MOUNT_PATH_CONFIG}/${DOCKER_NAME}
 
