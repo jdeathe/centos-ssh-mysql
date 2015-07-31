@@ -13,7 +13,7 @@
 #		--format '{{ .State.Pid }}' mysql.pool-1.1.1) /bin/bash
 #
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6
+FROM jdeathe/centos-ssh:centos-6-1.3.0
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
@@ -21,7 +21,9 @@ MAINTAINER James Deathe <james.deathe@gmail.com>
 # Install MySQL
 # -----------------------------------------------------------------------------
 RUN yum --setopt=tsflags=nodocs -y install \
-	mysql-server \
+	mysql-server-5.1.73-5.el6_6 \
+	&& yum versionlock add \
+	mysql* \
 	; rm -rf /var/cache/yum/* \
 	; yum clean all
 
