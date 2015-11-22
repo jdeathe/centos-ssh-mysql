@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
-# Print commands and their arguments as they are executed.
-#set -x
-
 source /etc/mysql-bootstrap.conf
 
 get_option ()
 {
-	value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
+	local value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
 	echo ${value:-$3}
 }
 
@@ -79,6 +76,12 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		Initialisation SQL:
 		$(cat /tmp/mysql-init)
 	EOT
+
+	# Initilisation SQL should be free from blank and comment lines.
+	sed -i \
+		-e 's/-- .*$//' \
+		-e '/^$/d' \
+		/tmp/mysql-init
 
 	# Wait for the MySQL system table installation to complete
 	wait ${!}
