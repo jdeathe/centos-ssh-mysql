@@ -13,7 +13,7 @@
 #		--format '{{ .State.Pid }}' mysql.pool-1.1.1) /bin/bash
 #
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.3.0
+FROM jdeathe/centos-ssh:centos-6-1.3.1
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
