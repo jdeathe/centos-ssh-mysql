@@ -62,7 +62,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;
-		GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 

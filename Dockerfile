@@ -30,7 +30,6 @@ RUN yum --setopt=tsflags=nodocs -y install \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
-RUN mkdir -p /etc/services-config/mysql
 ADD etc/mysql-bootstrap /etc/
 ADD etc/services-config/supervisor/supervisord.conf /etc/services-config/supervisor/
 ADD etc/services-config/mysql/my.cnf /etc/services-config/mysql/
@@ -43,5 +42,14 @@ RUN chmod +x /etc/mysql-bootstrap \
 	&& ln -sf /etc/services-config/mysql/mysql-bootstrap.conf /etc/mysql-bootstrap.conf
 
 EXPOSE 3306
+
+# -----------------------------------------------------------------------------
+# Set default environment variables
+# -----------------------------------------------------------------------------
+ENV MYSQL_ROOT_PASSWORD ""
+ENV MYSQL_USER ""
+ENV MYSQL_USER_DATABASE ""
+ENV MYSQL_USER_PASSWORD ""
+ENV MYSQL_SUBNET "localhost"
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
