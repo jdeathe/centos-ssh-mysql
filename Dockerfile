@@ -50,6 +50,6 @@ ENV MYSQL_ROOT_PASSWORD ""
 ENV MYSQL_USER ""
 ENV MYSQL_USER_DATABASE ""
 ENV MYSQL_USER_PASSWORD ""
-ENV MYSQL_SUBNET "localhost"
+ENV MYSQL_SUBNET "127.0.0.1"
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
