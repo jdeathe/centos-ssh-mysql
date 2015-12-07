@@ -32,7 +32,7 @@ ExecStartPre=/bin/sudo /bin/bash -c \
       /usr/bin/docker pull busybox:latest; \
     fi; \
   fi; \
-  if [ ! \"volume-config.%p\" == \"$(/usr/bin/docker ps -a | /bin/awk -v pattern=\\\"^volume-config.%p$\\\" '$NF ~ pattern \{ print $NF; \}')\" ]; then \
+  if [ ! \"volume-config.%p\" == \"$(/usr/bin/docker ps -a | /bin/awk -v pattern='^volume-config.%p$' '$NF ~ pattern { print $NF; }')\" ]; then \
     /usr/bin/docker run \
       --name volume-config.%p \
       -v /etc/services-config/ssh.pool-1/ssh:/etc/services-config/ssh \
@@ -54,8 +54,8 @@ ExecStartPre=/bin/sudo /bin/bash -c \
 
 # Startup: Remove existing container (and stop if running) so it is re-created on startup but not removed on exit - to allow debugging if required
 ExecStart=/bin/sudo /bin/bash -c \
-  "if [ \"%p\" == \"$(/usr/bin/docker ps -a | /bin/awk -v pattern=\\\"^%p$\\\" '$NF ~ pattern \{ print $NF; \}')\" ]; then \
-    if [ \"%p\" == \"$(/usr/bin/docker ps | /bin/awk -v pattern=\\\"^%p$\\\" '$NF ~ pattern \{ print $NF; \}')\" ]; then \
+  "if [ \"%p\" == \"$(/usr/bin/docker ps -a | /bin/awk -v pattern='^%p$' '$NF ~ pattern { print $NF; }')\" ]; then \
+    if [ \"%p\" == \"$(/usr/bin/docker ps | /bin/awk -v pattern='^%p$' '$NF ~ pattern { print $NF; }')\" ]; then \
       /usr/bin/docker stop %p; \
     fi; \
     /usr/bin/docker rm %p; \
