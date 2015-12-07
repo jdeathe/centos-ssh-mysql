@@ -13,10 +13,10 @@
 
 [Unit]
 Description=CentOS-6 / MySQL // pool-1.1.1
-After=etcd.service
+After=etcd2.service
 After=docker.service
 Requires=docker.service
-Requires=etcd.service
+Requires=etcd2.service
 
 [Service]
 Restart=on-failure
