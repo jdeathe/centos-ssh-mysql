@@ -31,6 +31,6 @@ sudo systemctl enable /etc/systemd/system/${OPT_SERVICE_NAME_FULL}
 echo "WARNING: This may take a while if pulling large container images for the first time..."
 sudo systemctl restart ${OPT_SERVICE_NAME_FULL}
 
-sleep 10
+sleep 30
 
 docker logs ${OPT_SERVICE_NAME_SHORT}
