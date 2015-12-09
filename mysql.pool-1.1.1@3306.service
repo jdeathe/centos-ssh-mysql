@@ -28,6 +28,10 @@ Requires=etcd2.service
 Restart=on-failure
 RestartSec=30
 TimeoutStartSec=1200
+Environment="MOUNT_PATH_CONFIG=/etc/services-config"
+Environment="MOUNT_PATH_DATA=/var/services-data"
+Environment="DOCKER_IMAGE_NAME=jdeathe/centos-ssh-mysql"
+Environment="DOCKER_IMAGE_TAG=centos-6-1.3.0"
 
 # Create a data container for the configuration volume
 ExecStartPre=/bin/sudo /bin/bash -c \
@@ -38,13 +42,13 @@ ExecStartPre=/bin/sudo /bin/bash -c \
       /usr/bin/docker pull busybox:latest; \
     fi; \
   fi; \
-  if [[ -n $(/usr/bin/find /etc/services-config/%p/supervisor -maxdepth 1 -type f) ]] && [[ -n $(/usr/bin/find /etc/services-config/%p/mysql -maxdepth 1 -type f) ]]; then \
+  if [[ -n $(/usr/bin/find ${MOUNT_PATH_CONFIG}/%p/supervisor -maxdepth 1 -type f) ]] && [[ -n $(/usr/bin/find ${MOUNT_PATH_CONFIG}/%p/mysql -maxdepth 1 -type f) ]]; then \
     if [[ volume-config.%p != $(/usr/bin/docker ps -a | /bin/awk -v pattern='^volume-config.%p$' '$NF ~ pattern { print $NF; }') ]]; then \
       /usr/bin/docker run \
         --name volume-config.%p \
-        -v /etc/services-config/ssh.pool-1/ssh:/etc/services-config/ssh \
-        -v /etc/services-config/%p/supervisor:/etc/services-config/supervisor \
-        -v /etc/services-config/%p/mysql:/etc/services-config/mysql \
+        -v ${MOUNT_PATH_CONFIG}/ssh.pool-1/ssh:/etc/services-config/ssh \
+        -v ${MOUNT_PATH_CONFIG}/%p/supervisor:/etc/services-config/supervisor \
+        -v ${MOUNT_PATH_CONFIG}/%p/mysql:/etc/services-config/mysql \
         busybox:latest \
         /bin/true; \
     fi; \
@@ -52,11 +56,11 @@ ExecStartPre=/bin/sudo /bin/bash -c \
 
 # Initialisation: Pull or build image if required
 ExecStartPre=/bin/sudo /bin/bash -c \
-  "if [[ jdeathe/centos-ssh-mysql != $(/usr/bin/docker images | /bin/grep -e '^jdeathe/centos-ssh-mysql[ ]\{1,\}' | /bin/grep -o 'jdeathe/centos-ssh-mysql') ]]; then \
-    if [[ -f /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.3.0.tar.xz ]]; then \
-      /usr/bin/xz -dc /var/services-packages/jdeathe/centos-ssh-mysql.centos-6-1.3.0.tar.xz | /usr/bin/docker load; \
+  "if [[ ${DOCKER_IMAGE_NAME} != $(/usr/bin/docker images | /bin/grep -e \\\"^${DOCKER_IMAGE_NAME}[ ]\{1,\}\\\" | /bin/grep -o \\\"${DOCKER_IMAGE_NAME}\\\") ]]; then \
+    if [[ -f /var/services-packages/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz ]]; then \
+      /usr/bin/xz -dc /var/services-packages/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz | /usr/bin/docker load; \
     else \
-      /usr/bin/docker pull jdeathe/centos-ssh-mysql:centos-6-1.3.0; \
+      /usr/bin/docker pull ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
     fi; \
   fi"
 
@@ -73,14 +77,14 @@ ExecStart=/bin/sudo /bin/bash -c \
       --name %p \
       -p %i:3306 \
       --volumes-from volume-config.%p \
-      -v /var/services-data/mysql/pool-1:/var/lib/mysql \
-      jdeathe/centos-ssh-mysql:centos-6-1.3.0; \
+      -v ${MOUNT_PATH_DATA}/mysql/pool-1:/var/lib/mysql \
+      ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   else \
     /usr/bin/docker run \
       --name %p \
       -p %i:3306 \
-      -v /var/services-data/mysql/pool-1:/var/lib/mysql \
-      jdeathe/centos-ssh-mysql:centos-6-1.3.0; \
+      -v ${MOUNT_PATH_DATA}/mysql/pool-1:/var/lib/mysql \
+      ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   fi"
 
 ExecStartPost=/usr/bin/etcdctl set /services/mysql/pool-1/1.1 %H:%i
