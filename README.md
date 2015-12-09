@@ -13,9 +13,17 @@ Included in the build is the EPEL repository and SSH, vi and MySQL are installed
 
 [Supervisor](http://supervisord.org/) is used to start mysqld (and optionally the sshd) daemon when a docker container based on this image is run. To enable simple viewing of stdout for the sshd subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with `docker logs <docker-container-name>`.
 
-SSH is not required in order to access a terminal for the running container the preferred method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/command-keys.md) for details on how to set this up.
-
 If enabling and configuring SSH access, it is by public key authentication and, by default, the [Vagrant](http://www.vagrantup.com/) [insecure private key](https://github.com/mitchellh/vagrant/blob/master/keys/vagrant) is required.
+
+### SSH Alternatives
+
+SSH is not required in order to access a terminal for the running container. The simplest method is to use the docker exec command to run bash (or sh) as follows: 
+
+```
+$ docker exec -it <docker-name-or-id> bash
+```
+
+For cases where access to docker exec is not possible the preferred method is to use Command Keys and the nsenter command. See [command-keys.md](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/command-keys.md) for details on how to set this up.
 
 ## Quick Example
 
@@ -94,7 +102,33 @@ $ docker run \
 
 ### Running
 
-To run the a docker container from this image you can use the included [run.sh](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.sh) and [run.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.conf) scripts. The helper script will stop any running container of the same name, remove it and run a new daemonised container on an unspecified host port. Alternatively you can use the following to make the service available on port 3306 of the docker host.
+To run the a docker container from this image you can use the included [run.sh](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.sh) and [run.conf](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/run.conf) scripts. The helper script will stop any running container of the same name, remove it and run a new daemonised container on an unspecified host port. Alternatively you can use the following methods to make the service available on port 3306 of the docker host. 
+
+#### Using environment variables
+
+The following example sets up a custom MySQL database, user and user password on first run. This will only work when MySQL runs the initialisation process and values must be specified for MYSQL_USER and MYSQL_USER_DATABASE. If MYSQL_USER_PASSWORD is not specified or left empty a random password will be generated.
+
+*Note:* Settings applied by environment variables will override those set within configuration volumes from release 1.3.1. Existing installations that use the mysql-bootstrap.conf saved on a configuration "data" volume will not allow override by the environment variables. Also users can update mysql-bootstrap.conf to prevent the value being replaced by that set using the environment variable.
+
+```
+$ docker stop mysql.pool-1.1.1 && \
+  docker rm mysql.pool-1.1.1
+$ docker run -d \
+  --name mysql.pool-1.1.1 \
+  -p 3306:3306 \
+  --env "MYSQL_SUBNET=localhost" \
+  --env "MYSQL_USER=user" \
+  --env "MYSQL_USER_PASSWORD=" \
+  --env "MYSQL_USER_DATABASE=userdb" \
+  -v /var/services-data/mysql/pool-1:/var/lib/mysql \
+  jdeathe/centos-ssh-mysql:latest
+```
+
+#### Using configuration volume
+
+The following example uses the settings from the optonal configuration volume volume-config.mysql.pool-1.1.1 and maps a data volume for persistent storage of the MySQL data on the docker host.
+
+*Note:* If you are following on from the previous example you will need to delete or rename the data directory on the docker host if you want the database initialisation process to be carried out again.
 
 ```
 $ docker stop mysql.pool-1.1.1 && \

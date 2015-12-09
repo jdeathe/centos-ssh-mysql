@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
-# Print commands and their arguments as they are executed.
-#set -x
-
 source /etc/mysql-bootstrap.conf
 
 get_option ()
 {
-	value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
+	local value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
 	echo ${value:-$3}
 }
 
@@ -22,6 +19,7 @@ OPTS_MYSQL_SOCKET_DIR=${OPTS_MYSQL_SOCKET%/*}
 OPTS_MYSQL_SERVICE_USER=$(get_option mysqld user "mysql")
 OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
 OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
+OPTS_MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT:-30}
 
 if [ ${OPTS_FORCE_MYSQL_INSTALL} == "1" ]; then
 	echo "MySQL Database Installation: Purging datadir..."
@@ -64,7 +62,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;
-		GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' WITH GRANT OPTION;
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
@@ -80,14 +77,36 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		$(cat /tmp/mysql-init)
 	EOT
 
+	# Initilisation SQL should be free from blank and comment lines.
+	sed -i \
+		-e 's/-- .*$//' \
+		-e '/^$/d' \
+		/tmp/mysql-init
+
 	# Wait for the MySQL system table installation to complete
 	wait ${!}
 
 	echo "Initialising MySQL..."
 	/usr/bin/mysqld_safe --init-file=/tmp/mysql-init &
 
-	# Allow some time for the service to start
-	sleep 5
+	# Wait for the MySQL database to be initialised by testing 
+	COUNTER=${OPTS_MYSQL_INIT_LIMIT}
+	while [ ${COUNTER} -ge 1 ]; do
+		echo -ne " >> Timeout in: ${COUNTER}... \r"
+		sleep 1
+
+		HAVE_MYSQL_ACCESS=$(mysql --user=root --password=${OPTS_MYSQL_ROOT_PASSWORD} -e "use mysql" &> /dev/null)
+		if ${HAVE_MYSQL_ACCESS}; then
+			break
+		fi
+
+		COUNTER=$[${COUNTER}-1]
+	done
+
+	if [[ ${COUNTER} -eq 0 ]]; then
+		echo "MySQL initilisation failed after ${OPT_MYSQL_INIT_LIMIT} seconds."
+		exit 1
+	fi
 
 	echo "Stopping MySQL..."
 	killall -15 mysqld
@@ -106,9 +125,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	wait ${!}
 
 	rm -f /tmp/mysql-init
-else 
-	# Allow some time for supervisor_stdout to start
-	sleep 2
 fi
 
 exit 0
