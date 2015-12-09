@@ -53,7 +53,7 @@ get_docker_host_bridge_ip_addr ()
 
 		if [[ ${INTERFACE} == "docker0" ]] && [[ ${IP} != "127.0.0.1" ]]; then
 			# Assume 172.17.0.1/16 for remote docker hosts or VMs
-			IP=172.17.0.1/16
+			#IP=172.17.0.1/16
 		elif  [[ ${INTERFACE} == "eth1" ]] && [[ ${IP} != "127.0.0.1" ]]; then
 			# Assume a CIDR of /24 for remote docker hosts or VMs
 			IP=${IP}/24
