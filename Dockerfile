@@ -8,12 +8,14 @@
 #		jdeathe/centos-ssh-mysql:latest
 # LOGS:
 #	docker logs mysql.pool-1.1.1
-# ACCESS: 
+# ACCESS:
+#   docker exec -it mysql.pool-1.1.1 bash
+# ALTERNATIVE ACCESS:
 #	sudo /usr/bin/nsenter -m -u -i -n -p -t $(/usr/bin/docker inspect \
 #		--format '{{ .State.Pid }}' mysql.pool-1.1.1) /bin/bash
 #
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.3.1
+FROM jdeathe/centos-ssh:centos-6-1.4.0
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
