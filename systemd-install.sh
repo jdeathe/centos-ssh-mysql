@@ -5,6 +5,53 @@ if [[ $DIR_PATH == */* ]] && [[ $DIR_PATH != "$( pwd )" ]] ; then
 	cd $DIR_PATH
 fi
 
+have_docker_container_name ()
+{
+	local NAME=$1
+
+	if [[ -n $(docker ps -a | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+is_docker_container_name_running ()
+{
+	local NAME=$1
+
+	if [[ -n $(docker ps | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+remove_docker_container_name ()
+{
+	local NAME=$1
+
+	if have_docker_container_name ${NAME} ; then
+		if is_docker_container_name_running ${NAME} ; then
+			echo Stopping container ${NAME}
+			(docker stop ${NAME})
+		fi
+		echo Removing container ${NAME}
+		(docker rm ${NAME})
+	fi
+}
+
+loading_counter ()
+{
+	local COUNTER=${1:-10}
+
+	while [ ${COUNTER} -ge 1 ]; do
+		echo -ne "Loading in: ${COUNTER} \r"
+		sleep 1
+		COUNTER=$[${COUNTER}-1]
+	done
+}
+
 OPT_SERVICE_NAME_FULL=${SERVICE_NAME_FULL:-mysql.pool-1.1.1@3306.service}
 OPT_SERVICE_NAME_SHORT=$(cut -d '@' -f1 <<< "${OPT_SERVICE_NAME_FULL}")
 
@@ -20,9 +67,9 @@ if [[ ! -n $(find /etc/services-config/${OPT_SERVICE_NAME_SHORT}/mysql -maxdepth
 fi
 
 # Force 
-sudo systemctl stop ${OPT_SERVICE_NAME_FULL}
-docker rm volume-config.${OPT_SERVICE_NAME_SHORT}
-docker stop ${OPT_SERVICE_NAME_SHORT} && docker rm ${OPT_SERVICE_NAME_SHORT}
+sudo systemctl stop ${OPT_SERVICE_NAME_FULL} &> /dev/null
+remove_docker_container_name volume-config.${OPT_SERVICE_NAME_SHORT}
+remove_docker_container_name ${OPT_SERVICE_NAME_SHORT}
 
 sudo cp ${OPT_SERVICE_NAME_FULL} /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -31,6 +78,6 @@ sudo systemctl enable /etc/systemd/system/${OPT_SERVICE_NAME_FULL}
 echo "WARNING: This may take a while if pulling large container images for the first time..."
 sudo systemctl restart ${OPT_SERVICE_NAME_FULL}
 
-sleep 30
+loading_counter 30
 
 docker logs ${OPT_SERVICE_NAME_SHORT}
