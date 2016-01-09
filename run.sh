@@ -177,7 +177,7 @@ if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
 		$CMD || sudo $CMD
 	fi
 
-	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor -maxdepth 1 -type f) ]]; then
+	if [[ -z $(find ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor -maxdepth 1 -type f) ]]; then
 		CMD=$(cp -R etc/services-config/supervisor ${CONTAINER_MOUNT_PATH_CONFIG}/)
 		$CMD || sudo $CMD
 	fi
@@ -187,7 +187,7 @@ if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
 		$CMD || sudo $CMD
 	fi
 
-	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/mysql -maxdepth 1 -type f) ]]; then
+	if [[ -z $(find ${CONTAINER_MOUNT_PATH_CONFIG}/mysql -maxdepth 1 -type f) ]]; then
 		CMD=$(cp -R etc/services-config/mysql ${CONTAINER_MOUNT_PATH_CONFIG}/)
 		$CMD || sudo $CMD
 	fi

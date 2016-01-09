@@ -59,11 +59,11 @@ OPT_SERVICE_NAME_SHORT=$(cut -d '@' -f1 <<< "${OPT_SERVICE_NAME_FULL}")
 # Add required configuration directories
 mkdir -p /etc/services-config/${OPT_SERVICE_NAME_SHORT}/{mysql,supervisor}
 
-if [[ ! -n $(find /etc/services-config/${OPT_SERVICE_NAME_SHORT}/supervisor -maxdepth 1 -type f) ]]; then
+if [[ -z $(find /etc/services-config/${OPT_SERVICE_NAME_SHORT}/supervisor -maxdepth 1 -type f) ]]; then
 	cp -R etc/services-config/supervisor /etc/services-config/${OPT_SERVICE_NAME_SHORT}/
 fi
 
-if [[ ! -n $(find /etc/services-config/${OPT_SERVICE_NAME_SHORT}/mysql -maxdepth 1 -type f) ]]; then
+if [[ -z $(find /etc/services-config/${OPT_SERVICE_NAME_SHORT}/mysql -maxdepth 1 -type f) ]]; then
 	cp -R etc/services-config/mysql /etc/services-config/${OPT_SERVICE_NAME_SHORT}/
 fi
 
