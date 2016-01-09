@@ -213,7 +213,10 @@ if [[ -z ${1+x} ]]; then
 	DOCKER_COMMAND="/usr/bin/supervisord --configuration=/etc/supervisord.conf"
 else
 	# This is useful for running commands like 'export' or 'env' to check the 
-	# environment variables set by the --link docker option
+	# environment variables set by the --link docker option.
+	# 
+	# If you need to pipe to another command, quote the commands. e.g: 
+	#   ./run.sh "env | grep MYSQL | sort"
 	printf "Running container %s with CMD [/bin/bash -c '%s']" "${DOCKER_NAME}" "$@"
 	DOCKER_OPERATOR_OPTIONS="-it --entrypoint /bin/bash --env TERM=${TERM:-xterm}"
 	DOCKER_COMMAND="${@}"
