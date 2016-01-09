@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-DIR_PATH="$( if [ "$( echo "${0%/*}" )" != "$( echo "${0}" )" ] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
-if [[ $DIR_PATH == */* ]] && [[ $DIR_PATH != "$( pwd )" ]] ; then
-	cd $DIR_PATH
+# Change working directory
+DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
+if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]] ; then
+	cd ${DIR_PATH}
 fi
 
 source run.conf
@@ -35,10 +36,10 @@ remove_docker_container_name ()
 
 	if have_docker_container_name ${NAME} ; then
 		if is_docker_container_name_running ${NAME} ; then
-			echo Stopping container ${NAME}...
+			echo "Stopping container ${NAME}"
 			(docker stop ${NAME})
 		fi
-		echo Removing container ${NAME}...
+		echo "Removing container ${NAME}"
 		(docker rm ${NAME})
 	fi
 }
@@ -48,13 +49,13 @@ get_docker_host_bridge_ip_addr ()
 	local IP
 	local INTERFACE=${1:-docker0}
 
-	if [[ ${DOCKER_HOST} != "" ]]; then
+	if [[ -n ${DOCKER_HOST} ]]; then
 		IP=$(echo ${DOCKER_HOST} | grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")
 
 		if [[ ${INTERFACE} == "docker0" ]] && [[ ${IP} != "127.0.0.1" ]]; then
 			# Assume 172.17.0.1/16 for remote docker hosts or VMs
 			#IP=172.17.0.1/16
-		elif  [[ ${INTERFACE} == "eth1" ]] && [[ ${IP} != "127.0.0.1" ]]; then
+		elif [[ ${INTERFACE} == "eth1" ]] && [[ ${IP} != "127.0.0.1" ]]; then
 			# Assume a CIDR of /24 for remote docker hosts or VMs
 			IP=${IP}/24
 		fi
@@ -83,7 +84,6 @@ get_docker_host_bridge_cidr ()
 
 get_docker_host_mysql_subnet ()
 {
-
 	local IP=$(get_docker_host_bridge_ip ${1:-docker0})
 	local CIDR=$(get_docker_host_bridge_cidr ${1:-docker0})
 	local IP_OCTETS=(${IP//./ })
@@ -107,7 +107,7 @@ get_docker_host_mysql_subnet ()
 		echo ${IP_OCTETS[0]}.${IP_OCTETS[1]}.${IP_OCTETS[2]}.0/255.255.255.0
 		;;
 	*)
-		if [ "${IP}" == "" ] || [ "${IP}" == "0.0.0.0" ]; then
+		if [[ -z ${IP} ]] || [[ ${IP} == "0.0.0.0" ]]; then
 			# Could not determin IP address or CIDR
 			echo 0.0.0.0/0.0.0.0
 		else
@@ -130,7 +130,6 @@ get_docker_container_cidr ()
 
 get_docker_container_mysql_subnet ()
 {
-
 	local IP=$(get_docker_container_ip ${1:-})
 	local CIDR=$(get_docker_container_cidr ${1:-})
 	local IP_OCTETS=(${IP//./ })
@@ -168,64 +167,59 @@ if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
 	# For configuration that is shared across a group of containers
 	CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH=${MOUNT_PATH_CONFIG}/ssh.${SERVICE_UNIT_SHARED_GROUP}
 
-	if [ ! -d ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh ]; then
-			CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh)
-			$CMD || sudo $CMD
+	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh ]]; then
+		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh)
+		$CMD || sudo $CMD
 	fi
 
-	# Configuration for SSH is from jdeathe/centos-ssh/etc/services-config/ssh
-	#if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh -maxdepth 1 -type f) ]]; then
-	#		CMD=$(cp -R etc/services-config/ssh/ ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh/)
-	#		$CMD || sudo $CMD
-	#fi
-
-	if [ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor ]; then
-			CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor)
-			$CMD || sudo $CMD
+	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor ]]; then
+		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor)
+		$CMD || sudo $CMD
 	fi
 
 	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor -maxdepth 1 -type f) ]]; then
-			CMD=$(cp -R etc/services-config/supervisor ${CONTAINER_MOUNT_PATH_CONFIG}/)
-			$CMD || sudo $CMD
+		CMD=$(cp -R etc/services-config/supervisor ${CONTAINER_MOUNT_PATH_CONFIG}/)
+		$CMD || sudo $CMD
 	fi
 
-	if [ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/mysql ]; then
-			CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/mysql)
-			$CMD || sudo $CMD
+	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/mysql ]]; then
+		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/mysql)
+		$CMD || sudo $CMD
 	fi
 
 	if [[ ! -n $(find ${CONTAINER_MOUNT_PATH_CONFIG}/mysql -maxdepth 1 -type f) ]]; then
-			CMD=$(cp -R etc/services-config/mysql ${CONTAINER_MOUNT_PATH_CONFIG}/)
-			$CMD || sudo $CMD
+		CMD=$(cp -R etc/services-config/mysql ${CONTAINER_MOUNT_PATH_CONFIG}/)
+		$CMD || sudo $CMD
 	fi
 
-(
-set -x
-	docker run \
-		--name ${VOLUME_CONFIG_NAME} \
-		-v ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh:/etc/services-config/ssh \
-		-v ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor:/etc/services-config/supervisor \
-		-v ${CONTAINER_MOUNT_PATH_CONFIG}/mysql:/etc/services-config/mysql \
-		busybox:latest \
-		/bin/true;
-)
+	(
+	set -x
+		docker run \
+			--name ${VOLUME_CONFIG_NAME} \
+			-v ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh:/etc/services-config/ssh \
+			-v ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor:/etc/services-config/supervisor \
+			-v ${CONTAINER_MOUNT_PATH_CONFIG}/mysql:/etc/services-config/mysql \
+			busybox:latest \
+			/bin/true;
+	)
 fi
 
 # Force replace container of same name if found to exist
 remove_docker_container_name ${DOCKER_NAME}
 
-if [ -z ${1+x} ]; then
-	echo Running container ${NAME} as a background/daemon process...
+if [[ -z ${1+x} ]]; then
+	echo "Running container ${NAME} as a background/daemon process."
 	DOCKER_OPERATOR_OPTIONS="-d --entrypoint /bin/bash"
 	DOCKER_COMMAND="/usr/bin/supervisord --configuration=/etc/supervisord.conf"
 else
-	# This is usful for running commands like 'export' or 'env' to check the environment variables set by the --link docker option
-	echo Running container ${NAME} with command: /bin/bash -c \'"$@"\'...
+	# This is useful for running commands like 'export' or 'env' to check the 
+	# environment variables set by the --link docker option
+	printf "Running container %s with CMD [/bin/bash -c '%s']" "${NAME}" "$@"
 	DOCKER_OPERATOR_OPTIONS="--entrypoint /bin/bash"
 	DOCKER_COMMAND=${@}
 fi
 
-if [ SSH_SERVICE_ENABLED == "true" ]; then
+if [[ ${SSH_SERVICE_ENABLED} == "true" ]]; then
 	DOCKER_PORT_OPTIONS="-p 3306:3306 -p 2400:22"
 else
 	DOCKER_PORT_OPTIONS="-p 3306:3306"
@@ -240,7 +234,7 @@ docker run \
 	${DOCKER_OPERATOR_OPTIONS} \
 	--name ${DOCKER_NAME} \
 	${DOCKER_PORT_OPTIONS} \
-	--env MYSQL_SUBNET=${MYSQL_SUBNET} \
+	--env "MYSQL_SUBNET=${MYSQL_SUBNET}" \
 	--volumes-from ${VOLUME_CONFIG_NAME} \
 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
