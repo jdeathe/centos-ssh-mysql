@@ -208,15 +208,15 @@ fi
 remove_docker_container_name ${DOCKER_NAME}
 
 if [[ -z ${1+x} ]]; then
-	echo "Running container ${NAME} as a background/daemon process."
+	echo "Running container ${DOCKER_NAME} as a background/daemon process."
 	DOCKER_OPERATOR_OPTIONS="-d --entrypoint /bin/bash"
 	DOCKER_COMMAND="/usr/bin/supervisord --configuration=/etc/supervisord.conf"
 else
 	# This is useful for running commands like 'export' or 'env' to check the 
 	# environment variables set by the --link docker option
-	printf "Running container %s with CMD [/bin/bash -c '%s']" "${NAME}" "$@"
-	DOCKER_OPERATOR_OPTIONS="--entrypoint /bin/bash"
-	DOCKER_COMMAND=${@}
+	printf "Running container %s with CMD [/bin/bash -c '%s']" "${DOCKER_NAME}" "$@"
+	DOCKER_OPERATOR_OPTIONS="-it --entrypoint /bin/bash --env TERM=${TERM:-xterm}"
+	DOCKER_COMMAND="${@}"
 fi
 
 if [[ ${SSH_SERVICE_ENABLED} == "true" ]]; then
