@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-DIR_PATH="$( if [ "$( echo "${0%/*}" )" != "$( echo "${0}" )" ] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
-if [[ $DIR_PATH == */* ]] && [[ $DIR_PATH != "$( pwd )" ]] ; then
-	cd $DIR_PATH
+# Change working directory
+DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
+if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]] ; then
+	cd ${DIR_PATH}
 fi
 
 have_docker_container_name ()
@@ -33,10 +34,10 @@ remove_docker_container_name ()
 
 	if have_docker_container_name ${NAME} ; then
 		if is_docker_container_name_running ${NAME} ; then
-			echo Stopping container ${NAME}
+			echo "Stopping container ${NAME}"
 			(docker stop ${NAME})
 		fi
-		echo Removing container ${NAME}
+		echo "Removing container ${NAME}"
 		(docker rm ${NAME})
 	fi
 }
@@ -45,7 +46,7 @@ loading_counter ()
 {
 	local COUNTER=${1:-10}
 
-	while [ ${COUNTER} -ge 1 ]; do
+	while [[ ${COUNTER} -ge 1 ]]; do
 		echo -ne "Loading in: ${COUNTER} \r"
 		sleep 1
 		COUNTER=$[${COUNTER}-1]
@@ -75,7 +76,7 @@ sudo cp ${OPT_SERVICE_NAME_FULL} /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable /etc/systemd/system/${OPT_SERVICE_NAME_FULL}
 
-echo "WARNING: This may take a while if pulling large container images for the first time..."
+echo "WARNING: This may take a while if pulling large container images for the first time."
 sudo systemctl restart ${OPT_SERVICE_NAME_FULL}
 
 loading_counter 30
