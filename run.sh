@@ -12,22 +12,30 @@ have_docker_container_name ()
 {
 	local NAME=$1
 
-	if [[ -n $(docker ps -a | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
-		return 0
-	else
+	if [[ -z ${NAME} ]]; then
 		return 1
 	fi
+
+	if [[ -n $(docker ps -a | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
+		return 0
+	fi
+
+	return 1
 }
 
 is_docker_container_name_running ()
 {
 	local NAME=$1
 
-	if [[ -n $(docker ps | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
-		return 0
-	else
+	if [[ -z ${NAME} ]]; then
 		return 1
 	fi
+
+	if [[ -n $(docker ps | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
+		return 0
+	fi
+
+	return 1
 }
 
 remove_docker_container_name ()
