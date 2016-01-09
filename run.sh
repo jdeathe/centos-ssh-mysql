@@ -225,7 +225,7 @@ else
 	# 
 	# If you need to pipe to another command, quote the commands. e.g: 
 	#   ./run.sh "env | grep MYSQL | sort"
-	printf "Running container %s with CMD [/bin/bash -c '%s']" "${DOCKER_NAME}" "$@"
+	printf "Running container %s with CMD [/bin/bash -c '%s']\n" "${DOCKER_NAME}" "${*}"
 	DOCKER_OPERATOR_OPTIONS="-it --entrypoint /bin/bash --env TERM=${TERM:-xterm}"
 	DOCKER_COMMAND="${@}"
 fi
