@@ -54,8 +54,11 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	/usr/bin/mysql_install_db --verbose --force --skip-name-resolve --tmpdir=${OPTS_MYSQL_DATA_DIR} &
 
 	# Generate the initialisation SQL used secure MySQL
-	cat <<-EOT > /tmp/mysql-init
+	tee /tmp/mysql-init <<-EOT
 
+		-- =============================================================================
+		-- Initialisation SQL
+		-- -----------------------------------------------------------------------------
 		-- Secure MySQL
 		DELETE FROM mysql.user WHERE User='';
 		DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
@@ -70,11 +73,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
 		FLUSH PRIVILEGES;
-	EOT
-
-	cat <<-EOT
-		Initialisation SQL:
-		$(cat /tmp/mysql-init)
 	EOT
 
 	# Initilisation SQL should be free from blank and comment lines.
