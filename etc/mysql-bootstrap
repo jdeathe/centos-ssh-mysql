@@ -13,6 +13,15 @@ get_password ()
 	echo $(head -n 4096 /dev/urandom | tr -cd '[:alnum:]' | head -c ${1})
 }
 
+have_mysql_access ()
+{
+	local DB_USER=${1:-root}
+	local DB_PASSWORD=${2:-}
+	local DB_NAME=${3:-mysql}
+
+	echo $(mysql --user=${DB_USER} --password=${DB_PASSWORD} -e "use ${DB_NAME}")
+}
+
 OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
 OPTS_MYSQL_SOCKET=$(get_option mysqld socket "/var/run/mysqld/mysql.sock")
 OPTS_MYSQL_SOCKET_DIR=${OPTS_MYSQL_SOCKET%/*}
@@ -96,9 +105,12 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		echo -ne " >> Timeout in: ${COUNTER}... \r"
 		sleep 1
 
-		HAVE_MYSQL_ACCESS=$(mysql --user=root --password=${OPTS_MYSQL_ROOT_PASSWORD} -e "use mysql" &> /dev/null)
-		if ${HAVE_MYSQL_ACCESS}; then
-			break
+		if [[ -z $(have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql) ]]; then
+			if [[ -z ${MYSQL_USER} ]] || [[ -z ${MYSQL_USER_DATABASE} ]] || [[ -z ${MYSQL_USER_PASSWORD} ]] ; then
+				break
+			elif [[ -z $(have_mysql_access ${MYSQL_USER} ${MYSQL_USER_PASSWORD} ${MYSQL_USER_DATABASE}) ]]; then
+				break
+			fi
 		fi
 
 		COUNTER=$[${COUNTER}-1]
