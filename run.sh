@@ -212,7 +212,7 @@ if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
 	)
 fi
 
-# Force replace container of same name if found to exist
+# Application container
 remove_docker_container_name ${DOCKER_NAME}
 
 if [[ -z ${1+x} ]]; then
@@ -250,6 +250,21 @@ docker run \
 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
 )
+
+# Use environment variables instead of configuration volume
+# (
+# set -x
+# docker run \
+# 	${DOCKER_OPERATOR_OPTIONS} \
+# 	--name ${DOCKER_NAME} \
+# 	${DOCKER_PORT_OPTIONS} \
+# 	--env "MYSQL_SUBNET=localhost" \
+# 	--env "MYSQL_USER=user" \
+# 	--env "MYSQL_USER_PASSWORD=userPassw0rd!" \
+# 	--env "MYSQL_USER_DATABASE=userdb" \
+# 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
+# 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+# )
 
 if is_docker_container_name_running ${DOCKER_NAME} ; then
 	docker ps | awk -v pattern="${DOCKER_NAME}$" '$NF ~ pattern { print $0 ; }'
