@@ -47,6 +47,27 @@ If it is the first run there should be additional output showing the initialisat
 
 ![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysql-bootstrap.png)
 
+To access the mysql SQL shell run the following:
+
+```
+$ docker exec -it mysql.pool-1.1.1 mysql -p -u root
+```
+
+To import the Sakila example database from the [MySQL Documentation](https://dev.mysql.com/doc/index-other.html) and view the first 2 records from the film table.
+
+```
+$ export MYSQL_ROOT_PASSWORD=<your-password>
+$ docker exec -i mysql.pool-1.1.1 \
+  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
+  <<< $(tar -xzOf /dev/stdin <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) sakila-db/sakila-schema.sql)
+$ docker exec -i mysql.pool-1.1.1 \
+  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
+  <<< $(tar -xzOf /dev/stdin <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) sakila-db/sakila-data.sql)
+$ docker exec -it  mysql.pool-1.1.1 \
+  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
+  -e "SELECT * FROM sakila.film LIMIT 2 \G;"
+```
+
 *Note:* If you need a clean installation, (and wish to destroy all existing MySQL databases for the shared pool), simply remove the contents of ```/var/services-data/mysql/pool-1``` and restart the container using: ```docker restart mysql.pool-1.1.1```.
 
 ## Instructions
