@@ -222,10 +222,9 @@ fi
 # Application container
 remove_docker_container_name ${DOCKER_NAME}
 
-if [[ -z ${1+x} ]]; then
+if [[ ${#} -eq 0 ]]; then
 	echo "Running container ${DOCKER_NAME} as a background/daemon process."
-	DOCKER_OPERATOR_OPTIONS="-d --entrypoint /bin/bash"
-	DOCKER_COMMAND="/usr/bin/supervisord --configuration=/etc/supervisord.conf"
+	DOCKER_OPERATOR_OPTIONS="-d"
 else
 	# This is useful for running commands like 'export' or 'env' to check the 
 	# environment variables set by the --link docker option.
@@ -234,7 +233,6 @@ else
 	#   ./run.sh "env | grep MYSQL | sort"
 	printf "Running container %s with CMD [/bin/bash -c '%s']\n" "${DOCKER_NAME}" "${*}"
 	DOCKER_OPERATOR_OPTIONS="-it --entrypoint /bin/bash --env TERM=${TERM:-xterm}"
-	DOCKER_COMMAND="${@}"
 fi
 
 if [[ ${SSH_SERVICE_ENABLED} == true ]]; then
@@ -265,7 +263,7 @@ docker run \
 	${DOCKER_PORT_OPTIONS} \
 	--env "MYSQL_SUBNET=${MYSQL_SUBNET}" \
 	${DOCKER_VOLUMES_FROM:-} \
-	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+	${DOCKER_IMAGE_REPOSITORY_NAME}${@:+ -c }"${@}"
 )
 
 # Use environment variables instead of configuration volume
@@ -280,7 +278,7 @@ docker run \
 # 	--env "MYSQL_USER_PASSWORD=appPassw0rd!" \
 # 	--env "MYSQL_USER_DATABASE=app-db" \
 # 	${DOCKER_VOLUMES_FROM:-} \
-# 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+# 	${DOCKER_IMAGE_REPOSITORY_NAME}${@:+ -c }"${@}"
 # )
 
 if is_docker_container_name_running ${DOCKER_NAME}; then
