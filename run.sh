@@ -276,9 +276,9 @@ docker run \
 # 	--name ${DOCKER_NAME} \
 # 	${DOCKER_PORT_OPTIONS} \
 # 	--env "MYSQL_SUBNET=localhost" \
-# 	--env "MYSQL_USER=user" \
-# 	--env "MYSQL_USER_PASSWORD=userPassw0rd!" \
-# 	--env "MYSQL_USER_DATABASE=userdb" \
+# 	--env "MYSQL_USER=app-user" \
+# 	--env "MYSQL_USER_PASSWORD=appPassw0rd!" \
+# 	--env "MYSQL_USER_DATABASE=app-db" \
 # 	${DOCKER_VOLUMES_FROM:-} \
 # 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
 # )
