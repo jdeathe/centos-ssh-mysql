@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Change working directory
-DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
-if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]] ; then
+DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]]; then cd "$( echo "${0%/*}" )"; fi; pwd )"
+if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]]; then
 	cd ${DIR_PATH}
 fi
 
@@ -42,8 +42,8 @@ remove_docker_container_name ()
 {
 	local NAME=$1
 
-	if have_docker_container_name ${NAME} ; then
-		if is_docker_container_name_running ${NAME} ; then
+	if have_docker_container_name ${NAME}; then
+		if is_docker_container_name_running ${NAME}; then
 			echo "Stopping container ${NAME}"
 			(docker stop ${NAME})
 		fi
@@ -168,57 +168,63 @@ get_docker_container_mysql_subnet ()
 }
 
 # Configuration volume
-if ! have_docker_container_name ${VOLUME_CONFIG_NAME} ; then
-	# For configuration that is specific to the running container
-	CONTAINER_MOUNT_PATH_CONFIG=${MOUNT_PATH_CONFIG}/${DOCKER_NAME}
+if [[ ${VOLUME_CONFIG_ENABLED} == true ]] && ! have_docker_container_name ${VOLUME_CONFIG_NAME}; then
+	echo "Creating configuration volume container."
 
-	# For configuration that is shared across a group of containers
-	CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH=${MOUNT_PATH_CONFIG}/ssh.${SERVICE_UNIT_SHARED_GROUP}
-
-	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh ]]; then
-		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh)
-		$CMD || sudo $CMD
-	fi
-
-	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor ]]; then
-		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor)
-		$CMD || sudo $CMD
-	fi
-
-	if [[ -z $(find ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor -maxdepth 1 -type f) ]]; then
-		CMD=$(cp -R etc/services-config/supervisor ${CONTAINER_MOUNT_PATH_CONFIG}/)
-		$CMD || sudo $CMD
-	fi
-
-	if [[ ! -d ${CONTAINER_MOUNT_PATH_CONFIG}/mysql ]]; then
-		CMD=$(mkdir -p ${CONTAINER_MOUNT_PATH_CONFIG}/mysql)
-		$CMD || sudo $CMD
-	fi
-
-	if [[ -z $(find ${CONTAINER_MOUNT_PATH_CONFIG}/mysql -maxdepth 1 -type f) ]]; then
-		CMD=$(cp -R etc/services-config/mysql ${CONTAINER_MOUNT_PATH_CONFIG}/)
-		$CMD || sudo $CMD
+	if [[ ${VOLUME_CONFIG_NAMED} == true ]]; then
+		DOCKER_VOLUME_MAPPING=${VOLUME_CONFIG_NAME}:/etc/services-config
+	else
+		DOCKER_VOLUME_MAPPING=/etc/services-config
 	fi
 
 	(
 	set -x
-		docker run \
-			--name ${VOLUME_CONFIG_NAME} \
-			-v ${CONTAINER_MOUNT_PATH_CONFIG_SHARED_SSH}/ssh:/etc/services-config/ssh \
-			-v ${CONTAINER_MOUNT_PATH_CONFIG}/supervisor:/etc/services-config/supervisor \
-			-v ${CONTAINER_MOUNT_PATH_CONFIG}/mysql:/etc/services-config/mysql \
-			busybox:latest \
-			/bin/true;
+	docker run \
+		--name ${VOLUME_CONFIG_NAME} \
+		-v ${DOCKER_VOLUME_MAPPING} \
+		${DOCKER_IMAGE_REPOSITORY_NAME} \
+		/bin/true;
+	)
+
+	# Named data volumes require files to be copied into place.
+	if [[ ${VOLUME_CONFIG_NAMED} == true ]]; then
+		echo "Populating configuration volume."
+		(
+		set -x
+		docker cp \
+			./etc/services-config/. \
+			${DOCKER_VOLUME_MAPPING};
+		)
+	fi
+fi
+
+# Data volume mapping
+if [[ ${VOLUME_DATA_NAMED} == true ]]; then
+	DOCKER_DATA_VOLUME_MAPPING=${VOLUME_DATA_NAME}:/var/lib/mysql
+else
+	DOCKER_DATA_VOLUME_MAPPING=/var/lib/mysql
+fi
+
+# Data volume container
+if [[ ${VOLUME_DATA_ENABLED} == true ]] && ! have_docker_container_name ${VOLUME_DATA_NAME}; then
+	echo "Creating data volume container."
+
+	(
+	set -x
+	docker run \
+		--name ${VOLUME_DATA_NAME} \
+		-v ${DOCKER_DATA_VOLUME_MAPPING} \
+		${DOCKER_IMAGE_REPOSITORY_NAME} \
+		/bin/true;
 	)
 fi
 
 # Application container
 remove_docker_container_name ${DOCKER_NAME}
 
-if [[ -z ${1+x} ]]; then
+if [[ ${#} -eq 0 ]]; then
 	echo "Running container ${DOCKER_NAME} as a background/daemon process."
-	DOCKER_OPERATOR_OPTIONS="-d --entrypoint /bin/bash"
-	DOCKER_COMMAND="/usr/bin/supervisord --configuration=/etc/supervisord.conf"
+	DOCKER_OPERATOR_OPTIONS="-d"
 else
 	# This is useful for running commands like 'export' or 'env' to check the 
 	# environment variables set by the --link docker option.
@@ -227,16 +233,26 @@ else
 	#   ./run.sh "env | grep MYSQL | sort"
 	printf "Running container %s with CMD [/bin/bash -c '%s']\n" "${DOCKER_NAME}" "${*}"
 	DOCKER_OPERATOR_OPTIONS="-it --entrypoint /bin/bash --env TERM=${TERM:-xterm}"
-	DOCKER_COMMAND="${@}"
 fi
 
-if [[ ${SSH_SERVICE_ENABLED} == "true" ]]; then
-	DOCKER_PORT_OPTIONS="-p 3306:3306 -p 2400:22"
+if [[ ${SSH_SERVICE_ENABLED} == true ]]; then
+	DOCKER_PORT_OPTIONS="-p ${DOCKER_HOST_PORT_MYSQL:-}:3306 -p ${DOCKER_HOST_PORT_SSH:-}:22"
 else
-	DOCKER_PORT_OPTIONS="-p 3306:3306"
+	DOCKER_PORT_OPTIONS="-p ${DOCKER_HOST_PORT_MYSQL:-}:3306"
 fi
 
 MYSQL_SUBNET=${MYSQL_SUBNET:-$(get_docker_host_mysql_subnet docker0)}
+
+DOCKER_VOLUMES_FROM=
+if [[ ${VOLUME_CONFIG_ENABLED} == true ]] && have_docker_container_name ${VOLUME_CONFIG_NAME}; then
+	DOCKER_VOLUMES_FROM="--volumes-from ${VOLUME_CONFIG_NAME}"
+fi
+
+if [[ ${VOLUME_DATA_ENABLED} == true ]] && have_docker_container_name ${VOLUME_DATA_NAME}; then
+	DOCKER_VOLUMES_FROM+="${DOCKER_VOLUMES_FROM:+ }--volumes-from ${VOLUME_DATA_NAME}"
+else
+	DOCKER_VOLUMES_FROM+="${DOCKER_VOLUMES_FROM:+ }-v ${DOCKER_DATA_VOLUME_MAPPING}"
+fi
 
 # In a sub-shell set xtrace - prints the docker command to screen for reference
 (
@@ -246,9 +262,8 @@ docker run \
 	--name ${DOCKER_NAME} \
 	${DOCKER_PORT_OPTIONS} \
 	--env "MYSQL_SUBNET=${MYSQL_SUBNET}" \
-	--volumes-from ${VOLUME_CONFIG_NAME} \
-	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
-	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+	${DOCKER_VOLUMES_FROM:-} \
+	${DOCKER_IMAGE_REPOSITORY_NAME}${@:+ -c }"${@}"
 )
 
 # Use environment variables instead of configuration volume
@@ -259,14 +274,14 @@ docker run \
 # 	--name ${DOCKER_NAME} \
 # 	${DOCKER_PORT_OPTIONS} \
 # 	--env "MYSQL_SUBNET=localhost" \
-# 	--env "MYSQL_USER=user" \
-# 	--env "MYSQL_USER_PASSWORD=userPassw0rd!" \
-# 	--env "MYSQL_USER_DATABASE=userdb" \
-# 	-v ${MOUNT_PATH_DATA}/${SERVICE_UNIT_NAME}/${SERVICE_UNIT_SHARED_GROUP}:/var/lib/mysql \
-# 	${DOCKER_IMAGE_REPOSITORY_NAME} -c "${DOCKER_COMMAND}"
+# 	--env "MYSQL_USER=app-user" \
+# 	--env "MYSQL_USER_PASSWORD=appPassw0rd!" \
+# 	--env "MYSQL_USER_DATABASE=app-db" \
+# 	${DOCKER_VOLUMES_FROM:-} \
+# 	${DOCKER_IMAGE_REPOSITORY_NAME}${@:+ -c }"${@}"
 # )
 
-if is_docker_container_name_running ${DOCKER_NAME} ; then
-	docker ps | awk -v pattern="${DOCKER_NAME}$" '$NF ~ pattern { print $0 ; }'
+if is_docker_container_name_running ${DOCKER_NAME}; then
+	docker ps | awk -v pattern="${DOCKER_NAME}$" '$NF ~ pattern { print $0; }'
 	echo " ---> Docker container running."
 fi

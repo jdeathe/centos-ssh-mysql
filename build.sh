@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Change working directory
-DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]] ; then cd "$( echo "${0%/*}" )"; fi; pwd )"
-if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]] ; then
+DIR_PATH="$( if [[ $( echo "${0%/*}" ) != $( echo "${0}" ) ]]; then cd "$( echo "${0%/*}" )"; fi; pwd )"
+if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]]; then
 	cd ${DIR_PATH}
 fi
 
@@ -20,7 +20,9 @@ show_docker_image ()
 		NAME_PARTS[1]='latest'
 	fi
 
-	docker images | grep -e "^${NAME_PARTS[0]}[ ]\{1,\}${NAME_PARTS[1]}"
+	docker images | awk -v FS='[ ]+' \
+		-v pattern="^${NAME_PARTS[0]}[ ]+${NAME_PARTS[1]} " \
+		'$0 ~ pattern { print $0; }'
 }
 
 echo "Building ${DOCKER_IMAGE_REPOSITORY_NAME}"
