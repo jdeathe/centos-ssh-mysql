@@ -11,7 +11,7 @@ The [Dockerfile](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Docke
 
 Included in the build are the [EPEL](http://fedoraproject.org/wiki/EPEL) and [IUS](https://ius.io/) repositories. Installed packages include [OpenSSH](http://www.openssh.com/portable.html) secure shell, [vim-minimal](http://www.vim.org/), [MySQL Server and client programs](http://www.mysql.com) are installed along with python-setuptools, [supervisor](http://supervisord.org/) and [supervisor-stdout](https://github.com/coderanger/supervisor-stdout).
 
-Supervisor is used to start the mysqld server daemon when a docker container based on this image is run. To enable simple viewing of stdout for the sshd subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with ```docker logs <docker-container-name>```.
+Supervisor is used to start the mysqld server daemon when a docker container based on this image is run. To enable simple viewing of stdout for the service's subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with ```docker logs <docker-container-name>```.
 
 If enabling and configuring SSH access, it is by public key authentication and, by default, the [Vagrant](http://www.vagrantup.com/) [insecure private key](https://github.com/mitchellh/vagrant/blob/master/keys/vagrant) is required.
 
@@ -169,8 +169,8 @@ To make changes to the configuration files you need a running container that use
 
 ```
 $ docker run --rm -it \
-  --volumes-from volume-config.ssh.pool-1.1.1 \
-  jdeathe/centos-ssh:latest \
+  --volumes-from volume-config.mysql.pool-1.1.1 \
+  jdeathe/centos-ssh-mysql:latest \
   vi /etc/services-config/<path_to_file>
 ```
 
@@ -202,7 +202,7 @@ $ docker run -d \
   --env "MYSQL_USER=app-user" \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
-  -v mysql.pool-1.1.1:/var/lib/mysql \
+  -v volume-data.mysql.pool-1.1.1:/var/lib/mysql \
   jdeathe/centos-ssh-mysql:latest
 ```
 
@@ -220,7 +220,7 @@ $ docker run -d \
   -p 3306:3306 \
   --env "MYSQL_SUBNET=%" \
   --volumes-from volume-config.mysql.pool-1.1.1 \
-  -v mysql.pool-1.1.1:/var/lib/mysql \
+  -v volume-data.mysql.pool-1.1.1:/var/lib/mysql \
   jdeathe/centos-ssh-mysql:latest
 ```
 
