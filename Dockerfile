@@ -13,7 +13,7 @@ MAINTAINER James Deathe <james.deathe@gmail.com>
 # -----------------------------------------------------------------------------
 RUN rpm --rebuilddb \
 	&& yum --setopt=tsflags=nodocs -y install \
-	mysql-server-5.1.73-5.el6_6 \
+	mysql-server-5.1.73-5.el6_7.1 \
 	&& yum versionlock add \
 	mysql* \
 	; rm -rf /var/cache/yum/* \
