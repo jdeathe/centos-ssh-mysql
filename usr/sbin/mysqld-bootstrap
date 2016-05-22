@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source /etc/mysql-bootstrap.conf
+source /etc/mysqld-bootstrap.conf
 
 get_option ()
 {
