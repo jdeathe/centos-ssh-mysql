@@ -10,7 +10,16 @@ get_option ()
 
 get_password ()
 {
-	echo $(head -n 4096 /dev/urandom | tr -cd '[:alnum:]' | head -c ${1})
+	local PASSWORD_LENGTH=${1:-8}
+	local PASSWORD=$(
+		head -n 4096 /dev/urandom 2> /dev/null | \
+		tr -cd '[:alnum:]' 2> /dev/null | \
+		head -c ${PASSWORD_LENGTH} 2> /dev/null
+	)
+
+	printf -- "%s" "${PASSWORD}"
+
+	return 0
 }
 
 have_mysql_access ()
