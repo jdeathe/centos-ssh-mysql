@@ -3,22 +3,16 @@
 # 
 # CentOS-6, MySQL 5.1
 # 
-# RUN:
-#	docker run -d --name mysql.pool-1.1.1 -p 3306:3306 \
-#		jdeathe/centos-ssh-mysql:latest
-# LOGS:
-#	docker logs mysql.pool-1.1.1
-# ACCESS:
-#   docker exec -it mysql.pool-1.1.1 mysql -p -u root
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.4.1
+FROM jdeathe/centos-ssh:centos-6-1.5.2
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
-RUN yum --setopt=tsflags=nodocs -y install \
+RUN rpm --rebuilddb \
+	&& yum --setopt=tsflags=nodocs -y install \
 	mysql-server-5.1.73-5.el6_6 \
 	&& yum versionlock add \
 	mysql* \
@@ -44,10 +38,10 @@ EXPOSE 3306
 # -----------------------------------------------------------------------------
 # Set default environment variables
 # -----------------------------------------------------------------------------
-ENV MYSQL_ROOT_PASSWORD ""
-ENV MYSQL_SUBNET "127.0.0.1"
-ENV MYSQL_USER ""
-ENV MYSQL_USER_DATABASE ""
-ENV MYSQL_USER_PASSWORD ""
+ENV MYSQL_ROOT_PASSWORD="" \
+	MYSQL_SUBNET="127.0.0.1" \
+	MYSQL_USER="" \
+	MYSQL_USER_DATABASE="" \
+	MYSQL_USER_PASSWORD=""
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
