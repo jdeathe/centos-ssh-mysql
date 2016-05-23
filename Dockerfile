@@ -26,14 +26,14 @@ ADD usr/sbin/mysqld-bootstrap /usr/sbin/
 ADD etc/services-config/mysql/my.cnf \
 	etc/services-config/mysql/mysqld-bootstrap.conf \
 	/etc/services-config/mysql/
-ADD etc/services-config/supervisor/supervisord.d/mysqld.conf \
-	etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf \
+ADD etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf \
+	etc/services-config/supervisor/supervisord.d/mysqld-wrapper.conf \
 	/etc/services-config/supervisor/supervisord.d/
 
 RUN ln -sf /etc/services-config/mysql/my.cnf /etc/my.cnf \
 	&& ln -sf /etc/services-config/mysql/mysqld-bootstrap.conf /etc/mysqld-bootstrap.conf \
-	&& ln -sf /etc/services-config/supervisor/supervisord.d/mysqld.conf /etc/supervisord.d/mysqld.conf \
 	&& ln -sf /etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf /etc/supervisord.d/mysqld-bootstrap.conf \
+	&& ln -sf /etc/services-config/supervisor/supervisord.d/mysqld-wrapper.conf /etc/supervisord.d/mysqld-wrapper.conf \
 	&& chmod 600 /etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 /usr/sbin/mysqld-bootstrap
 
