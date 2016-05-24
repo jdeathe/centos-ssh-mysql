@@ -120,7 +120,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	mysqld_safe \
 		--init-file=/tmp/mysql-init \
 		&
-	PIDS[1]=${!}
 
 	# Wait for the MySQL database to be initialised by testing 
 	COUNTER=${OPTS_MYSQL_INIT_LIMIT}
@@ -145,17 +144,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	fi
 
 	echo "Stopping MySQL..."
-
-	# Wait for the MySQL daemon to stop
-	if [[ -s /var/run/mysqld/mysqld.pid ]]; then
-		PIDS[2]=$(cat /var/run/mysqld/mysqld.pid)
-		kill -15 ${PIDS[2]}
-		wait ${PIDS[2]} 2> /dev/null
-		[[ -n ${PIDS[1]} ]] && wait ${PIDS[1]} 2> /dev/null
-	else
-		killall -15 mysqld
-		wait ${!} 2> /dev/null
-	fi
+	killall -w -15 mysqld
 
 	rm -f /tmp/mysql-init
 
