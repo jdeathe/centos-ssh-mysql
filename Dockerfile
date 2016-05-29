@@ -18,8 +18,9 @@ MAINTAINER James Deathe <james.deathe@gmail.com>
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
-RUN yum --setopt=tsflags=nodocs -y install \
-	mysql-server-5.1.73-5.el6_6 \
+RUN rpm --rebuilddb \
+	&& yum --setopt=tsflags=nodocs -y install \
+	mysql-server-5.1.73-7.el6 \
 	&& yum versionlock add \
 	mysql* \
 	; rm -rf /var/cache/yum/* \
