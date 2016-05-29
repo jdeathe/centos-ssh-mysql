@@ -8,8 +8,13 @@ source /etc/mysqld-bootstrap.conf
 
 get_option ()
 {
-	local value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
-	echo ${value:-$3}
+	local value=$(
+		/usr/bin/my_print_defaults "${1}" | \
+		sed -n "s/^--${2}=//p" | \
+		tail -n 1
+	)
+
+	printf -- "%s" "${value:-$3}"
 }
 
 get_password ()
