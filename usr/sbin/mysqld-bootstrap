@@ -39,6 +39,7 @@ have_mysql_access ()
 
 	printf -- '%s' $(
 		mysql \
+		--protocol=tcp \
 		--user=${DB_USER} \
 		--password=${DB_PASSWORD} \
 		-e "use ${DB_NAME}" \
@@ -88,6 +89,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		--verbose \
 		--force \
 		--skip-name-resolve \
+		--skip-networking \
 		--tmpdir=${OPTS_MYSQL_DATA_DIR} &
 	PIDS[0]=${!}
 
@@ -123,6 +125,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	echo "Initialising MySQL..."
 	mysqld_safe \
+		--skip-networking \
 		--init-file=/tmp/mysql-init \
 		&
 
