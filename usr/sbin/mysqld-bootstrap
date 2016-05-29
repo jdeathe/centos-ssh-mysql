@@ -1,16 +1,34 @@
 #!/usr/bin/env bash
 
-source /etc/mysql-bootstrap.conf
+TIMER_START=$(
+	date +%s.%N
+)
+
+source /etc/mysqld-bootstrap.conf
 
 get_option ()
 {
-	local value=$(/usr/bin/my_print_defaults "${1}" | sed -n "s/^--${2}=//p" | tail -n 1)
-	echo ${value:-$3}
+	local value=$(
+		/usr/bin/my_print_defaults "${1}" | \
+		sed -n "s/^--${2}=//p" | \
+		tail -n 1
+	)
+
+	printf -- "%s" "${value:-$3}"
 }
 
 get_password ()
 {
-	echo $(head -n 4096 /dev/urandom | tr -cd '[:alnum:]' | head -c ${1})
+	local PASSWORD_LENGTH=${1:-8}
+	local PASSWORD=$(
+		head -n 4096 /dev/urandom | \
+		tr -cd '[:alnum:]' | \
+		cut -c1-${PASSWORD_LENGTH}
+	)
+
+	printf -- "%s" "${PASSWORD}"
+
+	return 0
 }
 
 have_mysql_access ()
@@ -19,7 +37,13 @@ have_mysql_access ()
 	local DB_PASSWORD=${2:-}
 	local DB_NAME=${3:-mysql}
 
-	echo $(mysql --user=${DB_USER} --password=${DB_PASSWORD} -e "use ${DB_NAME}")
+	printf -- '%s' $(
+		mysql \
+		--user=${DB_USER} \
+		--password=${DB_PASSWORD} \
+		-e "use ${DB_NAME}" \
+		2> /dev/null
+	)
 }
 
 OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
@@ -59,12 +83,13 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
 
-	# Initialise MySQL Data Directory
+	echo "Initalising MySQL data directory."
 	mysql_install_db \
 		--verbose \
 		--force \
 		--skip-name-resolve \
 		--tmpdir=${OPTS_MYSQL_DATA_DIR} &
+	PIDS[0]=${!}
 
 	# Generate the initialisation SQL used secure MySQL
 	tee /tmp/mysql-init <<-EOT
@@ -94,16 +119,18 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		/tmp/mysql-init
 
 	# Wait for the MySQL system table installation to complete
-	wait ${!}
+	[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
 
 	echo "Initialising MySQL..."
-	mysqld_safe --init-file=/tmp/mysql-init &
+	mysqld_safe \
+		--init-file=/tmp/mysql-init \
+		&
 
 	# Wait for the MySQL database to be initialised by testing 
 	COUNTER=${OPTS_MYSQL_INIT_LIMIT}
+	COUNTER_STEP_TIME=0.5
 	while [[ ${COUNTER} -ge 1 ]]; do
-		echo -ne " >> Timeout in: ${COUNTER}... \r"
-		sleep 1
+		sleep ${COUNTER_STEP_TIME}
 
 		if [[ -z $(have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql) ]]; then
 			if [[ -z ${MYSQL_USER} ]] || [[ -z ${MYSQL_USER_DATABASE} ]] || [[ -z ${MYSQL_USER_PASSWORD} ]] ; then
@@ -113,7 +140,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 			fi
 		fi
 
-		COUNTER=$[${COUNTER}-1]
+		COUNTER=$[${COUNTER}-${COUNTER_STEP_TIME}]
 	done
 
 	if [[ ${COUNTER} -eq 0 ]]; then
@@ -122,7 +149,16 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	fi
 
 	echo "Stopping MySQL..."
-	killall -15 mysqld
+	killall -w -15 mysqld
+
+	rm -f /tmp/mysql-init
+
+	TIMER_TOTAL=$(
+		echo - | awk "\
+		{ T1="${TIMER_START}" } \
+		{ T2="$(date +%s.%N)" } \
+		{ print T2 - T1; }"
+	)
 
 	cat <<-EOT
 
@@ -131,13 +167,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		--------------------------------------------------------------------------------
 		root@localhost : ${OPTS_MYSQL_ROOT_PASSWORD}
 		--------------------------------------------------------------------------------
-		
+		${TIMER_TOTAL}
+
 	EOT
-
-	# Wait for the MySQL daemon to stop
-	wait ${!}
-
-	rm -f /tmp/mysql-init
 fi
 
 exit 0
