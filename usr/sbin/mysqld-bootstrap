@@ -37,13 +37,16 @@ have_mysql_access ()
 	local DB_PASSWORD=${2:-}
 	local DB_NAME=${3:-mysql}
 
-	printf -- '%s' $(
-		mysql \
+	if mysql \
+		--protocol=socket \
 		--user=${DB_USER} \
 		--password=${DB_PASSWORD} \
 		-e "use ${DB_NAME}" \
-		2> /dev/null
-	)
+		2> /dev/null; then
+		return 0
+	fi
+
+	return 1
 }
 
 OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
@@ -88,6 +91,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		--verbose \
 		--force \
 		--skip-name-resolve \
+		--skip-networking \
 		--tmpdir=${OPTS_MYSQL_DATA_DIR} &
 	PIDS[0]=${!}
 
@@ -123,33 +127,36 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	echo "Initialising MySQL..."
 	mysqld_safe \
+		--skip-networking \
 		--init-file=/tmp/mysql-init \
 		&
 
 	# Wait for the MySQL database to be initialised by testing 
-	COUNTER=${OPTS_MYSQL_INIT_LIMIT}
-	COUNTER_STEP_TIME=0.5
-	while [[ ${COUNTER} -ge 1 ]]; do
-		sleep ${COUNTER_STEP_TIME}
+	COUNTER=$(( 2 * ${OPTS_MYSQL_INIT_LIMIT} ))
+	while (( ${COUNTER} >= 1 )); do
+		sleep 0.5
 
-		if [[ -z $(have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql) ]]; then
+		if have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql; then
 			if [[ -z ${MYSQL_USER} ]] || [[ -z ${MYSQL_USER_DATABASE} ]] || [[ -z ${MYSQL_USER_PASSWORD} ]] ; then
 				break
-			elif [[ -z $(have_mysql_access ${MYSQL_USER} ${MYSQL_USER_PASSWORD} ${MYSQL_USER_DATABASE}) ]]; then
+			elif have_mysql_access ${MYSQL_USER} ${MYSQL_USER_PASSWORD} ${MYSQL_USER_DATABASE}; then
 				break
 			fi
 		fi
 
-		COUNTER=$[${COUNTER}-${COUNTER_STEP_TIME}]
+		(( COUNTER -= 1 ))
 	done
 
 	if [[ ${COUNTER} -eq 0 ]]; then
-		echo "MySQL initilisation failed after ${OPT_MYSQL_INIT_LIMIT} seconds."
+		printf -- "MySQL initilisation failed after %s seconds." "${OPTS_MYSQL_INIT_LIMIT}"
 		exit 1
 	fi
 
 	echo "Stopping MySQL..."
-	killall -w -15 mysqld
+	killall \
+		-w \
+		-15 \
+		mysqld
 
 	rm -f /tmp/mysql-init
 
