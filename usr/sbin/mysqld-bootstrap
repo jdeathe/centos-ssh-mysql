@@ -274,21 +274,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		sleep 0.5
 
 		if have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql; then
-			if [[ -z ${OPTS_MYSQL_USER} ]] \
-				|| [[ -z ${OPTS_MYSQL_USER_DATABASE} ]] \
-				|| [[ -z ${OPTS_MYSQL_USER_PASSWORD} ]]; then
-				break
-			elif [[ ${OPTS_MYSQL_USER} == root ]]; then \
-				# Cannot test root
-				break
-			elif [[ ${OPTS_MYSQL_USER} != root ]] \
-				&& [[ ${OPTS_MYSQL_USER_HOST} != localhost ]] \
-				&& [[ ${OPTS_MYSQL_USER_HOST} != % ]]; then
-				# Cannot test user from hosts other than localhost
-				break
-			elif have_mysql_access ${OPTS_MYSQL_USER} ${OPTS_MYSQL_USER_PASSWORD} ${OPTS_MYSQL_USER_DATABASE}; then
-				break
-			fi
+			break
 		fi
 
 		(( COUNTER -= 1 ))
