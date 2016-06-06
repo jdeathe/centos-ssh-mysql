@@ -1,0 +1,3 @@
+
+-- Create user database
+CREATE DATABASE IF NOT EXISTS `%MYSQL_USER_DATABASE%`;
