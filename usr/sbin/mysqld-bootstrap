@@ -181,7 +181,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		# 	# TODO Validate database user
 		# 
 		# 	MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE+="$(
-		# 		printf -- "\nGRANT ALL PRIVILEGES ON `%s`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';\n" ${DATABASE}
+		# 		printf -- "\nGRANT ALL PRIVILEGES ON \`%s\`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';\n" ${DATABASE}
 		# 	)"
 		# done
 		MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE+="$(
