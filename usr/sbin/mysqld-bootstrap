@@ -218,16 +218,32 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	# Generate the initialisation SQL template.
 	# Prepend with SQL to secure a default installation.
-	# TODO Data should be in (gzip) archived format by default
-	if [[ -f /srv/mysql/init-structure/structure.sql ]] \
+	if [[ -s /srv/mysql/init-structure/structure.sql.gz ]] \
+		&& [[ -s /srv/mysql/init-data/data.sql.gz ]] \
+		&& [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
+		echo \
+			"${MYSQL_INIT_SQL_HEAD_TEMPLATE}" \
+			| \
+		gzip \
+			| \
+		zcat \
+			- \
+			/srv/mysql/init-structure/structure.sql.gz \
+			/srv/mysql/init-data/data.sql.gz \
+			> /tmp/mysql-init-template \
+			&
+	elif [[ -f /srv/mysql/init-structure/structure.sql ]] \
 		&& [[ -f /srv/mysql/init-data/data.sql ]] \
 		&& [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
+		echo \
+			"${MYSQL_INIT_SQL_HEAD_TEMPLATE}" \
+			| \
 		cat \
 			- \
 			/srv/mysql/init-structure/structure.sql \
 			/srv/mysql/init-data/data.sql \
-			<<< "${MYSQL_INIT_SQL_HEAD_TEMPLATE}" \
 			> /tmp/mysql-init-template \
 			&
 	else
