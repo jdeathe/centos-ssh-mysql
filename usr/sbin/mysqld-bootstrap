@@ -147,46 +147,50 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	# # TODO Allow creation of multiple databases.
 	# # TODO Grants / user privileges template would need to be adapted for this.
 	# if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
-	# 	MYSQL_INIT_SQL_HEAD_TEMPLATE+="$(printf -- '\n\n-- Create databases\n')"
-	# 	for DATABASE in ${OPTS_MYSQL_USER_DATABASE}; do
+	# 	printf \
+	# 		-v MYSQL_INIT_SQL_HEAD_TEMPLATE \
+	# 		-- "%s\n\n-- Create databases" \
+	# 		"${MYSQL_INIT_SQL_HEAD_TEMPLATE}"
+	# 
+	# 	for DATABASE in "${OPTS_MYSQL_USER_DATABASE}"; do
 	# 
 	# 		# TODO Validate database name
 	# 
-	# 		MYSQL_INIT_SQL_HEAD_TEMPLATE+="$(
-	# 			printf -- '\nCREATE DATABASE IF NOT EXISTS `%s`;\n' ${DATABASE}
-	# 		)"
+	# 		printf \
+	# 			-v MYSQL_INIT_SQL_HEAD_TEMPLATE \
+	# 			-- "%s\nCREATE DATABASE IF NOT EXISTS `%s`;" \
+	# 			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
+	# 			"${DATABASE}"
 	# 	done
 	# fi
 
-	MYSQL_INIT_SQL_USER_TEMPLATE=
+	MYSQL_INIT_SQL_USER_TEMPLATE="-- Create users"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
-		MYSQL_INIT_SQL_USER_TEMPLATE+="$(
-			printf -- '\n\n-- Create users\n'
-		)"
-		MYSQL_INIT_SQL_USER_TEMPLATE+="$(
-			printf -- "\nCREATE USER '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%' IDENTIFIED BY '%%MYSQL_USER_PASSWORD%%';\n"
-		)"
+		printf \
+			-v MYSQL_INIT_SQL_USER_TEMPLATE \
+			-- "%s\nCREATE USER '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%' IDENTIFIED BY '%%MYSQL_USER_PASSWORD%%';" \
+			"${MYSQL_INIT_SQL_USER_TEMPLATE}"
 	fi
 
-	MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE=
+	MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE="-- User privileges"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
-		MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE+="$(
-			printf -- '\n\n-- User privileges\n'
-		)"
-		# for DATABASE in ${OPTS_MYSQL_USER_DATABASE}; do
+		# for DATABASE in "${OPTS_MYSQL_USER_DATABASE}"; do
 		# 
 		# 	# TODO Validate database user
 		# 
-		# 	MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE+="$(
-		# 		printf -- "\nGRANT ALL PRIVILEGES ON \`%s\`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';\n" ${DATABASE}
-		# 	)"
+		# 	printf \
+		# 		-v MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE \
+		# 		-- "%s\nGRANT ALL PRIVILEGES ON \`%s\`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';" \
+		# 		"${MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE}" \
+		# 		"${DATABASE}"
 		# done
-		MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE+="$(
-			printf -- "\nGRANT ALL PRIVILEGES ON \`%%MYSQL_USER_DATABASE%%\`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';\n"
-		)"
+		printf \
+			-v MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE \
+			-- "%s\nGRANT ALL PRIVILEGES ON \`%%MYSQL_USER_DATABASE%%\`.* TO '%%MYSQL_USER%%'@'%%MYSQL_USER_HOST%%';" \
+			"${MYSQL_INIT_SQL_USER_PRIVILEGES_TEMPLATE}"
 	fi
 
 	# Generate the initialisation SQL template.
@@ -281,7 +285,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	done
 
 	if [[ ${COUNTER} -eq 0 ]]; then
-		printf -- "MySQL initilisation failed after %s seconds.\n" "${OPTS_MYSQL_INIT_LIMIT}"
+		printf \
+			-- "MySQL initilisation failed after %s seconds.\n" \
+			"${OPTS_MYSQL_INIT_LIMIT}"
 
 		killall \
 			-15 \
@@ -299,23 +305,30 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	DETAILS_MYSQL_USER=
 	if [[ -n ${OPTS_MYSQL_USER} ]]; then
-		DETAILS_MYSQL_USER="$(
-			printf -- "\n%s : %s@%s\n" "user" "${OPTS_MYSQL_USER}" "${OPTS_MYSQL_USER_HOST}"
-		)"
+		printf \
+			-v DETAILS_MYSQL_USER \
+			-- "\n%s : %s@%s" \
+			"user" \
+			"${OPTS_MYSQL_USER}" \
+			"${OPTS_MYSQL_USER_HOST}"
 	fi
 
 	DETAILS_MYSQL_USER_PASSWORD=
 	if [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
-		DETAILS_MYSQL_USER_PASSWORD="$(
-			printf -- "\n%s : %s\n" "password" "${OPTS_MYSQL_USER_PASSWORD}"
-		)"
+		printf \
+			-v DETAILS_MYSQL_USER_PASSWORD \
+			-- "\n%s : %s" \
+			"password" \
+			"${OPTS_MYSQL_USER_PASSWORD}"
 	fi
 
 	DETAILS_MYSQL_USER_DATABASE=
 	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
-		DETAILS_MYSQL_USER_DATABASE="$(
-			printf -- "\n%s : %s\n" "database" "${OPTS_MYSQL_USER_DATABASE}"
-		)"
+		printf \
+			-v DETAILS_MYSQL_USER_DATABASE \
+			-- "\n%s : %s" \
+			"database" \
+			"${OPTS_MYSQL_USER_DATABASE}"
 	fi
 
 	TIMER_TOTAL=$(
