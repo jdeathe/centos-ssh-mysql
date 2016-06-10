@@ -118,8 +118,8 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	# Initilisation SQL should be free from blank and comment lines.
 	sed -i \
-		-e 's/-- .*$//' \
-		-e '/^$/d' \
+		-e 's~--.*$~d' \
+		-e '~^$~d' \
 		/tmp/mysql-init
 
 	# Wait for the MySQL system table installation to complete
