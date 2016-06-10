@@ -58,7 +58,7 @@ OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
 OPTS_MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT:-30}
 
 if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
-	echo "MySQL Database Installation: Purging data directory..."
+	echo "Purging MySQL data directory."
 	rm -rf ${OPTS_MYSQL_DATA_DIR}/*
 fi
 
@@ -135,7 +135,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	# Wait for the MySQL system table installation to complete
 	[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
 
-	echo "Initialising MySQL..."
+	echo "Initialising MySQL."
 	mysqld_safe \
 		--skip-networking \
 		--init-file=/tmp/mysql-init \
@@ -160,7 +160,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		exit 1
 	fi
 
-	echo "Stopping MySQL..."
+	echo "Stopping MySQL."
 	killall \
 		-w \
 		-15 \
