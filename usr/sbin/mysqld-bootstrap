@@ -124,7 +124,8 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		/tmp/mysql-init-template \
 		| \
 	sed \
-		-e '/--.*$/d' \
+		-e '/^[ \t]*--.*$/d' \
+		-e 's/;[ \t]*--.*$/;/g' \
 		-e '/^$/d' \
 		| \
 	awk \
