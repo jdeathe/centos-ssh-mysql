@@ -158,7 +158,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	done
 
 	if [[ ${COUNTER} -eq 0 ]]; then
-		printf -- "MySQL initilisation failed after %s seconds." "${OPTS_MYSQL_INIT_LIMIT}"
+		printf \
+			-- "MySQL initilisation failed after %s seconds.\n" \
+			"${OPTS_MYSQL_INIT_LIMIT}"
 		exit 1
 	fi
 
