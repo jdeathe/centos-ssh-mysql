@@ -197,17 +197,23 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		printf \
 			-- "MySQL initilisation failed after %s seconds.\n" \
 			"${OPTS_MYSQL_INIT_LIMIT}"
+
+		killall \
+			-15 \
+			mysqld
+
 		exit 1
+	else
+		echo "Stopping MySQL."
+
+		mysqladmin \
+			--user=root \
+			--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+			shutdown
+
+		rm -f \
+			/tmp/mysql-init{,-template}
 	fi
-
-	echo "Stopping MySQL."
-	killall \
-		-w \
-		-15 \
-		mysqld
-
-	rm -f \
-		/tmp/mysql-init{,-template}
 
 	TIMER_TOTAL=$(
 		echo - | awk "\
