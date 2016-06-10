@@ -49,37 +49,77 @@ have_mysql_access ()
 	return 1
 }
 
-OPTS_MYSQL_DATA_DIR=$(get_option mysqld datadir "${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}")
-OPTS_MYSQL_SOCKET=$(get_option mysqld socket "/var/run/mysqld/mysql.sock")
+OPTS_MYSQL_DATA_DIR=$(
+	get_option \
+		mysqld \
+		datadir \
+		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
+)
+OPTS_MYSQL_SOCKET=$(
+	get_option \
+		mysqld \
+		socket \
+		"/var/run/mysqld/mysql.sock"
+)
 OPTS_MYSQL_SOCKET_DIR=${OPTS_MYSQL_SOCKET%/*}
-OPTS_MYSQL_SERVICE_USER=$(get_option mysqld user "mysql")
+OPTS_MYSQL_SERVICE_USER=$(
+	get_option \
+		mysqld \
+		user \
+		"mysql"
+)
 OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
 OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
 OPTS_MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT:-30}
 
 if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
-	echo "MySQL Database Installation: Purging data directory..."
-	rm -rf ${OPTS_MYSQL_DATA_DIR}/*
+	echo "Purging MySQL data directory."
+	rm \
+		-rf \
+		${OPTS_MYSQL_DATA_DIR}/*
 fi
 
 if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
-	# Adjust the UID/GID values of the service user to match a directory that could be a mounted volume
+	# Adjust the UID/GID values of the service user to match a directory that 
+	# could be a mounted volume
 	if [[ -d ${OPTS_MYSQL_DATA_DIR} ]]; then
-		SERVICE_UID=$(stat -c "%u" ${OPTS_MYSQL_DATA_DIR})
-		SERVICE_GID=$(stat -c "%g" ${OPTS_MYSQL_DATA_DIR})
+		SERVICE_UID=$(
+			stat \
+				-c \
+				"%u" \
+				${OPTS_MYSQL_DATA_DIR}
+		)
+		SERVICE_GID=$(
+			stat \
+				-c \
+				"%g" \
+				${OPTS_MYSQL_DATA_DIR}
+		)
 
 		if [[ -n ${SERVICE_UID} ]] && [[ ${SERVICE_UID} -ne 0 ]]; then
-			usermod -u ${SERVICE_UID} ${OPTS_MYSQL_SERVICE_USER}
-			chown -R ${OPTS_MYSQL_SERVICE_USER} ${OPTS_MYSQL_SOCKET_DIR:-/var/run/mysqld}
+			usermod \
+				-u \
+				${SERVICE_UID} \
+				${OPTS_MYSQL_SERVICE_USER}
+			chown \
+				-R \
+				${OPTS_MYSQL_SERVICE_USER} \
+				${OPTS_MYSQL_SOCKET_DIR:-/var/run/mysqld}
 		fi
 
 		if [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]]; then
-			groupmod -g ${SERVICE_GID} ${OPTS_MYSQL_SERVICE_USER}
+			groupmod \
+				-g \
+				${SERVICE_GID} \
+				${OPTS_MYSQL_SERVICE_USER}
 
 			# If the group already exists add it to the user's supplementary groups
 			if [[ ${?} -ne 0 ]]; then
-				usermod -G ${SERVICE_GID} ${OPTS_MYSQL_SERVICE_USER}
+				usermod \
+					-G \
+					${SERVICE_GID} \
+					${OPTS_MYSQL_SERVICE_USER}
 			fi
 		fi
 	fi
@@ -105,9 +145,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.user WHERE User='' OR User='root' AND Host != 'localhost';
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' 
-		IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' 
-		WITH GRANT OPTION;
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
@@ -115,6 +152,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		-- 
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
+		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' 
+		IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' 
+		WITH GRANT OPTION;
 		FLUSH PRIVILEGES;
 	EOT
 
@@ -135,7 +175,7 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	# Wait for the MySQL system table installation to complete
 	[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
 
-	echo "Initialising MySQL..."
+	echo "Initialising MySQL."
 	mysqld_safe \
 		--skip-networking \
 		--init-file=/tmp/mysql-init \
@@ -147,28 +187,33 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		sleep 0.5
 
 		if have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql; then
-			if [[ -z ${MYSQL_USER} ]] || [[ -z ${MYSQL_USER_DATABASE} ]] || [[ -z ${MYSQL_USER_PASSWORD} ]] ; then
-				break
-			elif have_mysql_access ${MYSQL_USER} ${MYSQL_USER_PASSWORD} ${MYSQL_USER_DATABASE}; then
-				break
-			fi
+			break
 		fi
 
 		(( COUNTER -= 1 ))
 	done
 
 	if [[ ${COUNTER} -eq 0 ]]; then
-		printf -- "MySQL initilisation failed after %s seconds." "${OPTS_MYSQL_INIT_LIMIT}"
+		printf \
+			-- "MySQL initilisation failed after %s seconds.\n" \
+			"${OPTS_MYSQL_INIT_LIMIT}"
+
+		killall \
+			-15 \
+			mysqld
+
 		exit 1
+	else
+		echo "Stopping MySQL."
+
+		mysqladmin \
+			--user=root \
+			--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+			shutdown
+
+		rm -f \
+			/tmp/mysql-init{,-template}
 	fi
-
-	echo "Stopping MySQL..."
-	killall \
-		-w \
-		-15 \
-		mysqld
-
-	rm -f /tmp/mysql-init{,-template}
 
 	TIMER_TOTAL=$(
 		echo - | awk "\
