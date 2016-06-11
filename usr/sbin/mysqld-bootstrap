@@ -96,8 +96,19 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 				"%g" \
 				${OPTS_MYSQL_DATA_DIR}
 		)
+		MYSQL_SERVICE_USER_UID=$(
+			id \
+				-u \
+				${OPTS_MYSQL_SERVICE_USER}
+		)
+		MYSQL_SERVICE_USER_GID=$(
+			id \
+				-g \
+				${OPTS_MYSQL_SERVICE_USER}
+		)
 
-		if [[ -n ${SERVICE_UID} ]] && [[ ${SERVICE_UID} -ne 0 ]]; then
+		if [[ -n ${SERVICE_UID} ]] && [[ ${SERVICE_UID} -ne 0 ]] \
+			&& [[ ${SERVICE_UID} != ${MYSQL_SERVICE_USER_UID} ]]; then
 			usermod \
 				-u \
 				${SERVICE_UID} \
@@ -105,22 +116,21 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 			chown \
 				-R \
 				${OPTS_MYSQL_SERVICE_USER} \
-				${OPTS_MYSQL_SOCKET_DIR:-/var/run/mysqld}
+				${OPTS_MYSQL_SOCKET_DIR}
 		fi
 
-		if [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]]; then
+		if [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]] \
+			&& [[ ${SERVICE_GID} != ${MYSQL_SERVICE_USER_GID} ]]; then
 			groupmod \
 				-g \
 				${SERVICE_GID} \
 				${OPTS_MYSQL_SERVICE_USER}
-
-			# If the group already exists add it to the user's supplementary groups
-			if [[ ${?} -ne 0 ]]; then
-				usermod \
-					-G \
-					${SERVICE_GID} \
-					${OPTS_MYSQL_SERVICE_USER}
-			fi
+		elif [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]]; then
+			# Add as a supplementary group
+			usermod \
+				-G \
+				${SERVICE_GID} \
+				${OPTS_MYSQL_SERVICE_USER}
 		fi
 	fi
 
