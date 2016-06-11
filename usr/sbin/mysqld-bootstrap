@@ -138,11 +138,11 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	echo "Initalising MySQL data directory."
 	mysql_install_db \
-		--verbose \
 		--force \
 		--skip-name-resolve \
 		--skip-networking \
-		--tmpdir=${OPTS_MYSQL_DATA_DIR} &
+		--tmpdir=${OPTS_MYSQL_DATA_DIR} \
+		&
 	PIDS[0]=${!}
 
 	# Generate the initialisation SQL used secure MySQL
@@ -192,7 +192,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		&
 
 	# Wait for the MySQL database to be initialised by testing 
-	COUNTER=$(( 2 * ${OPTS_MYSQL_INIT_LIMIT} ))
+	COUNTER=$((
+		2 * ${OPTS_MYSQL_INIT_LIMIT} 
+	))
 	while (( ${COUNTER} >= 1 )); do
 		sleep 0.5
 
