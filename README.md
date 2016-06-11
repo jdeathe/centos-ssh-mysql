@@ -69,18 +69,19 @@ To import the Sakila example database from the [MySQL Documentation](https://dev
 
 ```
 $ export MYSQL_ROOT_PASSWORD={your-password}
+
 $ docker exec -i mysql.pool-1.1.1 \
   mysql -p${MYSQL_ROOT_PASSWORD} -u root \
   <<< $(tar -xzOf /dev/stdin <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) sakila-db/sakila-schema.sql)
+
 $ docker exec -i mysql.pool-1.1.1 \
   mysql -p${MYSQL_ROOT_PASSWORD} -u root \
   <<< $(tar -xzOf /dev/stdin <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) sakila-db/sakila-data.sql)
+
 $ docker exec -it  mysql.pool-1.1.1 \
   mysql -p${MYSQL_ROOT_PASSWORD} -u root \
   -e "SELECT * FROM sakila.film LIMIT 2 \G;"
 ```
-
-*Note:* If you need a clean installation, (and wish to destroy all existing MySQL databases for the shared pool), simply remove the contents of ```/var/services-data/mysql/pool-1``` and restart the container using: ```docker restart mysql.pool-1.1.1```.
 
 ## Instructions
 
@@ -204,10 +205,11 @@ The following example sets up a custom MySQL database, user and user password on
 ```
 $ docker stop mysql.pool-1.1.1 && \
   docker rm mysql.pool-1.1.1
+
 $ docker run -d \
   --name mysql.pool-1.1.1 \
   -p 3306:3306 \
-  --env "MYSQL_SUBNET=localhost" \
+  --env "MYSQL_SUBNET=127.0.0.1" \
   --env "MYSQL_USER=app-user" \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
@@ -219,23 +221,24 @@ $ docker run -d \
 
 The following example uses the settings from the optional configuration volume volume-config.mysql.pool-1.1.1 and maps a data volume for persistent storage of the MySQL data on the docker host.
 
-*Note:* If you are following on from the previous example you will need to delete or rename the data directory on the docker host if you want the database initialisation process to be carried out again.
+*Note:* In the above example we are using ```docker volume rm``` to destroy the named data volume and allow the mysql-bootstrap initialisation process to run. This might be necessary if the named data volume already exists from the previous example but should be **used with caution** since it will **destroy all existing mysql data** for any containers that use it.
 
 ```
 $ docker stop mysql.pool-1.1.1 && \
   docker rm mysql.pool-1.1.1
+
+$ docker volume rm volume-data.mysql.pool-1.1.1
+
 $ docker run -d \
   --name mysql.pool-1.1.1 \
   -p 3306:3306 \
-  --env "MYSQL_SUBNET=%" \
+  --env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
   --volumes-from volume-config.mysql.pool-1.1.1 \
   -v volume-data.mysql.pool-1.1.1:/var/lib/mysql \
   jdeathe/centos-ssh-mysql:centos-6
 ```
 
-The environmental variable ```MYSQL_SUBNET``` is optional but can be used\* with the [MySQL bootstrap configuration file](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/etc/services-config/mysql/mysql-bootstrap.conf) to generate users with access to databases outside the localhost, (which is the default for the root user); in the example, the wildcard symbol, (%), is used to allow access from any host given the correct user and password.
-
-\**There is an example use case in the bootstrap configuration file.*
+The environmental variable ```MYSQL_SUBNET``` is optional but can be used to generate users with access to databases outside the ```localhost```, (the default for the root user). In the example, the subnet definition ```0.0.0.0/0.0.0.0``` allows connections from any network which is equivalent to the wildcard symbol, `%`, in MySQL GRANT definitions.
 
 Now you can verify it is initialised and running successfully by inspecting the container's logs:
 
@@ -258,6 +261,7 @@ On first run the root user is created with an auto-generated password. If you re
   --env "MYSQL_ROOT_PASSWORD=Passw0rd!" \
 ...
 ```
+
 ##### MYSQL_USER
 
 On first run, a database user and database can be created. Set ```MYSQL_USER``` to a non-empty string. A corresponding ```MYSQL_USER_DATABASE``` value must also be set for the user to be given access too.
