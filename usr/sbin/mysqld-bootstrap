@@ -6,15 +6,38 @@ TIMER_START=$(
 
 source /etc/mysqld-bootstrap.conf
 
+get_mysql_user_host ()
+{
+	local CLIENT_SUBNET="${1:-127.0.0.1}"
+	local VALUE
+
+	case "${CLIENT_SUBNET}" in
+		0.0.0.0|0.0.0.0/0.0.0.0)
+			# Connect from any network
+			VALUE="%"
+			;;
+		127.0.0.1)
+			# Internal connection
+			VALUE="localhost"
+			;;
+		*)
+			# User defined host / subnet
+			VALUE="${CLIENT_SUBNET}"
+			;;
+	esac
+
+	printf -- "%s" "${VALUE}"
+}
+
 get_option ()
 {
-	local value=$(
+	local VALUE=$(
 		/usr/bin/my_print_defaults "${1}" | \
 		sed -n "s/^--${2}=//p" | \
 		tail -n 1
 	)
 
-	printf -- "%s" "${value:-$3}"
+	printf -- "%s" "${VALUE:-$3}"
 }
 
 get_password ()
@@ -97,22 +120,13 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 			"/var/run/mysqld/mysql.sock"
 	)"
 	OPTS_MYSQL_SOCKET_DIR="${OPTS_MYSQL_SOCKET%/*}"
-	OPTS_MYSQL_SUBNET="${MYSQL_SUBNET:-127.0.0.1}"
 	OPTS_MYSQL_USER="${MYSQL_USER:-}"
 	OPTS_MYSQL_USER_DATABASE="${MYSQL_USER_DATABASE:-}"
+	OPTS_MYSQL_USER_HOST="$(
+		get_mysql_user_host \
+		"${MYSQL_SUBNET:-127.0.0.1}"
+	)"
 	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
-
-	if [[ ${OPTS_MYSQL_SUBNET} == 0.0.0.0/0.0.0.0 ]] \
-		|| [[ ${OPTS_MYSQL_SUBNET} == 0.0.0.0 ]]; then
-		# Connect from any network
-		OPTS_MYSQL_USER_HOST=%
-	elif [[ ${OPTS_MYSQL_SUBNET} == 127.0.0.1 ]]; then
-		# Internal connection
-		OPTS_MYSQL_USER_HOST=localhost
-	else
-		# User defined host / subnet
-		OPTS_MYSQL_USER_HOST="${OPTS_MYSQL_SUBNET}"
-	fi
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
@@ -208,11 +222,11 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		-e '/^[ \t]*--.*$/d' \
 		-e 's/;[ \t]*--.*$/;/g' \
 		-e '/^$/d' \
-		-e "s/{{MYSQL_ROOT_PASSWORD}}/${OPTS_MYSQL_ROOT_PASSWORD}/g" \
-		-e "s/{{MYSQL_USER}}/${OPTS_MYSQL_USER}/g" \
-		-e "s/{{MYSQL_USER_DATABASE}}/${OPTS_MYSQL_USER_DATABASE}/g" \
-		-e "s/{{MYSQL_USER_HOST}}/${OPTS_MYSQL_USER_HOST}/g" \
-		-e "s/{{MYSQL_USER_PASSWORD}}/${OPTS_MYSQL_USER_PASSWORD}/g" \
+		-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
+		-e "s~{{MYSQL_USER}}~${OPTS_MYSQL_USER}~g" \
+		-e "s~{{MYSQL_USER_DATABASE}}~${OPTS_MYSQL_USER_DATABASE}~g" \
+		-e "s~{{MYSQL_USER_HOST}}~${OPTS_MYSQL_USER_HOST}~g" \
+		-e "s~{{MYSQL_USER_PASSWORD}}~${OPTS_MYSQL_USER_PASSWORD}~g" \
 		| \
 	awk \
 		'{ ORS=( /;$/ ? RS:FS ) } 1' \
