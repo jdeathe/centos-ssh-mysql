@@ -191,7 +191,9 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	PIDS[0]=${!}
 
 	# Generate the initialisation SQL used secure MySQL
-	tee /tmp/mysql-init-template <<-EOT
+	tee \
+		/tmp/mysql-init-template \
+		<<-EOT
 
 		-- =============================================================================
 		-- Initialisation SQL
@@ -277,24 +279,23 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 			/tmp/mysql-init{,-template}
 	fi
 
-	DETAILS_MYSQL_USER_CREDENTIALS=
+	# Local root user details
+	printf \
+		-v DETAILS_MYSQL_USER_CREDENTIALS \
+		-- "user : %s@%s, password : %s" \
+		root \
+		localhost \
+		"${OPTS_MYSQL_ROOT_PASSWORD}"
+
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
 		printf \
 			-v DETAILS_MYSQL_USER_CREDENTIALS \
-			-- "\nuser : %s@%s, password : %s" \
+			-- "%s\nuser : %s@%s, password : %s" \
+			"${DETAILS_MYSQL_USER_CREDENTIALS}" \
 			"${OPTS_MYSQL_USER}" \
 			"${OPTS_MYSQL_USER_HOST}" \
 			"${OPTS_MYSQL_USER_PASSWORD}"
-	fi
-
-	DETAILS_MYSQL_USER_DATABASE=
-	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
-		printf \
-			-v DETAILS_MYSQL_USER_DATABASE \
-			-- "\n%s : %s" \
-			"user database" \
-			"${OPTS_MYSQL_USER_DATABASE}"
 	fi
 
 	TIMER_TOTAL=$(
@@ -304,12 +305,14 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		{ print T2 - T1; }"
 	)
 
-	cat <<-EOT
+	cat \
+		<<-EOT
 
 		================================================================================
 		MySQL Details
 		--------------------------------------------------------------------------------
-		user : root@localhost, password : ${OPTS_MYSQL_ROOT_PASSWORD}${DETAILS_MYSQL_USER_CREDENTIALS}${DETAILS_MYSQL_USER_DATABASE}
+		${DETAILS_MYSQL_USER_CREDENTIALS}
+		databases : ${OPTS_MYSQL_USER_DATABASE:-N/A}
 		--------------------------------------------------------------------------------
 		${TIMER_TOTAL}
 
