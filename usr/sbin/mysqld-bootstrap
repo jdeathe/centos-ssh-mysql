@@ -55,22 +55,7 @@ OPTS_MYSQL_DATA_DIR=$(
 		datadir \
 		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
 )
-OPTS_MYSQL_SOCKET=$(
-	get_option \
-		mysqld \
-		socket \
-		"/var/run/mysqld/mysql.sock"
-)
-OPTS_MYSQL_SOCKET_DIR=${OPTS_MYSQL_SOCKET%/*}
-OPTS_MYSQL_SERVICE_USER=$(
-	get_option \
-		mysqld \
-		user \
-		"mysql"
-)
 OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
-OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
-OPTS_MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT:-30}
 
 if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
 	echo "Purging MySQL data directory."
@@ -79,7 +64,27 @@ if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
 		${OPTS_MYSQL_DATA_DIR}/*
 fi
 
+# MySQL initialisation is a one-shot process.
 if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
+
+	PASSWORD_LENGTH=8
+
+	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
+	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
+	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
+	OPTS_MYSQL_SERVICE_USER="$(
+		get_option \
+			mysqld \
+			user \
+			"mysql"
+	)"
+	OPTS_MYSQL_SOCKET="$(
+		get_option \
+			mysqld \
+			socket \
+			"/var/run/mysqld/mysql.sock"
+	)"
+	OPTS_MYSQL_SOCKET_DIR="${OPTS_MYSQL_SOCKET%/*}"
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
@@ -133,8 +138,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 				${OPTS_MYSQL_SERVICE_USER}
 		fi
 	fi
-
-	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
 
 	echo "Initalising MySQL data directory."
 	mysql_install_db \
