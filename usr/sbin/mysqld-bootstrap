@@ -190,11 +190,8 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		&
 	PIDS[0]=${!}
 
-	# Generate the initialisation SQL used secure MySQL
-	tee \
-		/tmp/mysql-init-template \
-		<<-EOT
-
+	# Build the SQL required at the start of initialisation
+	read -r -d '' MYSQL_INIT_SQL_HEAD_TEMPLATE <<-EOT
 		-- =============================================================================
 		-- Initialisation SQL
 		-- -----------------------------------------------------------------------------
@@ -202,6 +199,61 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.user WHERE User='' OR User='root' AND Host != 'localhost';
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+	EOT
+
+	# Build the SQL required at the end of initialisation
+	read -r -d '' MYSQL_INIT_SQL_TAIL_TEMPLATE <<-EOT
+		GRANT ALL PRIVILEGES 
+		ON *.* 
+		TO 'root'@'localhost' 
+		IDENTIFIED BY '{{MYSQL_ROOT_PASSWORD}}' 
+		WITH GRANT OPTION;
+		FLUSH PRIVILEGES;
+	EOT
+
+	MYSQL_INIT_SQL_DATABASE_TEMPLATE="-- Create database"
+	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_DATABASE_TEMPLATE \
+			-- "%s\nCREATE DATABASE IF NOT EXISTS \`%s\`;" \
+			"${MYSQL_INIT_SQL_DATABASE_TEMPLATE}" \
+			"{{MYSQL_USER_DATABASE}}"
+	fi
+
+	MYSQL_INIT_SQL_USER_TEMPLATE="-- Create user"
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_USER_TEMPLATE \
+			-- "%s\nCREATE USER '%s'@'%s' \nIDENTIFIED BY '%s';" \
+			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
+			"{{MYSQL_USER}}" \
+			"{{MYSQL_USER_HOST}}" \
+			"{{MYSQL_USER_PASSWORD}}"
+	fi
+
+	MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE="-- Grant privileges"
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE \
+			-- "%s\nGRANT %s \nON \`%s\`.* \nTO '%s'@'%s';" \
+			"${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}" \
+			"ALL PRIVILEGES" \
+			"{{MYSQL_USER_DATABASE}}" \
+			"{{MYSQL_USER}}" \
+			"{{MYSQL_USER_HOST}}"
+	fi
+
+	# Generate the initialisation SQL used secure MySQL
+	tee \
+		/tmp/mysql-init-template \
+		<<-EOT
+
+		${MYSQL_INIT_SQL_HEAD_TEMPLATE}
+		${MYSQL_INIT_SQL_DATABASE_TEMPLATE}
+		${MYSQL_INIT_SQL_USER_TEMPLATE}
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
@@ -209,10 +261,8 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		-- 
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
-		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' 
-		IDENTIFIED BY '{{MYSQL_ROOT_PASSWORD}}' 
-		WITH GRANT OPTION;
-		FLUSH PRIVILEGES;
+		${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}
+		${MYSQL_INIT_SQL_TAIL_TEMPLATE}
 	EOT
 
 	# Each statement must be on a single line and should not include comments.
