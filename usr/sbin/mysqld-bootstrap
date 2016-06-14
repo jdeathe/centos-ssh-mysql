@@ -351,8 +351,8 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		================================================================================
 		MySQL Details
 		--------------------------------------------------------------------------------
+		database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
 		${DETAILS_MYSQL_USER_CREDENTIALS}
-		databases : ${OPTS_MYSQL_USER_DATABASE:-N/A}
 		--------------------------------------------------------------------------------
 		${TIMER_TOTAL}
 
