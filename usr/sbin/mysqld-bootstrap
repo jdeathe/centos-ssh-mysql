@@ -6,15 +6,38 @@ TIMER_START=$(
 
 source /etc/mysqld-bootstrap.conf
 
+get_mysql_user_host ()
+{
+	local CLIENT_SUBNET="${1:-127.0.0.1}"
+	local VALUE
+
+	case "${CLIENT_SUBNET}" in
+		0.0.0.0|0.0.0.0/0.0.0.0)
+			# Connect from any network
+			VALUE="%"
+			;;
+		127.0.0.1)
+			# Internal connection
+			VALUE="localhost"
+			;;
+		*)
+			# User defined host / subnet
+			VALUE="${CLIENT_SUBNET}"
+			;;
+	esac
+
+	printf -- "%s" "${VALUE}"
+}
+
 get_option ()
 {
-	local value=$(
+	local VALUE=$(
 		/usr/bin/my_print_defaults "${1}" | \
 		sed -n "s/^--${2}=//p" | \
 		tail -n 1
 	)
 
-	printf -- "%s" "${value:-$3}"
+	printf -- "%s" "${VALUE:-$3}"
 }
 
 get_password ()
@@ -49,28 +72,25 @@ have_mysql_access ()
 	return 1
 }
 
-OPTS_MYSQL_DATA_DIR=$(
+is_mysql_data_directory_populated ()
+{
+	local MYSQL_DATA_DIRECTORY=${1:-/var/lib/mysql}
+
+	# Test for the InnoDB shared tablespace
+	if [[ -f ${MYSQL_DATA_DIRECTORY}/ibdata1 ]]; then
+		return 0
+	fi
+
+	return 1
+}
+
+OPTS_MYSQL_DATA_DIR="$(
 	get_option \
 		mysqld \
 		datadir \
 		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
-)
-OPTS_MYSQL_SOCKET=$(
-	get_option \
-		mysqld \
-		socket \
-		"/var/run/mysqld/mysql.sock"
-)
-OPTS_MYSQL_SOCKET_DIR=${OPTS_MYSQL_SOCKET%/*}
-OPTS_MYSQL_SERVICE_USER=$(
-	get_option \
-		mysqld \
-		user \
-		"mysql"
-)
+)"
 OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
-OPTS_CUSTOM_MYSQL_INIT_SQL=${CUSTOM_MYSQL_INIT_SQL:-}
-OPTS_MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT:-30}
 
 if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
 	echo "Purging MySQL data directory."
@@ -79,7 +99,34 @@ if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
 		${OPTS_MYSQL_DATA_DIR}/*
 fi
 
-if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
+# MySQL initialisation is a one-shot process.
+if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
+
+	PASSWORD_LENGTH=8
+
+	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
+	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
+	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
+	OPTS_MYSQL_SERVICE_USER="$(
+		get_option \
+			mysqld \
+			user \
+			"mysql"
+	)"
+	OPTS_MYSQL_SOCKET="$(
+		get_option \
+			mysqld \
+			socket \
+			"/var/run/mysqld/mysql.sock"
+	)"
+	OPTS_MYSQL_SOCKET_DIR="${OPTS_MYSQL_SOCKET%/*}"
+	OPTS_MYSQL_USER="${MYSQL_USER:-}"
+	OPTS_MYSQL_USER_DATABASE="${MYSQL_USER_DATABASE:-}"
+	OPTS_MYSQL_USER_HOST="$(
+		get_mysql_user_host \
+		"${MYSQL_SUBNET:-127.0.0.1}"
+	)"
+	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
@@ -134,8 +181,6 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		fi
 	fi
 
-	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password 8)}"
-
 	echo "Initalising MySQL data directory."
 	mysql_install_db \
 		--force \
@@ -145,8 +190,45 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		&
 	PIDS[0]=${!}
 
+	MYSQL_INIT_SQL_DATABASE_TEMPLATE="-- Create database"
+	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_DATABASE_TEMPLATE \
+			-- "%s\nCREATE DATABASE IF NOT EXISTS \`%s\`;" \
+			"${MYSQL_INIT_SQL_DATABASE_TEMPLATE}" \
+			"{{MYSQL_USER_DATABASE}}"
+	fi
+
+	MYSQL_INIT_SQL_USER_TEMPLATE="-- Create user"
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_USER_TEMPLATE \
+			-- "%s\nCREATE USER '%s'@'%s' \nIDENTIFIED BY '%s';" \
+			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
+			"{{MYSQL_USER}}" \
+			"{{MYSQL_USER_HOST}}" \
+			"{{MYSQL_USER_PASSWORD}}"
+	fi
+
+	MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE="-- Grant privileges"
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
+		printf \
+			-v MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE \
+			-- "%s\nGRANT %s \nON \`%s\`.* \nTO '%s'@'%s';" \
+			"${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}" \
+			"ALL PRIVILEGES" \
+			"{{MYSQL_USER_DATABASE}}" \
+			"{{MYSQL_USER}}" \
+			"{{MYSQL_USER_HOST}}"
+	fi
+
 	# Generate the initialisation SQL used secure MySQL
-	tee /tmp/mysql-init-template <<-EOT
+	tee \
+		/tmp/mysql-init-template \
+		<<-EOT
 
 		-- =============================================================================
 		-- Initialisation SQL
@@ -155,6 +237,8 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.user WHERE User='' OR User='root' AND Host != 'localhost';
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+		${MYSQL_INIT_SQL_DATABASE_TEMPLATE}
+		${MYSQL_INIT_SQL_USER_TEMPLATE}
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
@@ -162,8 +246,11 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		-- 
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
-		GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' 
-		IDENTIFIED BY '${OPTS_MYSQL_ROOT_PASSWORD}' 
+		${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}
+		GRANT ALL PRIVILEGES 
+		ON *.* 
+		TO 'root'@'localhost' 
+		IDENTIFIED BY '{{MYSQL_ROOT_PASSWORD}}' 
 		WITH GRANT OPTION;
 		FLUSH PRIVILEGES;
 	EOT
@@ -177,6 +264,11 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		-e '/^[ \t]*--.*$/d' \
 		-e 's/;[ \t]*--.*$/;/g' \
 		-e '/^$/d' \
+		-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
+		-e "s~{{MYSQL_USER}}~${OPTS_MYSQL_USER}~g" \
+		-e "s~{{MYSQL_USER_DATABASE}}~${OPTS_MYSQL_USER_DATABASE}~g" \
+		-e "s~{{MYSQL_USER_HOST}}~${OPTS_MYSQL_USER_HOST}~g" \
+		-e "s~{{MYSQL_USER_PASSWORD}}~${OPTS_MYSQL_USER_PASSWORD}~g" \
 		| \
 	awk \
 		'{ ORS=( /;$/ ? RS:FS ) } 1' \
@@ -227,6 +319,25 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 			/tmp/mysql-init{,-template}
 	fi
 
+	# Local root user details
+	printf \
+		-v DETAILS_MYSQL_USER_CREDENTIALS \
+		-- "user : %s@%s, password : %s" \
+		root \
+		localhost \
+		"${OPTS_MYSQL_ROOT_PASSWORD}"
+
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
+		printf \
+			-v DETAILS_MYSQL_USER_CREDENTIALS \
+			-- "%s\nuser : %s@%s, password : %s" \
+			"${DETAILS_MYSQL_USER_CREDENTIALS}" \
+			"${OPTS_MYSQL_USER}" \
+			"${OPTS_MYSQL_USER_HOST}" \
+			"${OPTS_MYSQL_USER_PASSWORD}"
+	fi
+
 	TIMER_TOTAL=$(
 		echo - | awk "\
 		{ T1="${TIMER_START}" } \
@@ -234,12 +345,14 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		{ print T2 - T1; }"
 	)
 
-	cat <<-EOT
+	cat \
+		<<-EOT
 
 		================================================================================
-		MySQL Credentials
+		MySQL Details
 		--------------------------------------------------------------------------------
-		root@localhost : ${OPTS_MYSQL_ROOT_PASSWORD}
+		database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
+		${DETAILS_MYSQL_USER_CREDENTIALS}
 		--------------------------------------------------------------------------------
 		${TIMER_TOTAL}
 
