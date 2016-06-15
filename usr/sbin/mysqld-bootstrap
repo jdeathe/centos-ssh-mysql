@@ -132,8 +132,12 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 
 	# Create named pipes instead of temporary files
 	mkfifo \
-		-m 0644 \
+		-m 0600 \
 		/tmp/mysql-init{,-template}
+
+	chown \
+		${OPTS_MYSQL_SERVICE_USER} \
+		/tmp/mysql-init{,-template,-wrapper}
 
 	# Build the SQL required at the start of initialisation
 	read -r -d '' MYSQL_INIT_SQL_HEAD_TEMPLATE <<-EOT
