@@ -272,10 +272,21 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 	[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
 
 	echo "Initialising MySQL."
+	# mysqld_safe \
+	# 	--skip-networking \
+	# 	--init-file=/tmp/mysql-init \
+	# 	&
+
 	mysqld_safe \
 		--skip-networking \
-		--init-file=/tmp/mysql-init \
 		&
+
+	# Wait until mysqld is up before importing data
+	until mysqladmin ping &> /dev/null; do
+		sleep 0.1
+	done
+
+	mysql < /tmp/mysql-init
 
 	# Wait for the MySQL database to be initialised by testing 
 	COUNTER=$(( 2 * ${OPTS_MYSQL_INIT_LIMIT} ))
