@@ -319,32 +319,23 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 			shutdown
 	fi
 
-	DETAILS_MYSQL_USER=
-	if [[ -n ${OPTS_MYSQL_USER} ]]; then
+	# Local root user details
+	printf \
+		-v DETAILS_MYSQL_USER_CREDENTIALS \
+		-- "user : %s@%s, password : %s" \
+		root \
+		localhost \
+		"${OPTS_MYSQL_ROOT_PASSWORD}"
+
+	if [[ -n ${OPTS_MYSQL_USER} ]] \
+		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
 		printf \
-			-v DETAILS_MYSQL_USER \
-			-- "\n%s : %s@%s" \
-			"user" \
+			-v DETAILS_MYSQL_USER_CREDENTIALS \
+			-- "%s\nuser : %s@%s, password : %s" \
+			"${DETAILS_MYSQL_USER_CREDENTIALS}" \
 			"${OPTS_MYSQL_USER}" \
-			"${OPTS_MYSQL_USER_HOST}"
-	fi
-
-	DETAILS_MYSQL_USER_PASSWORD=
-	if [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
-		printf \
-			-v DETAILS_MYSQL_USER_PASSWORD \
-			-- "\n%s : %s" \
-			"password" \
+			"${OPTS_MYSQL_USER_HOST}" \
 			"${OPTS_MYSQL_USER_PASSWORD}"
-	fi
-
-	DETAILS_MYSQL_USER_DATABASE=
-	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]; then
-		printf \
-			-v DETAILS_MYSQL_USER_DATABASE \
-			-- "\n%s : %s" \
-			"database" \
-			"${OPTS_MYSQL_USER_DATABASE}"
 	fi
 
 	TIMER_TOTAL=$(
@@ -354,15 +345,15 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 		{ print T2 - T1; }"
 	)
 
-	cat <<-EOT
-
+	cat \
+		<<-EOT
 		================================================================================
 		MySQL Details
 		--------------------------------------------------------------------------------
-		root@localhost password : ${OPTS_MYSQL_ROOT_PASSWORD}${DETAILS_MYSQL_USER}${DETAILS_MYSQL_USER_PASSWORD}${DETAILS_MYSQL_USER_DATABASE}
+		database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
+		${DETAILS_MYSQL_USER_CREDENTIALS}
 		--------------------------------------------------------------------------------
 		${TIMER_TOTAL}
-
 	EOT
 fi
 
