@@ -31,6 +31,14 @@ ADD etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf \
 ADD srv/mysql /srv/mysql/
 ADD usr/sbin/mysqld-bootstrap /usr/sbin/
 
+# -----------------------------------------------------------------------------
+# Compress source initialisation SQL
+# -----------------------------------------------------------------------------
+RUN gzip < /srv/mysql/init-structure/structure.sql \
+	> /srv/mysql/init-structure/structure.sql.gz \
+	&& gzip < /srv/mysql/init-data/data.sql \
+	> /srv/mysql/init-data/data.sql.gz
+
 RUN ln -sf /etc/services-config/mysql/my.cnf /etc/my.cnf \
 	&& ln -sf /etc/services-config/mysql/mysqld-bootstrap.conf /etc/mysqld-bootstrap.conf \
 	&& ln -sf /etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf /etc/supervisord.d/mysqld-bootstrap.conf \
