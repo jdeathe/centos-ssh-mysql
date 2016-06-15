@@ -317,6 +317,9 @@ if [[ ! -f ${OPTS_MYSQL_DATA_DIR}/ibdata1 ]]; then
 			--user=root \
 			--password=${OPTS_MYSQL_ROOT_PASSWORD} \
 			shutdown
+
+		rm -f \
+			/tmp/mysql-init{,-template}
 	fi
 
 	# Local root user details
