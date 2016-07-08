@@ -302,7 +302,7 @@ On first run, if the database user `MYSQL_USER` is specified then it is created 
 
 ##### MYSQL_USER_PASSWORD_HASHED
 
-To indicate `MYSQL_USER_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_USER_PASSWORD_HASHED` to `true`. In the following example the plain-text password is 'insecure-password'.
+To indicate `MYSQL_USER_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_USER_PASSWORD_HASHED` to `true`.
 
 ```
 ...
