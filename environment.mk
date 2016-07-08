@@ -51,7 +51,9 @@ SSH_USER_SHELL ?= /bin/bash
 SSH_USER_ID ?= 500:500
 # ------------------------------------------------------------------------------
 MYSQL_ROOT_PASSWORD ?=
+MYSQL_ROOT_PASSWORD_HASHED ?= false
 MYSQL_SUBNET ?= 127.0.0.1
 MYSQL_USER ?=
 MYSQL_USER_DATABASE ?=
 MYSQL_USER_PASSWORD ?=
+MYSQL_USER_PASSWORD_HASHED ?= false

@@ -57,10 +57,12 @@ Environment="VOLUME_CONFIG_NAMED=false"
 Environment="VOLUME_CONFIG_NAME=volume-config.%p.%i"
 Environment="VOLUME_DATA_NAME=volume-data.%p.%i"
 Environment="MYSQL_ROOT_PASSWORD="
+Environment="MYSQL_ROOT_PASSWORD_HASHED=false"
 Environment="MYSQL_SUBNET=127.0.0.1"
 Environment="MYSQL_USER="
 Environment="MYSQL_USER_DATABASE="
 Environment="MYSQL_USER_PASSWORD="
+Environment="MYSQL_USER_PASSWORD_HASHED=false"
 
 # Initialisation: Load image from local storage if available, otherwise pull.
 ExecStartPre=/bin/bash -c \
@@ -129,11 +131,14 @@ ExecStart=/bin/bash -c \
         fi; \
       ):3306 \
       --env \"MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}\" \
+      --env \"MYSQL_ROOT_PASSWORD_HASHED=${MYSQL_ROOT_PASSWORD_HASHED}\" \
       --env \"MYSQL_SUBNET=${MYSQL_SUBNET}\" \
       --env \"MYSQL_USER=${MYSQL_USER}\" \
       --env \"MYSQL_USER_DATABASE=${MYSQL_USER_DATABASE}\" \
       --env \"MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}\" \
+      --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
       --volumes-from ${VOLUME_CONFIG_NAME} \
+      --volume ${VOLUME_DATA_NAME}:/var/lib/mysql \
       ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   else \
     exec /usr/bin/docker run \
@@ -149,10 +154,12 @@ ExecStart=/bin/bash -c \
         fi; \
       ):3306 \
       --env \"MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}\" \
+      --env \"MYSQL_ROOT_PASSWORD_HASHED=${MYSQL_ROOT_PASSWORD_HASHED}\" \
       --env \"MYSQL_SUBNET=${MYSQL_SUBNET}\" \
       --env \"MYSQL_USER=${MYSQL_USER}\" \
       --env \"MYSQL_USER_DATABASE=${MYSQL_USER_DATABASE}\" \
       --env \"MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}\" \
+      --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
       --volume ${VOLUME_DATA_NAME}:/var/lib/mysql \
       ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   fi"
