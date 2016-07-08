@@ -204,17 +204,18 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
 
+		MYSQL_INIT_SQL_IDENTIFIED_BY="IDENTIFIED BY"
 		if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]; then
-			MYSQL_HASHED_PASSWORD_IDENTIFIER="PASSWORD "
+			MYSQL_INIT_SQL_IDENTIFIED_BY+=" PASSWORD"
 		fi
 
 		printf \
 			-v MYSQL_INIT_SQL_USER_TEMPLATE \
-			-- "%s\nCREATE USER '%s'@'%s' \nIDENTIFIED BY %s'%s';" \
+			-- "%s\nCREATE USER '%s'@'%s' \n%s '%s';" \
 			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}" \
-			"${MYSQL_HASHED_PASSWORD_IDENTIFIER:-}" \
+			"${MYSQL_INIT_SQL_IDENTIFIED_BY}" \
 			"{{MYSQL_USER_PASSWORD}}"
 	fi
 
