@@ -102,7 +102,8 @@ fi
 # MySQL initialisation is a one-shot process.
 if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 
-	PASSWORD_LENGTH=8
+	PASSWORD_LENGTH=16
+	REDACTED_VALUE="********"
 
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
@@ -342,6 +343,16 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 
 		rm -f \
 			/tmp/mysql-init{,-template}
+	fi
+
+	if [[ -n ${MYSQL_ROOT_PASSWORD} ]]; then
+		 OPTS_MYSQL_ROOT_PASSWORD=${REDACTED_VALUE}
+		 MYSQL_ROOT_PASSWORD=${REDACTED_VALUE}
+	fi
+
+	if [[ -n ${MYSQL_USER_PASSWORD} ]]; then
+		 OPTS_MYSQL_USER_PASSWORD=${REDACTED_VALUE}
+		 MYSQL_USER_PASSWORD=${REDACTED_VALUE}
 	fi
 
 	# Local root user details
