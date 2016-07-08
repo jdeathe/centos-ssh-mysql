@@ -127,6 +127,7 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		"${MYSQL_SUBNET:-127.0.0.1}"
 	)"
 	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
+	OPTS_MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED:-false}
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
@@ -202,12 +203,18 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	MYSQL_INIT_SQL_USER_TEMPLATE="-- Create user"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]; then
+
+		if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]; then
+			MYSQL_HASHED_PASSWORD_IDENTIFIER="PASSWORD "
+		fi
+
 		printf \
 			-v MYSQL_INIT_SQL_USER_TEMPLATE \
-			-- "%s\nCREATE USER '%s'@'%s' \nIDENTIFIED BY '%s';" \
+			-- "%s\nCREATE USER '%s'@'%s' \nIDENTIFIED BY %s'%s';" \
 			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}" \
+			"${MYSQL_HASHED_PASSWORD_IDENTIFIER:-}" \
 			"{{MYSQL_USER_PASSWORD}}"
 	fi
 
