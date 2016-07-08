@@ -136,6 +136,7 @@ ExecStart=/bin/bash -c \
       --env \"MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}\" \
       --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
       --volumes-from ${VOLUME_CONFIG_NAME} \
+      --volume ${VOLUME_DATA_NAME}:/var/lib/mysql \
       ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   else \
     exec /usr/bin/docker run \
