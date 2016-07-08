@@ -107,6 +107,7 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
+	OPTS_MYSQL_ROOT_PASSWORD_HASHED=${MYSQL_ROOT_PASSWORD_HASHED:-false}
 	OPTS_MYSQL_SERVICE_USER="$(
 		get_option \
 			mysqld \
@@ -299,6 +300,14 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		sleep 0.5
 
 		if have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql; then
+
+			# Set the password if it was supplied pre-hashed.
+			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
+				mysql \
+					--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+					-e "SET PASSWORD = '${OPTS_MYSQL_ROOT_PASSWORD}'"
+			fi
+
 			break
 		fi
 
@@ -318,10 +327,18 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	else
 		echo "Stopping MySQL."
 
-		mysqladmin \
-			--user=root \
-			--password=${OPTS_MYSQL_ROOT_PASSWORD} \
-			shutdown
+		# Prefer mysqladmin shutdown method if password is known
+		if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
+			killall \
+				-w \
+				-15 \
+				mysqld
+		else
+			mysqladmin \
+				--user=root \
+				--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+				shutdown
+		fi
 
 		rm -f \
 			/tmp/mysql-init{,-template}

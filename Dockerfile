@@ -43,6 +43,7 @@ EXPOSE 3306
 # Set default environment variables
 # -----------------------------------------------------------------------------
 ENV MYSQL_ROOT_PASSWORD="" \
+	MYSQL_ROOT_PASSWORD_HASHED=false \
 	MYSQL_SUBNET="127.0.0.1" \
 	MYSQL_USER="" \
 	MYSQL_USER_DATABASE="" \
