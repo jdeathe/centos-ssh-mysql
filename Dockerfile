@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.5.2
+FROM jdeathe/centos-ssh:centos-6-1.5.3
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
