@@ -262,6 +262,24 @@ On first run the root user is created with an auto-generated password. If you re
 ...
 ```
 
+##### MYSQL_ROOT_PASSWORD_HASHED
+
+To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_ROOT_PASSWORD_HASHED` to `true`.
+
+```
+...
+  --env "MYSQL_ROOT_PASSWORD=*03F7361A0E18DA99361B7A82EA575944F53E206B" \
+  --env "MYSQL_ROOT_PASSWORD_HASHED=true" \
+...
+```
+
+*Note:* To generate a pre-hashed password you could use the following MySQL command.
+
+```
+$ mysql -u root -p{mysql_root_password} \
+  -e "SELECT PASSWORD('{mysql_user_password}');"
+```
+
 ##### MYSQL_USER
 
 On first run, a database user and database can be created. Set `MYSQL_USER` to a non-empty string. A corresponding `MYSQL_USER_DATABASE` value must also be set for the user to be given access too.
@@ -279,6 +297,17 @@ On first run, if the database user `MYSQL_USER` is specified then it is created 
 ```
 ...
   --env "MYSQL_USER_PASSWORD=appPassw0rd!" \
+...
+```
+
+##### MYSQL_USER_PASSWORD_HASHED
+
+To indicate `MYSQL_USER_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_USER_PASSWORD_HASHED` to `true`. In the following example the plain-text password is 'insecure-password'.
+
+```
+...
+  --env "MYSQL_USER_PASSWORD=*4215553ECE7A18BC09C16DB9EBF03FACFF49166B" \
+  --env "MYSQL_USER_PASSWORD_HASHED=true" \
 ...
 ```
 
