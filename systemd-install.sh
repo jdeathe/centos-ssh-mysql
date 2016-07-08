@@ -6,74 +6,51 @@ if [[ ${DIR_PATH} == */* ]] && [[ ${DIR_PATH} != $( pwd ) ]] ; then
 	cd ${DIR_PATH}
 fi
 
-have_docker_container_name ()
-{
-	local NAME=$1
+source run.conf
 
-	if [[ -z ${NAME} ]]; then
-		return 1
-	fi
-
-	if [[ -n $(docker ps -a | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
-		return 0
-	fi
-
-	return 1
-}
-
-is_docker_container_name_running ()
-{
-	local NAME=$1
-
-	if [[ -z ${NAME} ]]; then
-		return 1
-	fi
-
-	if [[ -n $(docker ps | awk -v pattern="^${NAME}$" '$NF ~ pattern { print $NF; }') ]]; then
-		return 0
-	fi
-
-	return 1
-}
-
-remove_docker_container_name ()
-{
-	local NAME=$1
-
-	if have_docker_container_name ${NAME} ; then
-		if is_docker_container_name_running ${NAME} ; then
-			echo "Stopping container ${NAME}"
-			(docker stop ${NAME})
-		fi
-		echo "Removing container ${NAME}"
-		(docker rm ${NAME})
-	fi
-}
-
-OPT_SERVICE_NAME_FULL=${SERVICE_NAME_FULL:-mysql.pool-1.1.1@3306.service}
-OPT_SERVICE_NAME_SHORT=$(cut -d '@' -f1 <<< "${OPT_SERVICE_NAME_FULL}")
-
-# Stop the service and remove containers.
-sudo systemctl stop ${OPT_SERVICE_NAME_FULL} &> /dev/null
-remove_docker_container_name volume-config.${OPT_SERVICE_NAME_SHORT}
-remove_docker_container_name ${OPT_SERVICE_NAME_SHORT}
-
-# Copy systemd definition into place and enable it.
-sudo cp ${OPT_SERVICE_NAME_FULL} /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable /etc/systemd/system/${OPT_SERVICE_NAME_FULL}
-
-echo "This may take a while if pulling large container images."
-sudo systemctl restart ${OPT_SERVICE_NAME_FULL} &
-
-# If we have the timeout command then use it, otherwise wait for use to cancel
-TIMEOUT=
-if type "timeout" &> /dev/null; then
-	TIMEOUT="timeout 30 "
+# Abort if systemd not supported
+if ! type -p systemctl &> /dev/null; then
+	printf -- "${COLOUR_NEGATIVE}--->${COLOUR_RESET} %s\n" 'Systemd installation not supported.'
+	exit 1
 fi
 
-# Tail the systemd unit logs to check progress.
-${TIMEOUT}journalctl -fu ${OPT_SERVICE_NAME_FULL}
+# Abort if not run by root user or with sudo
+if [[ ${EUID} -ne 0 ]]; then
+	printf -- "${COLOUR_NEGATIVE}--->${COLOUR_RESET} %s\n" 'Please run as root.'
+	exit 1
+fi
 
-# Final service status report.
-sudo systemctl status ${OPT_SERVICE_NAME_FULL}
+printf -- "---> Installing %s\n" ${SERVICE_UNIT_INSTANCE_NAME}
+
+# Copy systemd unit-files into place.
+cp ${SERVICE_UNIT_TEMPLATE_NAME} /etc/systemd/system/
+cp ${SERVICE_UNIT_REGISTER_TEMPLATE_NAME} /etc/systemd/system/
+
+systemctl daemon-reload
+
+systemctl enable -f ${SERVICE_UNIT_INSTANCE_NAME}
+systemctl enable -f ${SERVICE_UNIT_REGISTER_INSTANCE_NAME}
+systemctl restart ${SERVICE_UNIT_INSTANCE_NAME} &
+PIDS[0]=${!}
+
+# Tail the systemd unit logs unitl installation completes
+journalctl -fn 0 -u ${SERVICE_UNIT_INSTANCE_NAME} &
+PIDS[1]=${!}
+
+# Wait for installtion to complete
+[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
+
+# Allow time for the container bootstrap to complete
+sleep 8
+kill -15 ${PIDS[1]}
+wait ${PIDS[1]} 2> /dev/null
+
+if systemctl -q is-active ${SERVICE_UNIT_INSTANCE_NAME} && systemctl -q is-active ${SERVICE_UNIT_REGISTER_INSTANCE_NAME}; then
+	printf -- "---> Service unit is active: %s\n" "$(systemctl list-units --type=service | grep "^[ ]*${SERVICE_UNIT_INSTANCE_NAME}")"
+	printf -- "---> Service register unit is active: %s\n" "$(systemctl list-units --type=service | grep "^[ ]*${SERVICE_UNIT_REGISTER_INSTANCE_NAME}")"
+	printf -- "${COLOUR_POSITIVE} --->${COLOUR_RESET} %s\n" 'Install complete'
+else
+	printf -- "\nService status:\n"
+	systemctl status -ln 50 ${SERVICE_UNIT_INSTANCE_NAME}
+	printf -- "\n${COLOUR_NEGATIVE} --->${COLOUR_RESET} %s\n" 'Install error'
+fi
