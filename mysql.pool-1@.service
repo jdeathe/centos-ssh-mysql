@@ -48,8 +48,9 @@ After=docker.service
 Restart=on-failure
 RestartSec=30
 TimeoutStartSec=1200
+Environment="DOCKER_USER=jdeathe"
+Environment="DOCKER_IMAGE_NAME=centos-ssh-mysql"
 Environment="DOCKER_IMAGE_PACKAGE_PATH=/var/services-packages"
-Environment="DOCKER_IMAGE_NAME=jdeathe/centos-ssh-mysql"
 Environment="DOCKER_IMAGE_TAG=centos-6-1.5.0"
 Environment="DOCKER_PORT_MAP_TCP_3306=3306"
 Environment="VOLUME_CONFIG_ENABLED=false"
@@ -66,11 +67,11 @@ Environment="MYSQL_USER_PASSWORD_HASHED=false"
 
 # Initialisation: Load image from local storage if available, otherwise pull.
 ExecStartPre=/bin/bash -c \
-  "if [[ -z $( if [[ -n $(/usr/bin/docker images -q ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}) ]]; then echo $(/usr/bin/docker images -q ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}); else echo $(/usr/bin/docker images -q docker.io/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}); fi; ) ]]; then \
-    if [[ -f ${DOCKER_IMAGE_PACKAGE_PATH}/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz ]]; then \
-      /usr/bin/xz -dc ${DOCKER_IMAGE_PACKAGE_PATH}/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz | /usr/bin/docker load; \
+  "if [[ -z $( if [[ -n $(/usr/bin/docker images -q ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}) ]]; then echo $(/usr/bin/docker images -q ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}); else echo $(/usr/bin/docker images -q docker.io/${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}); fi; ) ]]; then \
+    if [[ -f ${DOCKER_IMAGE_PACKAGE_PATH}/${DOCKER_USER}/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz ]]; then \
+      /usr/bin/xz -dc ${DOCKER_IMAGE_PACKAGE_PATH}/${DOCKER_USER}/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz | /usr/bin/docker load; \
     else \
-      /usr/bin/docker pull ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
+      /usr/bin/docker pull ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
     fi; \
   fi"
 
