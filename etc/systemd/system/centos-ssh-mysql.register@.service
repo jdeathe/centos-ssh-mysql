@@ -1,30 +1,31 @@
 # -----------------------------------------------------------------------------
 # Naming convention:
 #
+#    centos-ssh-mysql@.service = {service-unit-install-template-name}
+#          |
+#          +---------------------- {image-name}
+#
 #    mysql.pool-1.register@.service = {service-unit-template-name}
-#      |      |      |
-#      |      |      +------------ {service-unit-companion-name}
-#      |      +------------------- {service-unit-group-name}
-#      +-------------------------- {service-unit-name}
+#         Y         |
+#         |         +------------- {service-unit-companion-name}
+#         +----------------------- {service-unit-name}
 #
 #    mysql.pool-1.register@1.1.service = {service-unit-instance-name}
-#      |      |      |     | |
-#      |      |      |     | +---- {service-unit-instance}
-#      |      |      |     +------ {service-unit-local-id}
-#      |      |      +------------ {service-unit-companion-name}
-#      |      +------------------- {service-unit-group-name}
-#      +-------------------------- {service-unit-name}
+#         Y          |      Y
+#         |          |      +----- {service-unit-instance}
+#         |          +------------ {service-unit-companion-name}
+#         +----------------------- {service-unit-name}
 #
 #    mysql.pool-1.1.1.register = {service-unit-long-name}
-#      |      |   | |    |
-#      |      |   | |    +-------- {service-unit-companion-name}
-#      |      |   | +------------- {service-unit-instance}
-#      |      |   +--------------- {service-unit-local-id}
-#      |      +------------------- {service-unit-group-name}
-#      +-------------------------- {service-unit-name}
+#         Y        Y     |
+#         |        |     +-------- {service-unit-companion-name}
+#         |        +-------------- {service-unit-instance}
+#         +----------------------- {service-unit-name}
 #
 # To install:
-#     sudo cp {service-unit-template-name} /etc/systemd/system/
+#     sudo sed -e "s~{{SERVICE_UNIT_NAME}}~{service-unit-name}~g" \
+#       {service-unit-install-template-name} \
+#       > /etc/systemd/system/{service-unit-template-name}
 #     sudo systemctl daemon-reload
 #     sudo systemctl enable -f {service-unit-instance-name}
 #
@@ -42,14 +43,14 @@
 Description=centos-mysql etcd registration // %p@%i
 After=etcd.service
 After=etcd2.service
-After=mysql.pool-1@%i.service
-BindsTo=mysql.pool-1@%i.service
+After={{SERVICE_UNIT_NAME}}@%i.service
+BindsTo={{SERVICE_UNIT_NAME}}@%i.service
 RefuseManualStart=true
 RefuseManualStop=true
 
 [Service]
 Environment="REGISTER_ETCD_PARAMETERS="
-Environment="REGISTER_KEY_ROOT=/services/mysql.pool-1.%i"
+Environment="REGISTER_KEY_ROOT=/services/{{SERVICE_UNIT_NAME}}.%i"
 Environment="REGISTER_TTL=120"
 Environment="REGISTER_UPDATE_INTERVAL=95"
 
@@ -66,12 +67,12 @@ ExecStartPre=/bin/bash -c \
 # Register service
 ExecStart=/bin/bash -c \
   "until /usr/bin/etcdctl ${REGISTER_ETCD_PARAMETERS} get ${REGISTER_KEY_ROOT}/ports/tcp/3306 &> /dev/null; do \
-    if /usr/bin/docker port mysql.pool-1.%i 3306 &> /dev/null; then \
+    if /usr/bin/docker port {{SERVICE_UNIT_NAME}}.%i 3306 &> /dev/null; then \
       /usr/bin/etcdctl \
         ${REGISTER_ETCD_PARAMETERS} \
         mk \
         ${REGISTER_KEY_ROOT}/ports/tcp/3306 \
-        \"$(/usr/bin/docker port mysql.pool-1.%i 3306 | /usr/bin/sed 's~^[0-9.]*:~~')\" \
+        \"$(/usr/bin/docker port {{SERVICE_UNIT_NAME}}.%i 3306 | /usr/bin/sed 's~^[0-9.]*:~~')\" \
         --ttl ${REGISTER_TTL} 2> /dev/null; \
     fi; \
     sleep 0.5; \
@@ -84,12 +85,12 @@ ExecStart=/bin/bash -c \
     --ttl ${REGISTER_TTL}; \
   while true; do \
     sleep ${REGISTER_UPDATE_INTERVAL}; \
-    if /usr/bin/docker port mysql.pool-1.%i 3306 &> /dev/null; then \
+    if /usr/bin/docker port {{SERVICE_UNIT_NAME}}.%i 3306 &> /dev/null; then \
       /usr/bin/etcdctl \
         ${REGISTER_ETCD_PARAMETERS} \
         $(if ! /usr/bin/etcdctl ${REGISTER_ETCD_PARAMETERS} get ${REGISTER_KEY_ROOT}/ports/tcp/3306 &> /dev/null; then echo set; else echo update; fi) \
         ${REGISTER_KEY_ROOT}/ports/tcp/3306 \
-        \"$(/usr/bin/docker port mysql.pool-1.%i 3306 | /usr/bin/sed 's~^[0-9.]*:~~')\" \
+        \"$(/usr/bin/docker port {{SERVICE_UNIT_NAME}}.%i 3306 | /usr/bin/sed 's~^[0-9.]*:~~')\" \
         --ttl ${REGISTER_TTL}; \
     fi; \
     /usr/bin/etcdctl \
@@ -112,7 +113,7 @@ ExecStop=/bin/bash -c \
 
 [Install]
 DefaultInstance=1.1
-RequiredBy=mysql.pool-1@%i.service
+RequiredBy={{SERVICE_UNIT_NAME}}@%i.service
 
 [X-Fleet]
-MachineOf=mysql.pool-1@%i.service
+MachineOf={{SERVICE_UNIT_NAME}}@%i.service

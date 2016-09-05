@@ -16,9 +16,9 @@ DOCKER_IMAGE_RELEASE_TAG_PATTERN := ^centos-(6-1|7-2).[0-9]+.[0-9]+$
 DOCKER_CONTAINER_PARAMETERS_APPEND ?=
 DOCKER_IMAGE_TAG ?= latest
 DOCKER_NAME ?= mysql.pool-1.1.1
-DOCKER_PORT_MAP_TCP_22 ?= 
+DOCKER_PORT_MAP_TCP_22 ?=
 DOCKER_PORT_MAP_TCP_3306 ?= 3306
-DOCKER_RESTART_POLICY ?= always # {no,on-failure[:max-retries],always,unless-stopped}
+DOCKER_RESTART_POLICY ?= always
 
 # Docker build --no-cache parameter
 NO_CACHE ?= false
@@ -26,9 +26,9 @@ NO_CACHE ?= false
 # Directory path for release packages
 PACKAGE_PATH ?= ./packages/jdeathe
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Application container configuration
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 SSH_AUTHORIZED_KEYS ?=
 SSH_AUTOSTART_SSHD ?= false
 SSH_AUTOSTART_SSHD_BOOTSTRAP ?= false
@@ -38,11 +38,11 @@ SSH_SUDO ?= ALL=(ALL) ALL
 SSH_USER ?= app-admin
 SSH_USER_FORCE_SFTP ?= false
 SSH_USER_HOME ?= /home/%u
+SSH_USER_ID ?= 500:500
 SSH_USER_PASSWORD ?=
 SSH_USER_PASSWORD_HASHED ?= false
 SSH_USER_SHELL ?= /bin/bash
-SSH_USER_ID ?= 500:500
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 MYSQL_ROOT_PASSWORD ?=
 MYSQL_ROOT_PASSWORD_HASHED ?= false
 MYSQL_SUBNET ?= 127.0.0.1
