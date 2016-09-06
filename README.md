@@ -3,7 +3,7 @@ centos-ssh-mysql
 
 Docker Image of CentOS-6 6.8 x86_64, MySQL 5.1.
 
-Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via environment variables and/or a configuration data volume.
+Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via environment variables.
 
 ## Overview & links
 
