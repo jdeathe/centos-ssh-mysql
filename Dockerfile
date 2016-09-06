@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.6.0
+FROM jdeathe/centos-ssh:centos-6-1.7.0
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
@@ -61,5 +61,38 @@ ENV MYSQL_ROOT_PASSWORD="" \
 	MYSQL_USER_PASSWORD_HASHED=false \
 	SSH_AUTOSTART_SSHD=false \
 	SSH_AUTOSTART_SSHD_BOOTSTRAP=false
+
+# -----------------------------------------------------------------------------
+# Set image metadata
+# -----------------------------------------------------------------------------
+ARG RELEASE_VERSION="1.7.0"
+LABEL \
+	install="docker run \
+--rm \
+--privileged \
+--volume /:/media/root \
+jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
+/sbin/scmi install \
+--chroot=/media/root \
+--name=\${NAME} \
+--tag=centos-6-${RELEASE_VERSION} \
+--setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'" \
+	uninstall="docker run \
+--rm \
+--privileged \
+--volume /:/media/root \
+jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
+/sbin/scmi uninstall \
+--chroot=/media/root \
+--name=\${NAME} \
+--tag=centos-6-${RELEASE_VERSION} \
+--setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'" \
+	org.deathe.name="centos-ssh-mysql" \
+	org.deathe.version="${RELEASE_VERSION}" \
+	org.deathe.release="jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION}" \
+	org.deathe.license="MIT" \
+	org.deathe.vendor="jdeathe" \
+	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
+	org.deathe.description="CentOS-6 6.8 x86_64 - MySQL 5.1."
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
