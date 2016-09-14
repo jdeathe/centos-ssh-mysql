@@ -13,7 +13,7 @@ The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. Fo
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
-Included in the build are the [EPEL](http://fedoraproject.org/wiki/EPEL) and [IUS](https://ius.io/) repositories. Installed packages include [OpenSSH](http://www.openssh.com/portable.html) secure shell, [vim-minimal](http://www.vim.org/), [MySQL Server and client programs](http://www.mysql.com) are installed along with python-setuptools, [supervisor](http://supervisord.org/) and [supervisor-stdout](https://github.com/coderanger/supervisor-stdout).
+Included in the build are the [SCL](https://www.softwarecollections.org/), [EPEL](http://fedoraproject.org/wiki/EPEL) and [IUS](https://ius.io) repositories. Installed packages include [OpenSSH](http://www.openssh.com/portable.html) secure shell, [vim-minimal](http://www.vim.org/), [MySQL Server and client programs](http://www.mysql.com) are installed along with python-setuptools, [supervisor](http://supervisord.org/) and [supervisor-stdout](https://github.com/coderanger/supervisor-stdout).
 
 Supervisor is used to start the mysqld server daemon when a docker container based on this image is run. To enable simple viewing of stdout for the service's subprocess, supervisor-stdout is included. This allows you to see output from the supervisord controlled subprocesses with `docker logs {container-name}`.
 
@@ -116,7 +116,7 @@ $ docker run \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
 
-#### SCMI Uninstall
+##### SCMI Uninstall
 
 To uninstall the previous example simply run the same docker run command with the scmi `uninstall` command.
 
@@ -133,7 +133,7 @@ $ docker run \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
 
-#### SCMI Systemd Support
+##### SCMI Systemd Support
 
 If your docker host has systemd (and optionally etcd) installed then `scmi` provides a method to install the container as a systemd service unit. This provides some additional features for managing a group of instances on a single docker host and has the option to use an etcd backed service registry. Using a systemd unit file allows the System Administrator to use a Drop-In to override the settings of a unit-file template used to create service instances. To use the systemd method of installation use the `-m` or `--manager` option of `scmi` and to include the optional etcd register companion unit use the `--register` option.
 
@@ -156,7 +156,7 @@ $ docker run \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
 
-#### SCMI Fleet Support
+##### SCMI Fleet Support
 
 If your docker host has systemd, fleetd (and optionally etcd) installed then `scmi` provides a method to schedule the container  to run on the cluster. This provides some additional features for managing a group of instances on a [fleet](https://github.com/coreos/fleet) cluster and has the option to use an etcd backed service registry. To use the fleet method of installation use the `-m` or `--manager` option of `scmi` and to include the optional etcd register companion unit use the `--register` option.
 
@@ -235,20 +235,17 @@ $ sudo -E atomic uninstall \
 
 The following example sets up a custom MySQL database, user and user password on first run. This will only work when MySQL runs the initialisation process and values must be specified for MYSQL_USER and MYSQL_USER_DATABASE. If MYSQL_USER_PASSWORD is not specified or left empty a random password will be generated.
 
-*Note:* Settings applied by environment variables will override those set within configuration volumes from release 1.3.1. Existing installations that use the mysql-bootstrap.conf saved on a configuration "data" volume will not allow override by the environment variables. Also users can update mysql-bootstrap.conf to prevent the value being replaced by that set using the environment variable.
-
 ```
 $ docker stop mysql.pool-1.1.1 && \
   docker rm mysql.pool-1.1.1
-
 $ docker run -d \
   --name mysql.pool-1.1.1 \
-  -p 3306:3306 \
+  --publish 3306:3306 \
   --env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
   --env "MYSQL_USER=app-user" \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
-  -v mysql.pool-1.1.1.data-mysql:/var/lib/mysql \
+  --volume mysql.pool-1.1.1.data-mysql:/var/lib/mysql \
   jdeathe/centos-ssh-mysql:centos-6
 ```
 
