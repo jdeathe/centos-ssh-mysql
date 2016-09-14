@@ -22,8 +22,12 @@ RUN rpm --rebuilddb \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
-ADD usr/sbin \
+ADD usr/sbin/mysqld-bootstrap \
 	/usr/sbin/
+ADD opt/scmi \
+	/opt/scmi/
+ADD etc/systemd/system \
+	/etc/systemd/system/
 ADD etc/services-config/mysql/my.cnf \
 	etc/services-config/mysql/mysqld-bootstrap.conf \
 	/etc/services-config/mysql/
