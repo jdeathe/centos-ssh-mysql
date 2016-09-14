@@ -69,14 +69,14 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.7.0"
+ARG RELEASE_VERSION="1.7.1"
 LABEL \
 	install="docker run \
 --rm \
 --privileged \
 --volume /:/media/root \
 jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
-/sbin/scmi install \
+/usr/sbin/scmi install \
 --chroot=/media/root \
 --name=\${NAME} \
 --tag=centos-6-${RELEASE_VERSION} \
@@ -86,7 +86,7 @@ jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
 --privileged \
 --volume /:/media/root \
 jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
-/sbin/scmi uninstall \
+/usr/sbin/scmi uninstall \
 --chroot=/media/root \
 --name=\${NAME} \
 --tag=centos-6-${RELEASE_VERSION} \
