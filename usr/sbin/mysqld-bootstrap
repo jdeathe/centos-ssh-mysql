@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
-TIMER_START=$(
+# Create lock file
+touch /tmp/mysqld-bootstrap.lock
+
+TIMER_START="$(
 	date +%s.%N
-)
+)"
 
 source /etc/mysqld-bootstrap.conf
 
-get_mysql_user_host ()
+function get_mysql_user_host ()
 {
 	local CLIENT_SUBNET="${1:-127.0.0.1}"
 	local VALUE
@@ -29,7 +32,7 @@ get_mysql_user_host ()
 	printf -- "%s" "${VALUE}"
 }
 
-get_option ()
+function get_option ()
 {
 	local VALUE=$(
 		/usr/bin/my_print_defaults "${1}" | \
@@ -40,30 +43,30 @@ get_option ()
 	printf -- "%s" "${VALUE:-$3}"
 }
 
-get_password ()
+function get_password ()
 {
-	local PASSWORD_LENGTH=${1:-8}
-	local PASSWORD=$(
-		head -n 4096 /dev/urandom | \
-		tr -cd '[:alnum:]' | \
-		cut -c1-${PASSWORD_LENGTH}
-	)
+	local PASSWORD_LENGTH="${1:-16}"
+	local PASSWORD="$(
+		head -n 4096 /dev/urandom \
+		| tr -cd '[:alnum:]' \
+		| cut -c1-"${PASSWORD_LENGTH}"
+	)"
 
 	printf -- "%s" "${PASSWORD}"
 
 	return 0
 }
 
-have_mysql_access ()
+function have_mysql_access ()
 {
-	local DB_USER=${1:-root}
-	local DB_PASSWORD=${2:-}
-	local DB_NAME=${3:-mysql}
+	local DB_USER="${1:-root}"
+	local DB_PASSWORD="${2:-}"
+	local DB_NAME="${3:-mysql}"
 
 	if mysql \
 		--protocol=socket \
-		--user=${DB_USER} \
-		--password=${DB_PASSWORD} \
+		--user="${DB_USER}" \
+		--password="${DB_PASSWORD}" \
 		-e "use ${DB_NAME}" \
 		2> /dev/null; then
 		return 0
@@ -72,9 +75,9 @@ have_mysql_access ()
 	return 1
 }
 
-is_mysql_data_directory_populated ()
+function is_mysql_data_directory_populated ()
 {
-	local MYSQL_DATA_DIRECTORY=${1:-/var/lib/mysql}
+	local MYSQL_DATA_DIRECTORY="${1:-/var/lib/mysql}"
 
 	# Test for the InnoDB shared tablespace
 	if [[ -f ${MYSQL_DATA_DIRECTORY}/ibdata1 ]]; then
@@ -90,17 +93,18 @@ OPTS_MYSQL_DATA_DIR="$(
 		datadir \
 		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
 )"
-OPTS_FORCE_MYSQL_INSTALL=${FORCE_MYSQL_INSTALL:-0}
+OPTS_FORCE_MYSQL_INSTALL="${FORCE_MYSQL_INSTALL:-0}"
 
-if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]]; then
+if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]] \
+	&& [[ -n ${OPTS_MYSQL_DATA_DIR} ]]; then
 	echo "Purging MySQL data directory."
 	rm \
 		-rf \
-		${OPTS_MYSQL_DATA_DIR}/*
+		"${OPTS_MYSQL_DATA_DIR}"/*
 fi
 
 # MySQL initialisation is a one-shot process.
-if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
+if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 
 	PASSWORD_LENGTH=16
 	REDACTED_VALUE="********"
@@ -108,7 +112,7 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
-	OPTS_MYSQL_ROOT_PASSWORD_HASHED=${MYSQL_ROOT_PASSWORD_HASHED:-false}
+	OPTS_MYSQL_ROOT_PASSWORD_HASHED="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
 	OPTS_MYSQL_SERVICE_USER="$(
 		get_option \
 			mysqld \
@@ -134,53 +138,53 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
 	if [[ -d ${OPTS_MYSQL_DATA_DIR} ]]; then
-		SERVICE_UID=$(
+		SERVICE_UID="$(
 			stat \
 				-c \
 				"%u" \
-				${OPTS_MYSQL_DATA_DIR}
-		)
-		SERVICE_GID=$(
+				"${OPTS_MYSQL_DATA_DIR}"
+		)"
+		SERVICE_GID="$(
 			stat \
 				-c \
 				"%g" \
-				${OPTS_MYSQL_DATA_DIR}
-		)
-		MYSQL_SERVICE_USER_UID=$(
+				"${OPTS_MYSQL_DATA_DIR}"
+		)"
+		MYSQL_SERVICE_USER_UID="$(
 			id \
 				-u \
-				${OPTS_MYSQL_SERVICE_USER}
-		)
-		MYSQL_SERVICE_USER_GID=$(
+				"${OPTS_MYSQL_SERVICE_USER}"
+		)"
+		MYSQL_SERVICE_USER_GID="$(
 			id \
 				-g \
-				${OPTS_MYSQL_SERVICE_USER}
-		)
+				"${OPTS_MYSQL_SERVICE_USER}"
+		)"
 
 		if [[ -n ${SERVICE_UID} ]] && [[ ${SERVICE_UID} -ne 0 ]] \
-			&& [[ ${SERVICE_UID} != ${MYSQL_SERVICE_USER_UID} ]]; then
+			&& [[ ${SERVICE_UID} != "${MYSQL_SERVICE_USER_UID}" ]]; then
 			usermod \
 				-u \
-				${SERVICE_UID} \
-				${OPTS_MYSQL_SERVICE_USER}
+				"${SERVICE_UID}" \
+				"${OPTS_MYSQL_SERVICE_USER}"
 			chown \
 				-R \
-				${OPTS_MYSQL_SERVICE_USER} \
-				${OPTS_MYSQL_SOCKET_DIR}
+				"${OPTS_MYSQL_SERVICE_USER}" \
+				"${OPTS_MYSQL_SOCKET_DIR}"
 		fi
 
 		if [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]] \
-			&& [[ ${SERVICE_GID} != ${MYSQL_SERVICE_USER_GID} ]]; then
+			&& [[ ${SERVICE_GID} != "${MYSQL_SERVICE_USER_GID}" ]]; then
 			groupmod \
 				-g \
-				${SERVICE_GID} \
-				${OPTS_MYSQL_SERVICE_USER}
+				"${SERVICE_GID}" \
+				"${OPTS_MYSQL_SERVICE_USER}"
 		elif [[ -n ${SERVICE_GID} ]] && [[ ${SERVICE_GID} -ne 0 ]]; then
 			# Add as a supplementary group
 			usermod \
 				-G \
-				${SERVICE_GID} \
-				${OPTS_MYSQL_SERVICE_USER}
+				"${SERVICE_GID}" \
+				"${OPTS_MYSQL_SERVICE_USER}"
 		fi
 	fi
 
@@ -189,7 +193,7 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		--force \
 		--skip-name-resolve \
 		--skip-networking \
-		--tmpdir=${OPTS_MYSQL_DATA_DIR} \
+		--tmpdir="${OPTS_MYSQL_DATA_DIR}" \
 		&
 	PIDS[0]=${!}
 
@@ -295,17 +299,17 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 
 	# Wait for the MySQL database to be initialised by testing 
 	COUNTER=$((
-		2 * ${OPTS_MYSQL_INIT_LIMIT} 
+		2 * OPTS_MYSQL_INIT_LIMIT
 	))
-	while (( ${COUNTER} >= 1 )); do
+	until (( COUNTER == 0 )); do
 		sleep 0.5
 
-		if have_mysql_access root ${OPTS_MYSQL_ROOT_PASSWORD} mysql; then
+		if have_mysql_access root "${OPTS_MYSQL_ROOT_PASSWORD}" mysql; then
 
 			# Set the password if it was supplied pre-hashed.
 			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
 				mysql \
-					--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+					--password="${OPTS_MYSQL_ROOT_PASSWORD}" \
 					-e "SET PASSWORD = '${OPTS_MYSQL_ROOT_PASSWORD}'"
 			fi
 
@@ -337,7 +341,7 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 		else
 			mysqladmin \
 				--user=root \
-				--password=${OPTS_MYSQL_ROOT_PASSWORD} \
+				--password="${OPTS_MYSQL_ROOT_PASSWORD}" \
 				shutdown
 		fi
 
@@ -346,13 +350,13 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 	fi
 
 	if [[ -n ${MYSQL_ROOT_PASSWORD} ]]; then
-		 OPTS_MYSQL_ROOT_PASSWORD=${REDACTED_VALUE}
-		 MYSQL_ROOT_PASSWORD=${REDACTED_VALUE}
+		 OPTS_MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
+		 MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
 	fi
 
 	if [[ -n ${MYSQL_USER_PASSWORD} ]]; then
-		 OPTS_MYSQL_USER_PASSWORD=${REDACTED_VALUE}
-		 MYSQL_USER_PASSWORD=${REDACTED_VALUE}
+		 OPTS_MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
+		 MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
 	fi
 
 	# Local root user details
@@ -374,12 +378,12 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 			"${OPTS_MYSQL_USER_PASSWORD}"
 	fi
 
-	TIMER_TOTAL=$(
+	TIMER_TOTAL="$(
 		echo - | awk "\
-		{ T1="${TIMER_START}" } \
-		{ T2="$(date +%s.%N)" } \
+		{ T1=\"${TIMER_START}\" } \
+		{ T2=\"$(date +%s.%N)\" } \
 		{ print T2 - T1; }"
-	)
+	)"
 
 	cat \
 		<<-EOT
@@ -394,5 +398,8 @@ if ! is_mysql_data_directory_populated ${OPTS_MYSQL_DATA_DIR}; then
 
 	EOT
 fi
+
+# Release lock file
+rm -f /tmp/mysqld-bootstrap.lock
 
 exit 0

@@ -22,8 +22,13 @@ RUN rpm --rebuilddb \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
-ADD usr/sbin \
+ADD usr/sbin/mysqld-bootstrap \
+	usr/sbin/mysqld-wrapper \
 	/usr/sbin/
+ADD opt/scmi \
+	/opt/scmi/
+ADD etc/systemd/system \
+	/etc/systemd/system/
 ADD etc/services-config/mysql/my.cnf \
 	etc/services-config/mysql/mysqld-bootstrap.conf \
 	/etc/services-config/mysql/
@@ -45,7 +50,7 @@ RUN ln -sf \
 	&& chmod 600 \
 		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 \
-		/usr/sbin/mysqld-bootstrap
+		/usr/sbin/mysqld-{bootstrap,wrapper}
 
 EXPOSE 3306
 
@@ -65,14 +70,14 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.7.0"
+ARG RELEASE_VERSION="1.7.1"
 LABEL \
 	install="docker run \
 --rm \
 --privileged \
 --volume /:/media/root \
 jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
-/sbin/scmi install \
+/usr/sbin/scmi install \
 --chroot=/media/root \
 --name=\${NAME} \
 --tag=centos-6-${RELEASE_VERSION} \
@@ -82,7 +87,7 @@ jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
 --privileged \
 --volume /:/media/root \
 jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
-/sbin/scmi uninstall \
+/usr/sbin/scmi uninstall \
 --chroot=/media/root \
 --name=\${NAME} \
 --tag=centos-6-${RELEASE_VERSION} \

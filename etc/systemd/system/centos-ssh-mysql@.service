@@ -90,16 +90,6 @@ ExecStartPre=/bin/bash -c \
 ExecStart=/bin/bash -c \
   "exec /usr/bin/docker run \
     --name %p.%i \
-    $(\
-      if [[ -n $(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[2]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\") ]]; then \
-        printf -- '--publish %%s%%s:3306' \
-          \"$(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[1]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\")\" \
-          \"$(( $(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[2]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\") + $(/usr/bin/awk -F. '$0=$1' <<< %i) - 1 ))\"; \
-      else \
-        printf -- '--publish %%s:3306' \
-          \"${DOCKER_PORT_MAP_TCP_3306}\"; \
-      fi; \
-    ) \
     --env \"MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}\" \
     --env \"MYSQL_ROOT_PASSWORD_HASHED=${MYSQL_ROOT_PASSWORD_HASHED}\" \
     --env \"MYSQL_SUBNET=${MYSQL_SUBNET}\" \
@@ -107,6 +97,18 @@ ExecStart=/bin/bash -c \
     --env \"MYSQL_USER_DATABASE=${MYSQL_USER_DATABASE}\" \
     --env \"MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}\" \
     --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
+    $(\
+      if [[ ${DOCKER_PORT_MAP_TCP_3306} != NULL ]]; then \
+        if [[ -n $(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[2]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\") ]]; then \
+          printf -- '--publish %%s%%s:3306' \
+            \"$(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[1]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\")\" \
+            \"$(( $(/usr/bin/gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[2]; }' <<< \"${DOCKER_PORT_MAP_TCP_3306}\") + $(/usr/bin/awk -F. '$0=$1' <<< %i) - 1 ))\"; \
+        else \
+          printf -- '--publish %%s:3306' \
+            \"${DOCKER_PORT_MAP_TCP_3306}\"; \
+        fi; \
+      fi; \
+    ) \
     ${DOCKER_CONTAINER_PARAMETERS_APPEND} \
     ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}; \
   "
