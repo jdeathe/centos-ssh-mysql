@@ -50,7 +50,7 @@ RUN ln -sf \
 	&& chmod 600 \
 		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 \
-		/usr/sbin/mysqld-bootstrap
+		/usr/sbin/mysqld-{bootstrap,wrapper}
 
 EXPOSE 3306
 
