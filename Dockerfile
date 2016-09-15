@@ -23,6 +23,7 @@ RUN rpm --rebuilddb \
 # Copy files into place
 # -----------------------------------------------------------------------------
 ADD usr/sbin/mysqld-bootstrap \
+	usr/sbin/mysqld-wrapper \
 	/usr/sbin/
 ADD opt/scmi \
 	/opt/scmi/
@@ -49,7 +50,7 @@ RUN ln -sf \
 	&& chmod 600 \
 		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 \
-		/usr/sbin/mysqld-bootstrap
+		/usr/sbin/mysqld-{bootstrap,wrapper}
 
 EXPOSE 3306
 

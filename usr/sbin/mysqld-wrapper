@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+source /etc/mysqld-bootstrap.conf
+
+MYSQLD_SAFE=/usr/bin/mysqld_safe
+NICE=/bin/nice
+NICENESS="${MYSQL_NICENESS:-10}"
+PID_PATH=/var/run/mysqld/mysqld.pid
+PID_PROXY=/usr/bin/pidproxy
+
+while true; do
+	sleep 0.1
+	[[ -e /tmp/mysqld-bootstrap.lock ]] || break
+done
+
+exec ${NICE} \
+	-n ${NICENESS} \
+	${PID_PROXY} \
+	${PID_PATH} \
+	${MYSQLD_SAFE}

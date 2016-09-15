@@ -1,7 +1,7 @@
 
 # If gawk is available handle incrementing the docker host port for instances
 DOCKER_PUBLISH=
-if [[ ${DOCKER_PORT_MAP_TCP_80} != NULL ]]; then
+if [[ ${DOCKER_PORT_MAP_TCP_3306} != NULL ]]; then
 	if command -v gawk &> /dev/null \
 		&& [[ -n $(gawk 'match($0, /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?([0-9]+)$/, matches) { print matches[2]; }' <<< "${DOCKER_PORT_MAP_TCP_3306}") ]]; then
 		printf -v \
