@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.7.0
+FROM jdeathe/centos-ssh:centos-6-1.7.3
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
@@ -70,7 +70,7 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.7.1"
+ARG RELEASE_VERSION="1.7.2"
 LABEL \
 	install="docker run \
 --rm \
