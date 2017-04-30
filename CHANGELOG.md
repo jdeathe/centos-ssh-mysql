@@ -10,6 +10,7 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 
 - Updates upstream source to [1.7.6 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.7.6).
 - Adds a change log (`CHANGELOG.md`).
+- Adds support for semantic version numbered tags.
 
 ### 1.7.2 - 2016-10-02
 
