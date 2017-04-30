@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.7.3
+FROM jdeathe/centos-ssh:1.7.6
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
@@ -12,12 +12,12 @@ MAINTAINER James Deathe <james.deathe@gmail.com>
 # Install MySQL
 # -----------------------------------------------------------------------------
 RUN rpm --rebuilddb \
-	&& yum --setopt=tsflags=nodocs -y install \
-	mysql-server-5.1.73-8.el6_8 \
+	&& yum --setopt=tsflags=nodocs --disableplugin=fastestmirror -y install \
+		mysql-server-5.1.73-8.el6_8 \
 	&& yum versionlock add \
-	mysql* \
-	; rm -rf /var/cache/yum/* \
-	; yum clean all
+		mysql* \
+	&& rm -rf /var/cache/yum/* \
+	&& yum clean all
 
 # -----------------------------------------------------------------------------
 # Copy files into place

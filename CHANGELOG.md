@@ -8,6 +8,7 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 
 ### 1.7.3 - Unreleased
 
+- Updates upstream source to [1.7.6 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.7.6).
 - Adds a change log (`CHANGELOG.md`).
 
 ### 1.7.2 - 2016-10-02
