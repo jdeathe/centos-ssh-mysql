@@ -240,7 +240,8 @@ The following example sets up a custom MySQL database, user and user password on
 ```
 $ docker stop mysql.pool-1.1.1 && \
   docker rm mysql.pool-1.1.1
-$ docker run -d \
+$ docker run \
+  --detach \
   --name mysql.pool-1.1.1 \
   --publish 3306:3306 \
   --env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
