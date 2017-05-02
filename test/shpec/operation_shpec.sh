@@ -42,7 +42,6 @@ function __setup ()
 	# Create the bridge network
 	if [[ -z $(docker network ls -q -f name="${private_data_network}") ]]; then
 		docker network create \
-			--attachable \
 			--internal \
 			--driver bridge \
 			--gateway 172.172.40.1 \
@@ -114,7 +113,9 @@ function test_basic_operations ()
 	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
 	local container_port_3306=""
 
-	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; __destroy; exit 1" \
+	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+		__destroy; \
+		exit 1" \
 		INT TERM EXIT
 
 	describe "Basic MySQL operations"
