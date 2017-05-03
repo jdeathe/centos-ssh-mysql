@@ -129,11 +129,6 @@ function test_basic_operations ()
 				--detach \
 				--name mysql.pool-1.1.1 \
 				--publish ${DOCKER_PORT_MAP_TCP_3306}:3306 \
-				--env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
-				--env "MYSQL_USER=app-user" \
-				--env "MYSQL_USER_PASSWORD=app-password" \
-				--env "MYSQL_USER_DATABASE=app-db" \
-				--volume ${data_volume_1}:/var/lib/mysql \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
