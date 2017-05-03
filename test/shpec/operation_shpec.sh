@@ -112,6 +112,7 @@ function test_basic_operations ()
 	local -r private_data_network="bridge_data_internal"
 	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
 	local container_port_3306=""
+	local mysql_root_password=""
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -155,6 +156,21 @@ function test_basic_operations ()
 			fi
 		end
 
+		it "Generates a 16 character password for the user root@localhost that can be retreived from logs."
+			sleep ${BOOTSTRAP_BACKOFF_TIME}
+
+			mysql_root_password="$(
+				docker logs \
+					mysql.pool-1.1.1 \
+				| grep 'user : root@localhost' \
+				| awk -F" : " '{ print $3; }'
+			)"
+
+			assert __shpec_matcher_egrep \
+				"${mysql_root_password}" \
+				"[a-zA-Z0-9]{16}"
+		end
+
 		__terminate_container \
 			mysql.pool-1.1.1 \
 		&> /dev/null
@@ -168,6 +184,7 @@ function test_custom_configuration ()
 {
 	local -r private_data_network="bridge_data_internal"
 	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
+	local show_databases=""
 
 	trap "__terminate_container mysql.pool-1.1.2 &> /dev/null; \
 		__terminate_container mysql.pool-1.1.3 &> /dev/null; \
@@ -203,6 +220,7 @@ function test_custom_configuration ()
 		end
 
 		it "Runs a MySQL client container named mysql.pool-1.1.3 on an internal network."
+			# TODO - ISSUE 118: Add option to run as MySQL client only.
 			docker run \
 				--detach \
 				--name mysql.pool-1.1.3 \
@@ -218,7 +236,7 @@ function test_custom_configuration ()
 		sleep ${BOOTSTRAP_BACKOFF_TIME}
 
 		it "Can connect to the MySQL server from a MySQL client on the internal network."
-			local show_databases="$(
+			show_databases="$(
 				docker exec \
 					-t \
 					mysql.pool-1.1.3 \
@@ -239,7 +257,7 @@ function test_custom_configuration ()
 		__terminate_container \
 			mysql.pool-1.1.2 \
 		&> /dev/null
-		
+
 		__terminate_container \
 			mysql.pool-1.1.3 \
 		&> /dev/null
