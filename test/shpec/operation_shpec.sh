@@ -158,7 +158,7 @@ function test_basic_operations ()
 				docker logs \
 					mysql.pool-1.1.1 \
 				| grep 'user : root@localhost' \
-				| awk -F" : " '{ print $3; }'
+				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
 			)"
 
 			assert __shpec_matcher_egrep \
