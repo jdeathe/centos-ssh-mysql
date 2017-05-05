@@ -151,9 +151,9 @@ function test_basic_operations ()
 			fi
 		end
 
-		it "Generates a 16 character password for the user root@localhost that can be retreived from logs."
-			sleep ${BOOTSTRAP_BACKOFF_TIME}
+		sleep ${BOOTSTRAP_BACKOFF_TIME}
 
+		it "Generates a 16 character password for the user root@localhost that can be retreived from logs."
 			mysql_root_password="$(
 				docker logs \
 					mysql.pool-1.1.1 \
@@ -164,6 +164,16 @@ function test_basic_operations ()
 			assert __shpec_matcher_egrep \
 				"${mysql_root_password}" \
 				"[a-zA-Z0-9]{16}"
+		end
+
+		it "Does not create a database by default (i.e database : N/A)."
+			docker logs \
+				mysql.pool-1.1.1 \
+			| grep -q 'database : N/A'
+
+			assert equal \
+				"${?}" \
+				0
 		end
 
 		__terminate_container \
