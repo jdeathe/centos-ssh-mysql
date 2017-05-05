@@ -113,6 +113,7 @@ function test_basic_operations ()
 	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
 	local container_port_3306=""
 	local mysql_root_password=""
+	local show_databases=""
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -166,14 +167,36 @@ function test_basic_operations ()
 				"[a-zA-Z0-9]{16}"
 		end
 
-		it "Does not create a database by default (i.e database : N/A)."
-			docker logs \
-				mysql.pool-1.1.1 \
-			| grep -q 'database : N/A'
+		it "Does not create a database by default."
+			show_databases="$(
+				docker exec \
+					mysql.pool-1.1.1 \
+					mysql \
+						--batch \
+						--password=${mysql_root_password} \
+						--skip-column-names \
+						--user=root \
+						-e "SHOW DATABASES;"
+			)"
 
 			assert equal \
-				"${?}" \
-				0
+				"${show_databases}" \
+				"$(
+					printf -- \
+						'%s\n%s' \
+						'information_schema' \
+						'mysql'
+				)"
+
+			it "Shows the database as N/A in the MySQL Details log output."
+				docker logs \
+					mysql.pool-1.1.1 \
+				| grep -q 'database : N/A'
+
+				assert equal \
+					"${?}" \
+					0
+			end
 		end
 
 		__terminate_container \
