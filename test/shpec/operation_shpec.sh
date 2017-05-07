@@ -295,25 +295,6 @@ function test_custom_configuration ()
 			| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
 		)"
 
-		it "Can connect to the MySQL server from a MySQL client on the internal network."
-			show_databases="$(
-				docker exec \
-					-t \
-					mysql.pool-1.1.3 \
-					mysql \
-						-h mysql.pool-1.1.2 \
-						-papp-password \
-						-uapp-user \
-						app-db \
-						-e "SHOW DATABASES;" \
-				| grep -o 'app-db'
-			)"
-
-			assert equal \
-				"${show_databases}" \
-				"app-db"
-		end
-
 		it "Creates a single user named app-user, restricted to the subnet 172.172.40.0/255.255.255.0."
 			select_users="$(
 				docker exec \
@@ -336,6 +317,25 @@ function test_custom_configuration ()
 						'root' \
 						'localhost'
 				)"
+		end
+
+		it "Can connect to the MySQL server from a MySQL client on the internal network."
+			show_databases="$(
+				docker exec \
+					-t \
+					mysql.pool-1.1.3 \
+					mysql \
+						-h mysql.pool-1.1.2 \
+						-papp-password \
+						-uapp-user \
+						app-db \
+						-e "SHOW DATABASES;" \
+				| grep -o 'app-db'
+			)"
+
+			assert equal \
+				"${show_databases}" \
+				"app-db"
 		end
 
 		__terminate_container \
