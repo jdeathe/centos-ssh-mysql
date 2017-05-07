@@ -9,8 +9,7 @@ DOCKER_PORT_MAP_TCP_3306="${DOCKER_PORT_MAP_TCP_3306:-3306}"
 function __destroy ()
 {
 	local -r private_data_network="bridge_data_internal"
-	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
+	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
 
 	# Destroy the bridge network
 	if [[ -n $(docker network ls -q -f name="${private_data_network}") ]]; then
@@ -25,19 +24,12 @@ function __destroy ()
 			${data_volume_1} \
 		&> /dev/null
 	fi
-
-	if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
-		docker volume rm \
-			${data_volume_2} \
-		&> /dev/null
-	fi
 }
 
 function __setup ()
 {
 	local -r private_data_network="bridge_data_internal"
-	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
+	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
 
 	# Create the bridge network
 	if [[ -z $(docker network ls -q -f name="${private_data_network}") ]]; then
@@ -55,13 +47,6 @@ function __setup ()
 		docker volume create \
 			--driver local \
 			${data_volume_1} \
-		&> /dev/null
-	fi
-
-	if [[ -z $(docker volume ls -q -f name="${data_volume_2}") ]]; then
-		docker volume create \
-			--driver local \
-			${data_volume_2} \
 		&> /dev/null
 	fi
 }
@@ -109,7 +94,6 @@ function __terminate_container ()
 
 function test_basic_operations ()
 {
-	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
 	local -r private_data_network="bridge_data_internal"
 	local container_port_3306=""
 	local mysql_root_password=""
@@ -233,7 +217,7 @@ function test_basic_operations ()
 
 function test_custom_configuration ()
 {
-	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
+	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
 	local -r private_data_network="bridge_data_internal"
 	local -r redacted_value="********"
 	local mysql_root_password="MyR00tpA55w*rd"
@@ -268,7 +252,7 @@ function test_custom_configuration ()
 				--env "MYSQL_USER=app-user" \
 				--env "MYSQL_USER_PASSWORD=app-password" \
 				--env "MYSQL_USER_DATABASE=app-db" \
-				--volume ${data_volume_2}:/var/lib/mysql \
+				--volume ${data_volume_1}:/var/lib/mysql \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
