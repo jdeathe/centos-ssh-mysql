@@ -235,7 +235,9 @@ function test_custom_configuration ()
 {
 	local -r private_data_network="bridge_data_internal"
 	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
+	local mysql_root_password=""
 	local show_databases=""
+	local select_users=""
 
 	trap "__terminate_container mysql.pool-1.1.2 &> /dev/null; \
 		__terminate_container mysql.pool-1.1.3 &> /dev/null; \
@@ -286,6 +288,13 @@ function test_custom_configuration ()
 
 		sleep ${BOOTSTRAP_BACKOFF_TIME}
 
+		mysql_root_password="$(
+			docker logs \
+				mysql.pool-1.1.2 \
+			| grep 'user : root@localhost' \
+			| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
+		)"
+
 		it "Can connect to the MySQL server from a MySQL client on the internal network."
 			show_databases="$(
 				docker exec \
@@ -303,6 +312,30 @@ function test_custom_configuration ()
 			assert equal \
 				"${show_databases}" \
 				"app-db"
+		end
+
+		it "Creates a single user named app-user, restricted to the subnet 172.172.40.0/255.255.255.0."
+			select_users="$(
+				docker exec \
+					mysql.pool-1.1.2 \
+					mysql \
+						--batch \
+						--password=${mysql_root_password} \
+						--skip-column-names \
+						--user=root \
+						-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
+			)"
+
+			assert equal \
+				"${select_users}" \
+				"$(
+					printf -- \
+						'%s\t%s\n%s\t%s' \
+						'app-user' \
+						'172.172.40.0/255.255.255.0' \
+						'root' \
+						'localhost'
+				)"
 		end
 
 		__terminate_container \
