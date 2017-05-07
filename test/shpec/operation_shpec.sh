@@ -223,6 +223,9 @@ function test_custom_configuration ()
 	local mysql_root_password="MyR00tpA55w*rd"
 	local mysql_root_password_hash="*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639"
 	local mysql_root_password_log=""
+	local mysql_user_password="MyUs3rpA55w*rd!"
+	local mysql_user_password_hash="*618F42F5226FDCAF0BD92F8CE38E9CCD52D51E4D"
+	local mysql_user_password_log=""
 	local select_users=""
 	local show_databases=""
 
@@ -250,7 +253,7 @@ function test_custom_configuration ()
 				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
 				--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 				--env "MYSQL_USER=app-user" \
-				--env "MYSQL_USER_PASSWORD=app-password" \
+				--env "MYSQL_USER_PASSWORD=${mysql_user_password}" \
 				--env "MYSQL_USER_DATABASE=app-db" \
 				--volume ${data_volume_1}:/var/lib/mysql \
 				jdeathe/centos-ssh-mysql:latest \
@@ -290,6 +293,19 @@ function test_custom_configuration ()
 				"********"
 		end
 
+		it "Redacts operator supplied user password from the log output."
+			mysql_user_password_log="$(
+				docker logs \
+					mysql.pool-1.1.2 \
+				| grep 'user : app-user@172.172.40.0/255.255.255.0' \
+				| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+			)"
+
+			assert equal \
+				"${mysql_user_password_log}" \
+				"********"
+		end
+
 		it "Creates a single user named app-user, restricted to the subnet 172.172.40.0/255.255.255.0."
 			select_users="$(
 				docker exec \
@@ -321,7 +337,7 @@ function test_custom_configuration ()
 					mysql.pool-1.1.3 \
 					mysql \
 						-h mysql.pool-1.1.2 \
-						-papp-password \
+						-p${mysql_user_password} \
 						-uapp-user \
 						app-db \
 						-e "SHOW DATABASES;" \
