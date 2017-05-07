@@ -88,7 +88,7 @@ $ docker exec -i mysql.pool-1.1.1 \
 
 $ docker exec -it  mysql.pool-1.1.1 \
   mysql -p${MYSQL_ROOT_PASSWORD} -u root \
-  -e "SELECT * FROM sakila.film LIMIT 2 \G;"
+  -e "SELECT * FROM sakila.film LIMIT 2 \G"
 ```
 
 ## Instructions
