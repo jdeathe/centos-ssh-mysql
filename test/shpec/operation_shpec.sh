@@ -114,6 +114,7 @@ function test_basic_operations ()
 	local container_port_3306=""
 	local mysql_root_password=""
 	local show_databases=""
+	local select_users=""
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -167,7 +168,7 @@ function test_basic_operations ()
 				"[a-zA-Z0-9]{16}"
 		end
 
-		it "Does not create a database by default."
+		it "Removes test databases and does not create a database by default."
 			show_databases="$(
 				docker exec \
 					mysql.pool-1.1.1 \
@@ -197,6 +198,28 @@ function test_basic_operations ()
 					"${?}" \
 					0
 			end
+		end
+
+		it "Limits root user to access from localhost."
+			select_users="$(
+				docker exec \
+					mysql.pool-1.1.1 \
+					mysql \
+						--batch \
+						--password=${mysql_root_password} \
+						--skip-column-names \
+						--user=root \
+						-e "SELECT User, Host from mysql.user;"
+			)"
+
+			assert equal \
+				"${select_users}" \
+				"$(
+					printf -- \
+						'%s\t%s' \
+						'root' \
+						'localhost'
+				)"
 		end
 
 		__terminate_container \
