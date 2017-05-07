@@ -109,12 +109,12 @@ function __terminate_container ()
 
 function test_basic_operations ()
 {
-	local -r private_data_network="bridge_data_internal"
 	local -r data_volume_1="mysql.pool-1.1.1.data-mysql"
+	local -r private_data_network="bridge_data_internal"
 	local container_port_3306=""
 	local mysql_root_password=""
-	local show_databases=""
 	local select_users=""
+	local show_databases=""
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -233,11 +233,14 @@ function test_basic_operations ()
 
 function test_custom_configuration ()
 {
-	local -r private_data_network="bridge_data_internal"
 	local -r data_volume_2="mysql.pool-1.1.2.data-mysql"
-	local mysql_root_password=""
-	local show_databases=""
+	local -r private_data_network="bridge_data_internal"
+	local -r redacted_value="********"
+	local mysql_root_password="MyR00tpA55w*rd"
+	local mysql_root_password_hash="*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639"
+	local mysql_root_password_log=""
 	local select_users=""
+	local show_databases=""
 
 	trap "__terminate_container mysql.pool-1.1.2 &> /dev/null; \
 		__terminate_container mysql.pool-1.1.3 &> /dev/null; \
@@ -259,6 +262,8 @@ function test_custom_configuration ()
 				--detach \
 				--name mysql.pool-1.1.2 \
 				--network ${private_data_network} \
+				--env "MYSQL_ROOT_PASSWORD=*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639" \
+				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
 				--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 				--env "MYSQL_USER=app-user" \
 				--env "MYSQL_USER_PASSWORD=app-password" \
@@ -288,12 +293,18 @@ function test_custom_configuration ()
 
 		sleep ${BOOTSTRAP_BACKOFF_TIME}
 
-		mysql_root_password="$(
-			docker logs \
-				mysql.pool-1.1.2 \
-			| grep 'user : root@localhost' \
-			| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
-		)"
+		it "Redacts operator supplied root password from the log output."
+			mysql_root_password_log="$(
+				docker logs \
+					mysql.pool-1.1.2 \
+				| grep 'user : root@localhost' \
+				| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+			)"
+
+			assert equal \
+				"${mysql_root_password_log}" \
+				"********"
+		end
 
 		it "Creates a single user named app-user, restricted to the subnet 172.172.40.0/255.255.255.0."
 			select_users="$(
