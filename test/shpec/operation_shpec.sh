@@ -324,6 +324,16 @@ function test_custom_configuration ()
 
 			sleep ${BOOTSTRAP_BACKOFF_TIME}
 
+			it "Shows the database name in the MySQL Details log output."
+				docker logs \
+					mysql.pool-1.1.2 \
+				| grep -q 'database : app-db'
+
+				assert equal \
+					"${?}" \
+					0
+			end
+
 			it "Redacts operator supplied root password from the log output."
 				mysql_root_password_log="$(
 					docker logs \
