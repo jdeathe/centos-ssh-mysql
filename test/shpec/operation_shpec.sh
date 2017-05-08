@@ -8,13 +8,21 @@ DOCKER_PORT_MAP_TCP_3306="${DOCKER_PORT_MAP_TCP_3306:-3306}"
 
 function __destroy ()
 {
-	local -r private_data_network="bridge_data_internal"
+	local -r private_network_1="bridge_internal_1"
+	local -r private_network_2="bridge_internal_2"
 	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
+	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
 
-	# Destroy the bridge network
-	if [[ -n $(docker network ls -q -f name="${private_data_network}") ]]; then
+	# Destroy the bridge networks
+	if [[ -n $(docker network ls -q -f name="${private_network_1}") ]]; then
 		docker network rm \
-			${private_data_network} \
+			${private_network_1} \
+		&> /dev/null
+	fi
+
+	if [[ -n $(docker network ls -q -f name="${private_network_2}") ]]; then
+		docker network rm \
+			${private_network_2} \
 		&> /dev/null
 	fi
 
@@ -24,21 +32,39 @@ function __destroy ()
 			${data_volume_1} \
 		&> /dev/null
 	fi
+
+	if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
+		docker volume rm \
+			${data_volume_2} \
+		&> /dev/null
+	fi
 }
 
 function __setup ()
 {
-	local -r private_data_network="bridge_data_internal"
+	local -r private_network_1="bridge_internal_1"
+	local -r private_network_2="bridge_internal_2"
 	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
+	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
 
-	# Create the bridge network
-	if [[ -z $(docker network ls -q -f name="${private_data_network}") ]]; then
+	# Create the bridge networks
+	if [[ -z $(docker network ls -q -f name="${private_network_1}") ]]; then
 		docker network create \
 			--internal \
 			--driver bridge \
 			--gateway 172.172.40.1 \
 			--subnet 172.172.40.0/24 \
-			${private_data_network} \
+			${private_network_1} \
+		&> /dev/null
+	fi
+
+	if [[ -z $(docker network ls -q -f name="${private_network_2}") ]]; then
+		docker network create \
+			--internal \
+			--driver bridge \
+			--gateway 172.172.42.1 \
+			--subnet 172.172.42.0/24 \
+			${private_network_2} \
 		&> /dev/null
 	fi
 
@@ -47,6 +73,12 @@ function __setup ()
 		docker volume create \
 			--driver local \
 			${data_volume_1} \
+		&> /dev/null
+	fi
+
+	if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
+		docker volume rm \
+			${data_volume_2} \
 		&> /dev/null
 	fi
 }
@@ -94,7 +126,7 @@ function __terminate_container ()
 
 function test_basic_operations ()
 {
-	local -r private_data_network="bridge_data_internal"
+	local -r private_network_1="bridge_internal_1"
 	local container_port_3306=""
 	local mysql_root_password=""
 	local select_users=""
@@ -218,19 +250,23 @@ function test_basic_operations ()
 function test_custom_configuration ()
 {
 	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
-	local -r private_data_network="bridge_data_internal"
+	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
+	local -r private_network_1="bridge_internal_1"
+	local -r private_network_2="bridge_internal_2"
 	local -r redacted_value="********"
-	local mysql_root_password="MyR00tpA55w*rd"
-	local mysql_root_password_hash="*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639"
+	local -r mysql_root_password="MyR00tpA55w*rd"
+	local -r mysql_root_password_hash="*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639"
+	local -r mysql_user_password="MyUs3rpA55w*rd!"
+	local -r mysql_user_password_hash="*618F42F5226FDCAF0BD92F8CE38E9CCD52D51E4D"
 	local mysql_root_password_log=""
-	local mysql_user_password="MyUs3rpA55w*rd!"
-	local mysql_user_password_hash="*618F42F5226FDCAF0BD92F8CE38E9CCD52D51E4D"
 	local mysql_user_password_log=""
 	local select_users=""
 	local show_databases=""
 
 	trap "__terminate_container mysql.pool-1.1.2 &> /dev/null; \
 		__terminate_container mysql.pool-1.1.3 &> /dev/null; \
+		__terminate_container mysql.pool-1.1.4 &> /dev/null; \
+		__terminate_container mysql.pool-1.1.5 &> /dev/null; \
 		__destroy; \
 		exit 1" \
 		INT TERM EXIT
@@ -244,12 +280,21 @@ function test_custom_configuration ()
 			mysql.pool-1.1.3 \
 		&> /dev/null
 
+		__terminate_container \
+			mysql.pool-1.1.4 \
+		&> /dev/null
+
+		__terminate_container \
+			mysql.pool-1.1.5 \
+		&> /dev/null
+
 		it "Runs a MySQL server container named mysql.pool-1.1.2 on an internal network."
 			docker run \
 				--detach \
 				--name mysql.pool-1.1.2 \
-				--network ${private_data_network} \
-				--env "MYSQL_ROOT_PASSWORD=*18016D83960C9DBA9FF71F4D0DA05DAF4FEC7639" \
+				--network-alias mysql.pool-1.1.2 \
+				--network ${private_network_1} \
+				--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
 				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
 				--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 				--env "MYSQL_USER=app-user" \
@@ -262,91 +307,194 @@ function test_custom_configuration ()
 			assert equal \
 				"${?}" \
 				0
+
+			it "Runs a MySQL client container named mysql.pool-1.1.3 on an internal network."
+				# TODO - ISSUE 118: Add option to run as MySQL client only.
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.3 \
+					--network ${private_network_1} \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
+
+				assert equal \
+					"${?}" \
+					0
+			end
+
+			sleep ${BOOTSTRAP_BACKOFF_TIME}
+
+			it "Redacts operator supplied root password from the log output."
+				mysql_root_password_log="$(
+					docker logs \
+						mysql.pool-1.1.2 \
+					| grep 'user : root@localhost' \
+					| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+				)"
+
+				assert equal \
+					"${mysql_root_password_log}" \
+					"********"
+			end
+
+			it "Redacts operator supplied user password from the log output."
+				mysql_user_password_log="$(
+					docker logs \
+						mysql.pool-1.1.2 \
+					| grep 'user : app-user@172.172.40.0/255.255.255.0' \
+					| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+				)"
+
+				assert equal \
+					"${mysql_user_password_log}" \
+					"********"
+			end
+
+			it "Creates a single user named app-user, restricted to a subnet."
+				select_users="$(
+					docker exec \
+						mysql.pool-1.1.2 \
+						mysql \
+							--batch \
+							--password=${mysql_root_password} \
+							--skip-column-names \
+							--user=root \
+							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
+				)"
+
+				assert equal \
+					"${select_users}" \
+					"$(
+						printf -- \
+							'%s\t%s\n%s\t%s' \
+							'app-user' \
+							'172.172.40.0/255.255.255.0' \
+							'root' \
+							'localhost'
+					)"
+			end
+
+			it "Can connect to the MySQL server from a MySQL client on an internal network."
+				show_databases="$(
+					docker exec \
+						-t \
+						mysql.pool-1.1.3 \
+						mysql \
+							-h mysql.pool-1.1.2 \
+							-p${mysql_user_password} \
+							-uapp-user \
+							app-db \
+							-e "SHOW DATABASES;" \
+					| grep -o 'app-db'
+				)"
+
+				assert equal \
+					"${show_databases}" \
+					"app-db"
+			end
 		end
 
-		it "Runs a MySQL client container named mysql.pool-1.1.3 on an internal network."
-			# TODO - ISSUE 118: Add option to run as MySQL client only.
-			docker run \
-				--detach \
-				--name mysql.pool-1.1.3 \
-				--network ${private_data_network} \
+		it "Runs a MySQL server container named mysql.pool-1.1.4 on multiple internal networks."
+			docker create \
+				--name mysql.pool-1.1.4 \
+				--network ${private_network_1} \
+				--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
+				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
+				--env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
+				--env "MYSQL_USER=app2-user" \
+				--env "MYSQL_USER_PASSWORD=${mysql_user_password_hash}" \
+				--env "MYSQL_USER_PASSWORD_HASHED=true" \
+				--env "MYSQL_USER_DATABASE=app2-db" \
+				--volume ${data_volume_2}:/var/lib/mysql \
 				jdeathe/centos-ssh-mysql:latest \
+			&> /dev/null
+
+			docker network connect \
+				${private_network_2} \
+				mysql.pool-1.1.4 \
+			&> /dev/null
+
+			docker start \
+				mysql.pool-1.1.4 \
 			&> /dev/null
 
 			assert equal \
 				"${?}" \
 				0
-		end
 
-		sleep ${BOOTSTRAP_BACKOFF_TIME}
+			it "Runs a MySQL client container named mysql.pool-1.1.5 on an internal network."
+				# TODO - ISSUE 118: Add option to run as MySQL client only.
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.5 \
+					--network ${private_network_2} \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
 
-		it "Redacts operator supplied root password from the log output."
-			mysql_root_password_log="$(
-				docker logs \
-					mysql.pool-1.1.2 \
-				| grep 'user : root@localhost' \
-				| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
-			)"
+				assert equal \
+					"${?}" \
+					0
+			end
 
-			assert equal \
-				"${mysql_root_password_log}" \
-				"********"
-		end
+			sleep ${BOOTSTRAP_BACKOFF_TIME}
 
-		it "Redacts operator supplied user password from the log output."
-			mysql_user_password_log="$(
-				docker logs \
-					mysql.pool-1.1.2 \
-				| grep 'user : app-user@172.172.40.0/255.255.255.0' \
-				| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
-			)"
-
-			assert equal \
-				"${mysql_user_password_log}" \
-				"********"
-		end
-
-		it "Creates a single user named app-user, restricted to the subnet 172.172.40.0/255.255.255.0."
-			select_users="$(
-				docker exec \
-					mysql.pool-1.1.2 \
-					mysql \
-						--batch \
-						--password=${mysql_root_password} \
-						--skip-column-names \
-						--user=root \
-						-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
-			)"
-
-			assert equal \
-				"${select_users}" \
-				"$(
-					printf -- \
-						'%s\t%s\n%s\t%s' \
-						'app-user' \
-						'172.172.40.0/255.255.255.0' \
-						'root' \
-						'localhost'
+			it "Creates a single user named app-user, unrestricted by subnet."
+				select_users="$(
+					docker exec \
+						mysql.pool-1.1.4 \
+						mysql \
+							--batch \
+							--password=${mysql_root_password} \
+							--skip-column-names \
+							--user=root \
+							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
 				)"
-		end
 
-		it "Can connect to the MySQL server from a MySQL client on the internal network."
-			show_databases="$(
-				docker exec \
-					-t \
-					mysql.pool-1.1.3 \
-					mysql \
-						-h mysql.pool-1.1.2 \
-						-p${mysql_user_password} \
-						-uapp-user \
-						app-db \
-						-e "SHOW DATABASES;" \
-				| grep -o 'app-db'
-			)"
+				assert equal \
+					"${select_users}" \
+					"$(
+						printf -- \
+							'%s\t%s\n%s\t%s' \
+							'app2-user' \
+							'%' \
+							'root' \
+							'localhost'
+					)"
+			end
 
-			assert equal \
-				"${show_databases}" \
-				"app-db"
+			it "Can connect to the MySQL server from MySQL client's on both internal networks."
+				show_databases="$(
+					docker exec \
+						-t \
+						mysql.pool-1.1.5 \
+						mysql \
+							-h mysql.pool-1.1.4 \
+							-p${mysql_user_password} \
+							-uapp2-user \
+							app2-db \
+							-e "SHOW DATABASES;" \
+					| grep -o 'app2-db'
+				)"
+
+				show_databases+=":"
+
+				show_databases+="$(
+					docker exec \
+						-t \
+						mysql.pool-1.1.3 \
+						mysql \
+							-h mysql.pool-1.1.4 \
+							-p${mysql_user_password} \
+							-uapp2-user \
+							app2-db \
+							-e "SHOW DATABASES;" \
+					| grep -o 'app2-db'
+				)"
+
+				assert equal \
+					"${show_databases}" \
+					"app2-db:app2-db"
+			end
 		end
 
 		__terminate_container \
@@ -355,6 +503,14 @@ function test_custom_configuration ()
 
 		__terminate_container \
 			mysql.pool-1.1.3 \
+		&> /dev/null
+
+		__terminate_container \
+			mysql.pool-1.1.4 \
+		&> /dev/null
+
+		__terminate_container \
+			mysql.pool-1.1.5 \
 		&> /dev/null
 	end
 
