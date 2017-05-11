@@ -239,11 +239,11 @@ function test_basic_operations ()
 				)"
 		end
 
-		__terminate_container \
-			mysql.pool-1.1.1 \
-		&> /dev/null
-
 		it "Allows for creation of a database on first run (e.g my-db)."
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
+
 			docker run \
 				--detach \
 				--name mysql.pool-1.1.1 \
@@ -271,6 +271,55 @@ function test_basic_operations ()
 				docker logs \
 					mysql.pool-1.1.1 \
 				| grep -q 'database : my-db' \
+				&> /dev/null
+
+				assert equal \
+					"${?}" \
+					0
+			end
+		end
+
+		it "Allows for creation of a user on first run (e.g my-user@'localhost')."
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
+
+			docker run \
+				--detach \
+				--name mysql.pool-1.1.1 \
+				--env "MYSQL_ROOT_PASSWORD=mypasswd" \
+				--env "MYSQL_USER=my-user" \
+				jdeathe/centos-ssh-mysql:latest \
+			&> /dev/null
+
+			sleep ${BOOTSTRAP_BACKOFF_TIME}
+
+			select_users="$(
+				docker exec \
+					mysql.pool-1.1.1 \
+					mysql \
+						--batch \
+						--password=mypasswd \
+						--skip-column-names \
+						--user=root \
+						-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
+			)"
+
+			assert equal \
+				"${select_users}" \
+				"$(
+					printf -- \
+						'%s\t%s\n%s\t%s' \
+						'my-user' \
+						'localhost' \
+						'root' \
+						'localhost'
+				)"
+
+			it "Shows the user in the MySQL Details log output."
+				docker logs \
+					mysql.pool-1.1.1 \
+				| grep -q 'user : my-user@localhost' \
 				&> /dev/null
 
 				assert equal \
