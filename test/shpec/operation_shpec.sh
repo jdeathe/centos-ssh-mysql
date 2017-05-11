@@ -131,6 +131,7 @@ function test_basic_operations ()
 	local mysql_root_password=""
 	local select_users=""
 	local show_databases=""
+	local show_grants=""
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -325,6 +326,23 @@ function test_basic_operations ()
 				assert equal \
 					"${?}" \
 					0
+			end
+
+			it "Grants the user USAGE privileges."
+				show_grants="$(
+					docker exec \
+						mysql.pool-1.1.1 \
+						mysql \
+							--batch \
+							--password=mypasswd \
+							--skip-column-names \
+							--user=root \
+							-e "SHOW GRANTS FOR 'my-user'@'localhost';"
+				)"
+
+				assert __shpec_matcher_egrep \
+					"${show_grants}" \
+					"^GRANT USAGE ON \*\.\* TO 'my-user'@'localhost' IDENTIFIED BY PASSWORD '[\*A-Z0-9]+'$"
 			end
 		end
 
