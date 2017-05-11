@@ -208,7 +208,8 @@ function test_basic_operations ()
 			it "Shows the database as N/A in the MySQL Details log output."
 				docker logs \
 					mysql.pool-1.1.1 \
-				| grep -q 'database : N/A'
+				| grep -q 'database : N/A' \
+				&> /dev/null
 
 				assert equal \
 					"${?}" \
@@ -236,6 +237,46 @@ function test_basic_operations ()
 						'root' \
 						'localhost'
 				)"
+		end
+
+		__terminate_container \
+			mysql.pool-1.1.1 \
+		&> /dev/null
+
+		it "Allows for creation of a database on first run (e.g my-db)."
+			docker run \
+				--detach \
+				--name mysql.pool-1.1.1 \
+				--env "MYSQL_ROOT_PASSWORD=mypasswd" \
+				--env "MYSQL_USER_DATABASE=my-db" \
+				jdeathe/centos-ssh-mysql:latest \
+			&> /dev/null
+
+			sleep ${BOOTSTRAP_BACKOFF_TIME}
+
+			docker exec \
+				-t \
+				mysql.pool-1.1.1 \
+				mysql \
+					-pmypasswd \
+					-uroot \
+					-e "USE my-db;" \
+			&> /dev/null
+
+			assert equal \
+				"${?}" \
+				0
+
+			it "Shows the database name in the MySQL Details log output."
+				docker logs \
+					mysql.pool-1.1.1 \
+				| grep -q 'database : my-db' \
+				&> /dev/null
+
+				assert equal \
+					"${?}" \
+					0
+			end
 		end
 
 		__terminate_container \
@@ -327,7 +368,8 @@ function test_custom_configuration ()
 			it "Shows the database name in the MySQL Details log output."
 				docker logs \
 					mysql.pool-1.1.2 \
-				| grep -q 'database : app-db'
+				| grep -q 'database : app-db' \
+				&> /dev/null
 
 				assert equal \
 					"${?}" \
