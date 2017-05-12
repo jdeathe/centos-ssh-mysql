@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:centos-6-1.7.3
+FROM jdeathe/centos-ssh:1.7.6
 
 MAINTAINER James Deathe <james.deathe@gmail.com>
 
@@ -12,12 +12,12 @@ MAINTAINER James Deathe <james.deathe@gmail.com>
 # Install MySQL
 # -----------------------------------------------------------------------------
 RUN rpm --rebuilddb \
-	&& yum --setopt=tsflags=nodocs -y install \
-	mysql-server-5.1.73-7.el6 \
+	&& yum --setopt=tsflags=nodocs --disableplugin=fastestmirror -y install \
+		mysql-server-5.1.73-8.el6_8 \
 	&& yum versionlock add \
-	mysql* \
-	; rm -rf /var/cache/yum/* \
-	; yum clean all
+		mysql* \
+	&& rm -rf /var/cache/yum/* \
+	&& yum clean all
 
 # -----------------------------------------------------------------------------
 # Copy files into place
@@ -70,31 +70,31 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.7.2"
+ARG RELEASE_VERSION="1.7.3"
 LABEL \
 	install="docker run \
 --rm \
 --privileged \
 --volume /:/media/root \
-jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
+jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 /usr/sbin/scmi install \
 --chroot=/media/root \
 --name=\${NAME} \
---tag=centos-6-${RELEASE_VERSION} \
+--tag=${RELEASE_VERSION} \
 --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'" \
 	uninstall="docker run \
 --rm \
 --privileged \
 --volume /:/media/root \
-jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION} \
+jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 /usr/sbin/scmi uninstall \
 --chroot=/media/root \
 --name=\${NAME} \
---tag=centos-6-${RELEASE_VERSION} \
+--tag=${RELEASE_VERSION} \
 --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'" \
 	org.deathe.name="centos-ssh-mysql" \
 	org.deathe.version="${RELEASE_VERSION}" \
-	org.deathe.release="jdeathe/centos-ssh-mysql:centos-6-${RELEASE_VERSION}" \
+	org.deathe.release="jdeathe/centos-ssh-mysql:${RELEASE_VERSION}" \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
