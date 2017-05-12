@@ -9,6 +9,7 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 ### 1.7.3 - Unreleased
 
 - Updates upstream source to [1.7.6 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.7.6).
+- Updates MySQL package to `mysql-server-5.1.73-8.el6_8`.
 - Adds a change log (`CHANGELOG.md`).
 - Adds support for semantic version numbered tags.
 - Adds minor code style changes to the Makefile for readability.
