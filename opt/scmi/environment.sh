@@ -1,12 +1,12 @@
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
-DOCKER_USER=jdeathe
-DOCKER_IMAGE_NAME=centos-ssh-mysql
+readonly DOCKER_USER=jdeathe
+readonly DOCKER_IMAGE_NAME=centos-ssh-mysql
 
 # Tag validation patterns
-DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|((1|centos-6-1)\.[0-9]+\.[0-9]+))$'
-DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|centos-6-1)\.[0-9]+\.[0-9]+$'
+readonly DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|((1|centos-6-1)\.[0-9]+\.[0-9]+))$'
+readonly DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|centos-6-1)\.[0-9]+\.[0-9]+$'
 
 # -----------------------------------------------------------------------------
 # Variables

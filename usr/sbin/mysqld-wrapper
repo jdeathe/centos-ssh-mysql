@@ -2,11 +2,11 @@
 
 source /etc/mysqld-bootstrap.conf
 
-MYSQLD_SAFE=/usr/bin/mysqld_safe
-NICE=/bin/nice
-NICENESS="${MYSQL_NICENESS:-10}"
-PID_PATH=/var/run/mysqld/mysqld.pid
-PID_PROXY=/usr/bin/pidproxy
+readonly MYSQLD_SAFE=/usr/bin/mysqld_safe
+readonly NICE=/bin/nice
+readonly NICENESS="${MYSQL_NICENESS:-10}"
+readonly PID_PATH=/var/run/mysqld/mysqld.pid
+readonly PID_PROXY=/usr/bin/pidproxy
 
 while true; do
 	sleep 0.1

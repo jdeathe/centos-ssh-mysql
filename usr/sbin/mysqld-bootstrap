@@ -106,8 +106,8 @@ fi
 # MySQL initialisation is a one-shot process.
 if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 
-	PASSWORD_LENGTH=16
-	REDACTED_VALUE="********"
+	readonly PASSWORD_LENGTH=16
+	readonly REDACTED_VALUE="********"
 
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
