@@ -6,6 +6,10 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.8 x86_64 - MySQL 5.1.
 
+### 1.8.0 - Unreleased
+
+- Fixes issue with local readonly variables being writable.
+
 ### 1.7.3 - 2017-05-12
 
 - Updates upstream source to [1.7.6 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.7.6).
