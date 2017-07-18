@@ -9,6 +9,7 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 ### 1.8.0 - Unreleased
 
 - Fixes issue with local readonly variables being writable.
+- Removes undocumented `MYSQL_DATA_DIR_DEFAULT` variable.
 
 ### 1.7.3 - 2017-05-12
 
