@@ -91,7 +91,7 @@ OPTS_MYSQL_DATA_DIR="$(
 	get_option \
 		mysqld \
 		datadir \
-		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
+		"/var/lib/mysql"
 )"
 OPTS_FORCE_MYSQL_INSTALL="${FORCE_MYSQL_INSTALL:-0}"
 
