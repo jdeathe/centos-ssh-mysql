@@ -93,15 +93,6 @@ OPTS_MYSQL_DATA_DIR="$(
 		datadir \
 		"/var/lib/mysql"
 )"
-OPTS_FORCE_MYSQL_INSTALL="${FORCE_MYSQL_INSTALL:-0}"
-
-if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]] \
-	&& [[ -n ${OPTS_MYSQL_DATA_DIR} ]]; then
-	echo "Purging MySQL data directory."
-	rm \
-		-rf \
-		"${OPTS_MYSQL_DATA_DIR}"/*
-fi
 
 # MySQL initialisation is a one-shot process.
 if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
