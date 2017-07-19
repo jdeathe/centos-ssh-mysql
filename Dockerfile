@@ -4,13 +4,15 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:1.7.6
+FROM jdeathe/centos-ssh:1.8.1
 
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
 RUN rpm --rebuilddb \
-	&& yum --setopt=tsflags=nodocs --disableplugin=fastestmirror -y install \
+	&& yum -y install \
+		--setopt=tsflags=nodocs \
+		--disableplugin=fastestmirror \
 		mysql-server-5.1.73-8.el6_8 \
 	&& yum versionlock add \
 		mysql* \
@@ -96,6 +98,6 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.8 x86_64 - MySQL 5.1."
+	org.deathe.description="CentOS-6 6.9 x86_64 - MySQL 5.1."
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
