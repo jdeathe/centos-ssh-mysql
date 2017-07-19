@@ -22,8 +22,7 @@ RUN rpm --rebuilddb \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
-ADD usr/sbin/mysqld-bootstrap \
-	usr/sbin/mysqld-wrapper \
+ADD usr/sbin \
 	/usr/sbin/
 ADD opt/scmi \
 	/opt/scmi/
