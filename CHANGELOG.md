@@ -12,7 +12,8 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 - Removes undocumented `MYSQL_DATA_DIR_DEFAULT` variable.
 - Removes undocumented `FORCE_MYSQL_INSTALL` variable.
 - Removes requirement for gawk in scmi and systemd unit.
-- Remove scmi; it's maintained [upstream](https://github.com/jdeathe/centos-ssh/blob/centos-6/src/usr/sbin/scmi).
+- Removes scmi; it's maintained [upstream](https://github.com/jdeathe/centos-ssh/blob/centos-6/src/usr/sbin/scmi).
+- Replaces deprecated Dockerfile `MAINTAINER` with a `LABEL`.
 
 ### 1.7.3 - 2017-05-12
 
