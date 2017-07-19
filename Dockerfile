@@ -6,8 +6,6 @@
 # =============================================================================
 FROM jdeathe/centos-ssh:1.7.6
 
-MAINTAINER James Deathe <james.deathe@gmail.com>
-
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
@@ -71,6 +69,7 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 ARG RELEASE_VERSION="1.7.3"
 LABEL \
+	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
 --rm \
 --privileged \
