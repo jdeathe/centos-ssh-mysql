@@ -17,6 +17,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 - Update source image to [1.8.1 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.1).
 - Adds a `src` directory for the image root files.
 - Adds `STARTUP_TIME` variable for the `logs-delayed` Makefile target.
+- Adds use of `/var/lock/subsys/` (subsystem lock directory) for bootstrap lock files.
 
 ### 1.7.3 - 2017-05-12
 
