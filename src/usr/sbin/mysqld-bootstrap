@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Create lock file
-touch /var/lock/subsys/mysqld-bootstrap.lock
+touch /var/lock/subsys/mysqld-bootstrap
 
 TIMER_START="$(
 	date +%s.%N
@@ -391,6 +391,6 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 fi
 
 # Release lock file
-rm -f /var/lock/subsys/mysqld-bootstrap.lock
+rm -f /var/lock/subsys/mysqld-bootstrap
 
 exit 0

@@ -231,7 +231,7 @@ function test_basic_operations ()
 			mysql.pool-1.1.1 \
 			${STARTUP_TIME} \
 			"/usr/libexec/mysqld " \
-			"/var/lock/subsys/mysqld-bootstrap.lock"; then
+			"/var/lock/subsys/mysqld-bootstrap"; then
 			exit 1
 		fi
 
@@ -327,7 +327,7 @@ function test_basic_operations ()
 					mysql.pool-1.1.1 \
 					${STARTUP_TIME} \
 					"/usr/libexec/mysqld " \
-					"/var/lock/subsys/mysqld-bootstrap.lock"; then
+					"/var/lock/subsys/mysqld-bootstrap"; then
 					exit 1
 				fi
 
@@ -375,7 +375,7 @@ function test_basic_operations ()
 					mysql.pool-1.1.1 \
 					${STARTUP_TIME} \
 					"/usr/libexec/mysqld " \
-					"/var/lock/subsys/mysqld-bootstrap.lock"; then
+					"/var/lock/subsys/mysqld-bootstrap"; then
 					exit 1
 				fi
 
@@ -521,7 +521,7 @@ function test_custom_configuration ()
 				mysql.pool-1.1.2 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				"/var/lock/subsys/mysqld-bootstrap"; then
 				exit 1
 			fi
 
@@ -529,7 +529,7 @@ function test_custom_configuration ()
 				mysql.pool-1.1.3 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				"/var/lock/subsys/mysqld-bootstrap"; then
 				exit 1
 			fi
 
@@ -670,7 +670,7 @@ function test_custom_configuration ()
 				mysql.pool-1.1.4 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				"/var/lock/subsys/mysqld-bootstrap"; then
 				exit 1
 			fi
 
@@ -678,7 +678,7 @@ function test_custom_configuration ()
 				mysql.pool-1.1.5 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				"/var/lock/subsys/mysqld-bootstrap"; then
 				exit 1
 			fi
 
