@@ -1,4 +1,4 @@
-readonly BOOTSTRAP_BACKOFF_TIME=10
+readonly STARTUP_TIME=7
 readonly TEST_DIRECTORY="test"
 
 # These should ideally be a static value but hosts might be using this port so 
@@ -38,6 +38,62 @@ function __destroy ()
 			${data_volume_2} \
 		&> /dev/null
 	fi
+}
+
+function __get_container_port ()
+{
+	local container="${1:-}"
+	local port="${2:-}"
+	local value=""
+
+	value="$(
+		docker port \
+			${container} \
+			${port}
+	)"
+	value=${value##*:}
+
+	printf -- \
+		'%s' \
+		"${value}"
+}
+
+# container - Docker container name.
+# counter - Timeout counter in seconds.
+# process_pattern - Regular expression pattern used to match running process.
+# bootstrap_lock_file - Path to the bootstrap lock file.
+function __is_container_ready ()
+{
+	local bootstrap_lock_file="${4:-}"
+	local container="${1:-}"
+	local counter=$(
+		awk \
+			-v seconds="${2:-10}" \
+			'BEGIN { print 10 * seconds; }'
+	)
+	local process_pattern="${3:-}"
+
+	until (( counter == 0 )); do
+		sleep 0.1
+
+		if docker exec ${container} \
+				bash -c "ps axo command" \
+			| grep -qE "${process_pattern}" \
+			> /dev/null 2>&1 \
+			&& docker exec ${container} \
+				bash -c "[[ ! -e ${bootstrap_lock_file} ]]"
+		then
+			break
+		fi
+
+		(( counter -= 1 ))
+	done
+
+	if (( counter == 0 )); then
+		return 1
+	fi
+
+	return 0
 }
 
 function __setup ()
@@ -152,11 +208,10 @@ function test_basic_operations ()
 			&> /dev/null
 
 			container_port_3306="$(
-				docker port \
+				__get_container_port \
 					mysql.pool-1.1.1 \
 					3306/tcp
 			)"
-			container_port_3306=${container_port_3306##*:}
 
 			if [[ ${DOCKER_PORT_MAP_TCP_3306} == 0 ]] \
 				|| [[ -z ${DOCKER_PORT_MAP_TCP_3306} ]]; then
@@ -170,7 +225,13 @@ function test_basic_operations ()
 			fi
 		end
 
-		sleep ${BOOTSTRAP_BACKOFF_TIME}
+		if ! __is_container_ready \
+			mysql.pool-1.1.1 \
+			${STARTUP_TIME} \
+			"/usr/libexec/mysqld " \
+			"/var/lock/subsys/mysqld-bootstrap.lock"; then
+			exit 1
+		fi
 
 		it "Generates a 16 character password for the user root@localhost that can be retreived from logs."
 			mysql_root_password="$(
@@ -253,7 +314,13 @@ function test_basic_operations ()
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
-			sleep ${BOOTSTRAP_BACKOFF_TIME}
+			if ! __is_container_ready \
+				mysql.pool-1.1.1 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
 
 			docker exec \
 				-t \
@@ -293,7 +360,13 @@ function test_basic_operations ()
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
-			sleep ${BOOTSTRAP_BACKOFF_TIME}
+			if ! __is_container_ready \
+				mysql.pool-1.1.1 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
 
 			select_users="$(
 				docker exec \
@@ -430,7 +503,13 @@ function test_custom_configuration ()
 					0
 			end
 
-			sleep ${BOOTSTRAP_BACKOFF_TIME}
+			if ! __is_container_ready \
+				mysql.pool-1.1.2 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
 
 			it "Shows the database name in the MySQL Details log output."
 				docker logs \
@@ -492,6 +571,14 @@ function test_custom_configuration ()
 							'localhost'
 					)"
 			end
+
+			if ! __is_container_ready \
+				mysql.pool-1.1.3 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
 
 			it "Can connect to the MySQL server from a MySQL client on an internal network."
 				show_databases="$(
@@ -555,7 +642,21 @@ function test_custom_configuration ()
 					0
 			end
 
-			sleep ${BOOTSTRAP_BACKOFF_TIME}
+			if ! __is_container_ready \
+				mysql.pool-1.1.4 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
+
+			if ! __is_container_ready \
+				mysql.pool-1.1.5 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap.lock"; then
+				exit 1
+			fi
 
 			it "Creates a single user named app-user, unrestricted by subnet."
 				select_users="$(
