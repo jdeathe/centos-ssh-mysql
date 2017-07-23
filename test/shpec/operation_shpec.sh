@@ -481,27 +481,29 @@ function test_custom_configuration ()
 			mysql.pool-1.1.5 \
 		&> /dev/null
 
-		it "Runs a MySQL server container named mysql.pool-1.1.2 on an internal network."
-			docker run \
-				--detach \
-				--name mysql.pool-1.1.2 \
-				--network-alias mysql.pool-1.1.2 \
-				--network ${private_network_1} \
-				--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
-				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
-				--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
-				--env "MYSQL_USER=app-user" \
-				--env "MYSQL_USER_PASSWORD=${mysql_user_password}" \
-				--env "MYSQL_USER_DATABASE=app-db" \
-				--volume ${data_volume_1}:/var/lib/mysql \
-				jdeathe/centos-ssh-mysql:latest \
-			&> /dev/null
+		describe "Single internal network"
+			it "Runs a named server container."
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.2 \
+					--network-alias mysql.pool-1.1.2 \
+					--network ${private_network_1} \
+					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
+					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
+					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
+					--env "MYSQL_USER=app-user" \
+					--env "MYSQL_USER_PASSWORD=${mysql_user_password}" \
+					--env "MYSQL_USER_DATABASE=app-db" \
+					--volume ${data_volume_1}:/var/lib/mysql \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
 
-			assert equal \
-				"${?}" \
-				0
+				assert equal \
+					"${?}" \
+					0
+			end
 
-			it "Runs a MySQL client container named mysql.pool-1.1.3 on an internal network."
+			it "Runs a named client container."
 				# TODO - ISSUE 118: Add option to run as MySQL client only.
 				docker run \
 					--detach \
@@ -523,67 +525,6 @@ function test_custom_configuration ()
 				exit 1
 			fi
 
-			it "Shows the database name in the MySQL Details log output."
-				docker logs \
-					mysql.pool-1.1.2 \
-				| grep -q 'database : app-db' \
-				&> /dev/null
-
-				assert equal \
-					"${?}" \
-					0
-			end
-
-			it "Redacts operator supplied root password from the log output."
-				mysql_root_password_log="$(
-					docker logs \
-						mysql.pool-1.1.2 \
-					| grep 'user : root@localhost' \
-					| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
-				)"
-
-				assert equal \
-					"${mysql_root_password_log}" \
-					"********"
-			end
-
-			it "Redacts operator supplied user password from the log output."
-				mysql_user_password_log="$(
-					docker logs \
-						mysql.pool-1.1.2 \
-					| grep 'user : app-user@172.172.40.0/255.255.255.0' \
-					| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
-				)"
-
-				assert equal \
-					"${mysql_user_password_log}" \
-					"********"
-			end
-
-			it "Creates a single user named app-user, restricted to a subnet."
-				select_users="$(
-					docker exec \
-						mysql.pool-1.1.2 \
-						mysql \
-							--batch \
-							--password=${mysql_root_password} \
-							--skip-column-names \
-							--user=root \
-							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
-				)"
-
-				assert equal \
-					"${select_users}" \
-					"$(
-						printf -- \
-							'%s\t%s\n%s\t%s' \
-							'app-user' \
-							'172.172.40.0/255.255.255.0' \
-							'root' \
-							'localhost'
-					)"
-			end
-
 			if ! __is_container_ready \
 				mysql.pool-1.1.3 \
 				${STARTUP_TIME} \
@@ -592,55 +533,126 @@ function test_custom_configuration ()
 				exit 1
 			fi
 
-			it "Can connect to the MySQL server from a MySQL client on an internal network."
-				show_databases="$(
-					docker exec \
-						-t \
-						mysql.pool-1.1.3 \
-						mysql \
-							-h mysql.pool-1.1.2 \
-							-p${mysql_user_password} \
-							-uapp-user \
-							app-db \
-							-e "SHOW DATABASES;" \
-					| grep -o 'app-db'
-				)"
+			describe "MySQL Details log output"
+				it "Has the database name."
+					docker logs \
+						mysql.pool-1.1.2 \
+					| grep -q 'database : app-db' \
+					&> /dev/null
 
-				assert equal \
-					"${show_databases}" \
-					"app-db"
+					assert equal \
+						"${?}" \
+						0
+				end
+
+				describe "Radact operator supplied passwords"
+					it "Redacts root password."
+						mysql_root_password_log="$(
+							docker logs \
+								mysql.pool-1.1.2 \
+							| grep 'user : root@localhost' \
+							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+						)"
+
+						assert equal \
+							"${mysql_root_password_log}" \
+							"********"
+					end
+
+					it "Redacts user password."
+						mysql_user_password_log="$(
+							docker logs \
+								mysql.pool-1.1.2 \
+							| grep 'user : app-user@172.172.40.0/255.255.255.0' \
+							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
+						)"
+
+						assert equal \
+							"${mysql_user_password_log}" \
+							"********"
+					end
+				end
+			end
+
+			describe "User creation"
+				it "Creates a subnet restricted user."
+					select_users="$(
+						docker exec \
+							mysql.pool-1.1.2 \
+							mysql \
+								--batch \
+								--password=${mysql_root_password} \
+								--skip-column-names \
+								--user=root \
+								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
+					)"
+
+					assert equal \
+						"${select_users}" \
+						"$(
+							printf -- \
+								'%s\t%s\n%s\t%s' \
+								'app-user' \
+								'172.172.40.0/255.255.255.0' \
+								'root' \
+								'localhost'
+						)"
+				end
+			end
+
+			describe "Client to server connection"
+				it "Can successfully connect."
+					show_databases="$(
+						docker exec \
+							-t \
+							mysql.pool-1.1.3 \
+							mysql \
+								-h mysql.pool-1.1.2 \
+								-p${mysql_user_password} \
+								-uapp-user \
+								app-db \
+								-e "SHOW DATABASES;" \
+						| grep -o 'app-db'
+					)"
+
+					assert equal \
+						"${show_databases}" \
+						"app-db"
+				end
 			end
 		end
 
-		it "Runs a MySQL server container named mysql.pool-1.1.4 on multiple internal networks."
-			docker create \
-				--name mysql.pool-1.1.4 \
-				--network ${private_network_1} \
-				--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
-				--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
-				--env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
-				--env "MYSQL_USER=app2-user" \
-				--env "MYSQL_USER_PASSWORD=${mysql_user_password_hash}" \
-				--env "MYSQL_USER_PASSWORD_HASHED=true" \
-				--env "MYSQL_USER_DATABASE=app2-db" \
-				--volume ${data_volume_2}:/var/lib/mysql \
-				jdeathe/centos-ssh-mysql:latest \
-			&> /dev/null
+		describe "Multiple internal networks"
+			it "Runs a named server container."
+				docker create \
+					--name mysql.pool-1.1.4 \
+					--network ${private_network_1} \
+					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
+					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
+					--env "MYSQL_SUBNET=0.0.0.0/0.0.0.0" \
+					--env "MYSQL_USER=app2-user" \
+					--env "MYSQL_USER_PASSWORD=${mysql_user_password_hash}" \
+					--env "MYSQL_USER_PASSWORD_HASHED=true" \
+					--env "MYSQL_USER_DATABASE=app2-db" \
+					--volume ${data_volume_2}:/var/lib/mysql \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
 
-			docker network connect \
-				${private_network_2} \
-				mysql.pool-1.1.4 \
-			&> /dev/null
+				docker network connect \
+					${private_network_2} \
+					mysql.pool-1.1.4 \
+				&> /dev/null
 
-			docker start \
-				mysql.pool-1.1.4 \
-			&> /dev/null
+				docker start \
+					mysql.pool-1.1.4 \
+				&> /dev/null
 
-			assert equal \
-				"${?}" \
-				0
+				assert equal \
+					"${?}" \
+					0
+			end
 
-			it "Runs a MySQL client container named mysql.pool-1.1.5 on an internal network."
+			it "Runs a named client container."
 				# TODO - ISSUE 118: Add option to run as MySQL client only.
 				docker run \
 					--detach \
@@ -670,62 +682,66 @@ function test_custom_configuration ()
 				exit 1
 			fi
 
-			it "Creates a single user named app-user, unrestricted by subnet."
-				select_users="$(
-					docker exec \
-						mysql.pool-1.1.4 \
-						mysql \
-							--batch \
-							--password=${mysql_root_password} \
-							--skip-column-names \
-							--user=root \
-							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
-				)"
-
-				assert equal \
-					"${select_users}" \
-					"$(
-						printf -- \
-							'%s\t%s\n%s\t%s' \
-							'app2-user' \
-							'%' \
-							'root' \
-							'localhost'
+			describe "User creation"
+				it "Creates an unrestricted user."
+					select_users="$(
+						docker exec \
+							mysql.pool-1.1.4 \
+							mysql \
+								--batch \
+								--password=${mysql_root_password} \
+								--skip-column-names \
+								--user=root \
+								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
 					)"
+
+					assert equal \
+						"${select_users}" \
+						"$(
+							printf -- \
+								'%s\t%s\n%s\t%s' \
+								'app2-user' \
+								'%' \
+								'root' \
+								'localhost'
+						)"
+				end
 			end
 
-			it "Can connect to the MySQL server from MySQL client's on both internal networks."
-				show_databases="$(
-					docker exec \
-						-t \
-						mysql.pool-1.1.5 \
-						mysql \
-							-h mysql.pool-1.1.4 \
-							-p${mysql_user_password} \
-							-uapp2-user \
-							app2-db \
-							-e "SHOW DATABASES;" \
-					| grep -o 'app2-db'
-				)"
+			describe "Client to server cross-network connection"
+				it "Can successfully connect."
+					show_databases="$(
+						docker exec \
+							-t \
+							mysql.pool-1.1.5 \
+							mysql \
+								-h mysql.pool-1.1.4 \
+								-p${mysql_user_password} \
+								-uapp2-user \
+								app2-db \
+								-e "SHOW DATABASES;" \
+						| grep -o 'app2-db'
+					)"
 
-				show_databases+=":"
+					show_databases+=":"
 
-				show_databases+="$(
-					docker exec \
-						-t \
-						mysql.pool-1.1.3 \
-						mysql \
-							-h mysql.pool-1.1.4 \
-							-p${mysql_user_password} \
-							-uapp2-user \
-							app2-db \
-							-e "SHOW DATABASES;" \
-					| grep -o 'app2-db'
-				)"
+					show_databases+="$(
+						docker exec \
+							-t \
+							mysql.pool-1.1.3 \
+							mysql \
+								-h mysql.pool-1.1.4 \
+								-p${mysql_user_password} \
+								-uapp2-user \
+								app2-db \
+								-e "SHOW DATABASES;" \
+						| grep -o 'app2-db'
+					)"
 
-				assert equal \
-					"${show_databases}" \
-					"app2-db:app2-db"
+					assert equal \
+						"${show_databases}" \
+						"app2-db:app2-db"
+				end
 			end
 		end
 
