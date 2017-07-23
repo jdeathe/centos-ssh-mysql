@@ -189,40 +189,42 @@ function test_basic_operations ()
 	local show_databases=""
 	local show_grants=""
 
-	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
-		__destroy; \
-		exit 1" \
-		INT TERM EXIT
-
 	describe "Basic MySQL operations"
-		__terminate_container \
-			mysql.pool-1.1.1 \
-		&> /dev/null
+		trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+			__destroy; \
+			exit 1" \
+			INT TERM EXIT
 
-		it "Runs a MySQL container named mysql.pool-1.1.1 on port ${DOCKER_PORT_MAP_TCP_3306}."
-			docker run \
-				--detach \
-				--name mysql.pool-1.1.1 \
-				--publish ${DOCKER_PORT_MAP_TCP_3306}:3306 \
-				jdeathe/centos-ssh-mysql:latest \
+		describe "Runs named container"
+			__terminate_container \
+				mysql.pool-1.1.1 \
 			&> /dev/null
 
-			container_port_3306="$(
-				__get_container_port \
-					mysql.pool-1.1.1 \
-					3306/tcp
-			)"
+			it "Can publish ${DOCKER_PORT_MAP_TCP_3306}:3306."
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.1 \
+					--publish ${DOCKER_PORT_MAP_TCP_3306}:3306 \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
 
-			if [[ ${DOCKER_PORT_MAP_TCP_3306} == 0 ]] \
-				|| [[ -z ${DOCKER_PORT_MAP_TCP_3306} ]]; then
-				assert gt \
-					"${container_port_3306}" \
-					"30000"
-			else
-				assert equal \
-					"${container_port_3306}" \
-					"${DOCKER_PORT_MAP_TCP_3306}"
-			fi
+				container_port_3306="$(
+					__get_container_port \
+						mysql.pool-1.1.1 \
+						3306/tcp
+				)"
+
+				if [[ ${DOCKER_PORT_MAP_TCP_3306} == 0 ]] \
+					|| [[ -z ${DOCKER_PORT_MAP_TCP_3306} ]]; then
+					assert gt \
+						"${container_port_3306}" \
+						"30000"
+				else
+					assert equal \
+						"${container_port_3306}" \
+						"${DOCKER_PORT_MAP_TCP_3306}"
+				fi
+			end
 		end
 
 		if ! __is_container_ready \
@@ -233,109 +235,117 @@ function test_basic_operations ()
 			exit 1
 		fi
 
-		it "Generates a 16 character password for the user root@localhost that can be retreived from logs."
-			mysql_root_password="$(
-				docker logs \
-					mysql.pool-1.1.1 \
-				| grep 'user : root@localhost' \
-				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
-			)"
+		describe "Default initialisation"
+			describe "Setup of root user"
+				it "Sets a 16 character password."
+					mysql_root_password="$(
+						docker logs \
+							mysql.pool-1.1.1 \
+						| grep 'user : root@localhost' \
+						| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
+					)"
 
-			assert __shpec_matcher_egrep \
-				"${mysql_root_password}" \
-				"[a-zA-Z0-9]{16}"
+					assert __shpec_matcher_egrep \
+						"${mysql_root_password}" \
+						"[a-zA-Z0-9]{16}"
+				end
+
+				it "Limits access to localhost only."
+					select_users="$(
+						docker exec \
+							mysql.pool-1.1.1 \
+							mysql \
+								--batch \
+								--password=${mysql_root_password} \
+								--skip-column-names \
+								--user=root \
+								-e "SELECT User, Host from mysql.user;"
+					)"
+
+					assert equal \
+						"${select_users}" \
+						"$(
+							printf -- \
+								'%s\t%s' \
+								'root' \
+								'localhost'
+						)"
+				end
+			end
+
+			describe "Database setup"
+				it "Removes all but the necessary databases."
+					show_databases="$(
+						docker exec \
+							mysql.pool-1.1.1 \
+							mysql \
+								--batch \
+								--password=${mysql_root_password} \
+								--skip-column-names \
+								--user=root \
+								-e "SHOW DATABASES;"
+					)"
+
+					assert equal \
+						"${show_databases}" \
+						"$(
+							printf -- \
+								'%s\n%s' \
+								'information_schema' \
+								'mysql'
+						)"
+				end
+
+				it "Shows N/A in MySQL Details."
+					docker logs \
+						mysql.pool-1.1.1 \
+					| grep -q 'database : N/A' \
+					&> /dev/null
+
+					assert equal \
+						"${?}" \
+						0
+				end
+			end
 		end
 
-		it "Removes test databases and does not create a database by default."
-			show_databases="$(
+		describe "Database setup"
+			it "Creates a database on first run."
+				__terminate_container \
+					mysql.pool-1.1.1 \
+				&> /dev/null
+
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.1 \
+					--env "MYSQL_ROOT_PASSWORD=mypasswd" \
+					--env "MYSQL_USER_DATABASE=my-db" \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
+
+				if ! __is_container_ready \
+					mysql.pool-1.1.1 \
+					${STARTUP_TIME} \
+					"/usr/libexec/mysqld " \
+					"/var/lock/subsys/mysqld-bootstrap.lock"; then
+					exit 1
+				fi
+
 				docker exec \
+					-t \
 					mysql.pool-1.1.1 \
 					mysql \
-						--batch \
-						--password=${mysql_root_password} \
-						--skip-column-names \
-						--user=root \
-						-e "SHOW DATABASES;"
-			)"
-
-			assert equal \
-				"${show_databases}" \
-				"$(
-					printf -- \
-						'%s\n%s' \
-						'information_schema' \
-						'mysql'
-				)"
-
-			it "Shows the database as N/A in the MySQL Details log output."
-				docker logs \
-					mysql.pool-1.1.1 \
-				| grep -q 'database : N/A' \
+						-pmypasswd \
+						-uroot \
+						-e "USE my-db;" \
 				&> /dev/null
 
 				assert equal \
 					"${?}" \
 					0
 			end
-		end
 
-		it "Limits root user to access from localhost."
-			select_users="$(
-				docker exec \
-					mysql.pool-1.1.1 \
-					mysql \
-						--batch \
-						--password=${mysql_root_password} \
-						--skip-column-names \
-						--user=root \
-						-e "SELECT User, Host from mysql.user;"
-			)"
-
-			assert equal \
-				"${select_users}" \
-				"$(
-					printf -- \
-						'%s\t%s' \
-						'root' \
-						'localhost'
-				)"
-		end
-
-		it "Allows for creation of a database on first run (e.g my-db)."
-			__terminate_container \
-				mysql.pool-1.1.1 \
-			&> /dev/null
-
-			docker run \
-				--detach \
-				--name mysql.pool-1.1.1 \
-				--env "MYSQL_ROOT_PASSWORD=mypasswd" \
-				--env "MYSQL_USER_DATABASE=my-db" \
-				jdeathe/centos-ssh-mysql:latest \
-			&> /dev/null
-
-			if ! __is_container_ready \
-				mysql.pool-1.1.1 \
-				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
-				exit 1
-			fi
-
-			docker exec \
-				-t \
-				mysql.pool-1.1.1 \
-				mysql \
-					-pmypasswd \
-					-uroot \
-					-e "USE my-db;" \
-			&> /dev/null
-
-			assert equal \
-				"${?}" \
-				0
-
-			it "Shows the database name in the MySQL Details log output."
+			it "Has database name in MySQL Details."
 				docker logs \
 					mysql.pool-1.1.1 \
 				| grep -q 'database : my-db' \
@@ -347,50 +357,52 @@ function test_basic_operations ()
 			end
 		end
 
-		it "Allows for creation of a user on first run (e.g my-user@'localhost')."
-			__terminate_container \
-				mysql.pool-1.1.1 \
-			&> /dev/null
-
-			docker run \
-				--detach \
-				--name mysql.pool-1.1.1 \
-				--env "MYSQL_ROOT_PASSWORD=mypasswd" \
-				--env "MYSQL_USER=my-user" \
-				jdeathe/centos-ssh-mysql:latest \
-			&> /dev/null
-
-			if ! __is_container_ready \
-				mysql.pool-1.1.1 \
-				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap.lock"; then
-				exit 1
-			fi
-
-			select_users="$(
-				docker exec \
+		describe "User setup"
+			it "Creates a user on first run."
+				__terminate_container \
 					mysql.pool-1.1.1 \
-					mysql \
-						--batch \
-						--password=mypasswd \
-						--skip-column-names \
-						--user=root \
-						-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
-			)"
+				&> /dev/null
 
-			assert equal \
-				"${select_users}" \
-				"$(
-					printf -- \
-						'%s\t%s\n%s\t%s' \
-						'my-user' \
-						'localhost' \
-						'root' \
-						'localhost'
+				docker run \
+					--detach \
+					--name mysql.pool-1.1.1 \
+					--env "MYSQL_ROOT_PASSWORD=mypasswd" \
+					--env "MYSQL_USER=my-user" \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
+
+				if ! __is_container_ready \
+					mysql.pool-1.1.1 \
+					${STARTUP_TIME} \
+					"/usr/libexec/mysqld " \
+					"/var/lock/subsys/mysqld-bootstrap.lock"; then
+					exit 1
+				fi
+
+				select_users="$(
+					docker exec \
+						mysql.pool-1.1.1 \
+						mysql \
+							--batch \
+							--password=mypasswd \
+							--skip-column-names \
+							--user=root \
+							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
 				)"
 
-			it "Shows the user in the MySQL Details log output."
+				assert equal \
+					"${select_users}" \
+					"$(
+						printf -- \
+							'%s\t%s\n%s\t%s' \
+							'my-user' \
+							'localhost' \
+							'root' \
+							'localhost'
+					)"
+			end
+
+			it "Has user in MySQL Details."
 				docker logs \
 					mysql.pool-1.1.1 \
 				| grep -q 'user : my-user@localhost' \
@@ -422,10 +434,10 @@ function test_basic_operations ()
 		__terminate_container \
 			mysql.pool-1.1.1 \
 		&> /dev/null
-	end
 
-	trap - \
-		INT TERM EXIT
+		trap - \
+			INT TERM EXIT
+	end
 }
 
 function test_custom_configuration ()
