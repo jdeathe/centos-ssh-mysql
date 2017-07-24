@@ -105,7 +105,6 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 HEALTHCHECK \
 	--interval=1s \
 	--timeout=1s \
-	--start-period=7s \
 	--retries=10 \
 	CMD ["/usr/bin/healthcheck"]
 
