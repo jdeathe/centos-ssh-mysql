@@ -1,1 +1,1 @@
-CentOS-6 6.8 x86_64 - MySQL.
+CentOS-6 6.9 x86_64 - MySQL.

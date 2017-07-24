@@ -4,7 +4,7 @@
 
 Summary of release changes for Version 1.
 
-CentOS-6 6.8 x86_64 - MySQL 5.1.
+CentOS-6 6.9 x86_64 - MySQL 5.1.
 
 ### 1.8.0 - Unreleased
 
@@ -14,6 +14,12 @@ CentOS-6 6.8 x86_64 - MySQL 5.1.
 - Removes requirement for gawk in scmi and systemd unit.
 - Removes scmi; it's maintained [upstream](https://github.com/jdeathe/centos-ssh/blob/centos-6/src/usr/sbin/scmi).
 - Replaces deprecated Dockerfile `MAINTAINER` with a `LABEL`.
+- Update source image to [1.8.1 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.1).
+- Adds a `src` directory for the image root files.
+- Adds `STARTUP_TIME` variable for the `logs-delayed` Makefile target.
+- Adds use of `/var/lock/subsys/` (subsystem lock directory) for bootstrap lock files.
+- Adds test case output with improved readability.
+- Adds healthcheck.
 
 ### 1.7.3 - 2017-05-12
 
