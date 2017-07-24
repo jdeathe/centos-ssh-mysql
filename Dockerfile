@@ -22,6 +22,8 @@ RUN rpm --rebuilddb \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
+ADD src/usr/bin \
+	/usr/bin/
 ADD src/usr/sbin \
 	/usr/sbin/
 ADD src/opt/scmi \
@@ -49,7 +51,7 @@ RUN ln -sf \
 	&& chmod 600 \
 		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 \
-		/usr/sbin/mysqld-{bootstrap,wrapper}
+		/usr/{bin/healthcheck,sbin/mysqld-{bootstrap,wrapper}}
 
 EXPOSE 3306
 
@@ -99,5 +101,12 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
 	org.deathe.description="CentOS-6 6.9 x86_64 - MySQL 5.1."
+
+HEALTHCHECK \
+	--interval=1s \
+	--timeout=1s \
+	--start-period=7s \
+	--retries=10 \
+	CMD ["/usr/bin/healthcheck"]
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]

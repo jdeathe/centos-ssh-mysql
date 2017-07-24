@@ -19,6 +19,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 - Adds `STARTUP_TIME` variable for the `logs-delayed` Makefile target.
 - Adds use of `/var/lock/subsys/` (subsystem lock directory) for bootstrap lock files.
 - Adds test case output with improved readability.
+- Adds healthcheck.
 
 ### 1.7.3 - 2017-05-12
 
