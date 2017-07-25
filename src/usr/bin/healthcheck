@@ -38,6 +38,22 @@ function __is_throttled_interval ()
 	fi
 }
 
+function __is_mysql_data_directory_populated ()
+{
+	local datadir="$(
+		__mysql_get_option \
+			mysqld \
+			datadir \
+			"/var/lib/mysql"
+	)"
+
+	if [[ -f ${datadir}/ibdata1 ]]; then
+		return 0
+	fi
+
+	return 1
+}
+
 function __last_check_passed ()
 {
 	local -i status=0
@@ -56,6 +72,19 @@ function __last_check_passed ()
 			return 1
 		fi
 	fi
+}
+
+function __mysql_get_option ()
+{
+	local value="$(
+		/usr/bin/my_print_defaults "${1}" \
+		| sed -n "s/^--${2}=//p" \
+		| tail -n 1
+	)"
+
+	printf -- \
+		'%s' \
+		"${value:-$3}"
 }
 
 function __print_message ()
@@ -200,48 +229,54 @@ function main ()
 	fi
 
 	# mysqld-bootstrap
-	if [[ -e /var/lock/subsys/mysqld-bootstrap ]]; then
-		exit 1
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP} == true ]]; then
+		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
+			|| ! __is_mysql_data_directory_populated
+		then
+			exit 1
+		fi
 	fi
 
 	# mysqld-wrapper
-	if ! ps axo command \
-		| grep -qE '^/usr/libexec/mysqld '
-	then
-		exit 1
-	fi
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]; then
+		if ! ps axo command \
+			| grep -qE '^/usr/libexec/mysqld '
+		then
+			exit 1
+		fi
 
-	# Skip connection tests if password is stored hashed
-	if [[ ${MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
-		exit 0
-	fi
+		# Skip connection tests if password is stored hashed
+		if [[ ${MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
+			exit 0
+		fi
 
-	# Throttle connection checks if last check passed.
-	if __last_check_passed \
-		&& ! __is_throttled_interval \
-			"${interval}"
-	then
-		exit 0
-	fi
+		# Throttle connection checks if last check passed.
+		if __last_check_passed \
+			&& ! __is_throttled_interval \
+				"${interval}"
+		then
+			exit 0
+		fi
 
-	if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-		&& [[ ${MYSQL_ROOT_PASSWORD} != ${REDACTED_VALUE} ]]
-	then
-		db_password="${MYSQL_ROOT_PASSWORD}"
-	else
-		db_password="$(
-			grep 'user : root@localhost' /var/log/mysqld.log \
-			| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
-		)"
-	fi
+		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
+			&& [[ ${MYSQL_ROOT_PASSWORD} != ${REDACTED_VALUE} ]]
+		then
+			db_password="${MYSQL_ROOT_PASSWORD}"
+		else
+			db_password="$(
+				grep 'user : root@localhost' /var/log/mysqld.log \
+				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
+			)"
+		fi
 
-	if ! __have_mysql_access \
-		root \
-		"${db_password}"
-	then
-		__print_message \
-			"root@localhost access failed."
-		exit 1
+		if ! __have_mysql_access \
+			root \
+			"${db_password}"
+		then
+			__print_message \
+				"root@localhost access failed."
+			exit 1
+		fi
 	fi
 
 	exit 0

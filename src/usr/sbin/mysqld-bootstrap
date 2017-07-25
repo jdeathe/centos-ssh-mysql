@@ -124,7 +124,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		"${MYSQL_SUBNET:-127.0.0.1}"
 	)"
 	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
-	OPTS_MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED:-false}
+	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
