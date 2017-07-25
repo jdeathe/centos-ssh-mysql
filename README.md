@@ -276,7 +276,6 @@ It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld
   --env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
 ...
 ```
-```
 
 ##### MYSQL_ROOT_PASSWORD
 
