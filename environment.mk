@@ -47,6 +47,8 @@ SSH_USER_PASSWORD ?=
 SSH_USER_PASSWORD_HASHED ?= false
 SSH_USER_SHELL ?= /bin/bash
 # -----------------------------------------------------------------------------
+MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP ?= true
+MYSQL_AUTOSTART_MYSQLD_WRAPPER ?= true
 MYSQL_ROOT_PASSWORD ?=
 MYSQL_ROOT_PASSWORD_HASHED ?= false
 MYSQL_SUBNET ?= 127.0.0.1

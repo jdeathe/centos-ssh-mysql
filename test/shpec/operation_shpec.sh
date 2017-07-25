@@ -189,12 +189,12 @@ function test_basic_operations ()
 	local show_databases=""
 	local show_grants=""
 
-	describe "Basic MySQL operations"
-		trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
-			__destroy; \
-			exit 1" \
-			INT TERM EXIT
+	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+		__destroy; \
+		exit 1" \
+		INT TERM EXIT
 
+	describe "Basic MySQL operations"
 		describe "Runs named container"
 			__terminate_container \
 				mysql.pool-1.1.1 \
@@ -434,10 +434,10 @@ function test_basic_operations ()
 		__terminate_container \
 			mysql.pool-1.1.1 \
 		&> /dev/null
-
-		trap - \
-			INT TERM EXIT
 	end
+
+	trap - \
+		INT TERM EXIT
 }
 
 function test_custom_configuration ()
@@ -473,14 +473,6 @@ function test_custom_configuration ()
 			mysql.pool-1.1.3 \
 		&> /dev/null
 
-		__terminate_container \
-			mysql.pool-1.1.4 \
-		&> /dev/null
-
-		__terminate_container \
-			mysql.pool-1.1.5 \
-		&> /dev/null
-
 		describe "Single internal network"
 			it "Runs a named server container."
 				docker run \
@@ -504,11 +496,12 @@ function test_custom_configuration ()
 			end
 
 			it "Runs a named client container."
-				# TODO - ISSUE 118: Add option to run as MySQL client only.
 				docker run \
 					--detach \
 					--name mysql.pool-1.1.3 \
 					--network ${private_network_1} \
+					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -519,14 +512,6 @@ function test_custom_configuration ()
 
 			if ! __is_container_ready \
 				mysql.pool-1.1.2 \
-				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap"; then
-				exit 1
-			fi
-
-			if ! __is_container_ready \
-				mysql.pool-1.1.3 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"/var/lock/subsys/mysqld-bootstrap"; then
@@ -620,9 +605,22 @@ function test_custom_configuration ()
 						"app-db"
 				end
 			end
+
+			# Clean up server but keep client running.
+			__terminate_container \
+				mysql.pool-1.1.2 \
+			&> /dev/null
 		end
 
 		describe "Multiple internal networks"
+			__terminate_container \
+				mysql.pool-1.1.4 \
+			&> /dev/null
+
+			__terminate_container \
+				mysql.pool-1.1.5 \
+			&> /dev/null
+
 			it "Runs a named server container."
 				docker create \
 					--name mysql.pool-1.1.4 \
@@ -653,11 +651,12 @@ function test_custom_configuration ()
 			end
 
 			it "Runs a named client container."
-				# TODO - ISSUE 118: Add option to run as MySQL client only.
 				docker run \
 					--detach \
 					--name mysql.pool-1.1.5 \
 					--network ${private_network_2} \
+					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -668,14 +667,6 @@ function test_custom_configuration ()
 
 			if ! __is_container_ready \
 				mysql.pool-1.1.4 \
-				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
-				"/var/lock/subsys/mysqld-bootstrap"; then
-				exit 1
-			fi
-
-			if ! __is_container_ready \
-				mysql.pool-1.1.5 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"/var/lock/subsys/mysqld-bootstrap"; then
@@ -743,23 +734,75 @@ function test_custom_configuration ()
 						"app2-db:app2-db"
 				end
 			end
+
+			__terminate_container \
+				mysql.pool-1.1.3 \
+			&> /dev/null
+
+			__terminate_container \
+				mysql.pool-1.1.4 \
+			&> /dev/null
+
+			__terminate_container \
+				mysql.pool-1.1.5 \
+			&> /dev/null
 		end
 
-		__terminate_container \
-			mysql.pool-1.1.2 \
-		&> /dev/null
+		describe "Configure autostart"
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
 
-		__terminate_container \
-			mysql.pool-1.1.3 \
-		&> /dev/null
+			docker run \
+				--detach \
+				--name mysql.pool-1.1.1 \
+				--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+				jdeathe/centos-ssh-mysql:latest \
+			&> /dev/null
 
-		__terminate_container \
-			mysql.pool-1.1.4 \
-		&> /dev/null
+			if ! __is_container_ready \
+				mysql.pool-1.1.1 \
+				${STARTUP_TIME} \
+				"/usr/libexec/mysqld " \
+				"/var/lock/subsys/mysqld-bootstrap"; then
+				exit 1
+			fi
 
-		__terminate_container \
-			mysql.pool-1.1.5 \
-		&> /dev/null
+			it "Can disable mysqld-bootstrap."
+				docker logs mysql.pool-1.1.1 \
+					| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
+
+				assert equal \
+					"${?}" \
+					"1"
+			end
+
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
+
+			docker run \
+				--detach \
+				--name mysql.pool-1.1.1 \
+				--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+				jdeathe/centos-ssh-mysql:latest \
+			&> /dev/null
+
+			sleep ${STARTUP_TIME}
+
+			it "Can disable mysqld-wrapper."
+				docker top mysql.pool-1.1.1 \
+					| grep -qE '/usr/libexec/mysqld '
+
+				assert equal \
+					"${?}" \
+					"1"
+			end
+
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
+		end
 	end
 
 	trap - \
@@ -772,12 +815,12 @@ function test_healthcheck ()
 	local -r retries=10
 	local health_status=""
 
-	describe "Healthcheck"
-		trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
-			__destroy; \
-			exit 1" \
-			INT TERM EXIT
+	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+		__destroy; \
+		exit 1" \
+		INT TERM EXIT
 
+	describe "Healthcheck"
 		describe "Default configuration"
 			__terminate_container \
 				mysql.pool-1.1.1 \
@@ -850,15 +893,15 @@ function test_healthcheck ()
 					"${health_status}" \
 					"\"unhealthy\""
 			end
+
+			__terminate_container \
+				mysql.pool-1.1.1 \
+			&> /dev/null
 		end
-
-		__terminate_container \
-			mysql.pool-1.1.1 \
-		&> /dev/null
-
-		trap - \
-			INT TERM EXIT
 	end
+
+	trap - \
+		INT TERM EXIT
 }
 
 if [[ ! -d ${TEST_DIRECTORY} ]]; then
