@@ -75,21 +75,20 @@ To import the Sakila example database from the [MySQL Documentation](https://dev
 $ export MYSQL_ROOT_PASSWORD={your-password}
 
 $ docker exec -i mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
-  <<< $(tar -xzOf /dev/stdin \
-    <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) \
-    sakila-db/sakila-schema.sql \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+  <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
+    | tar -xzO - "sakila-db/sakila-schema.sql" \
+    | sed -e '/^CREATE TABLE film_text/,/ENGINE=InnoDB / s/InnoDB/MyISAM/'
   )
 
 $ docker exec -i mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
-  <<< $(tar -xzOf /dev/stdin \
-    <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) \
-    sakila-db/sakila-data.sql \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+  <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
+    | tar -xzO - "sakila-db/sakila-data.sql"
   )
 
-$ docker exec -it  mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
+$ docker exec mysql.pool-1.1.1 \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
   -e "SELECT * FROM sakila.film LIMIT 2 \G"
 ```
 
