@@ -22,6 +22,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 - Adds healthcheck.
 - Adds `MYSQL_AUTOSTART_MYSQLD_WRAPPER` and `MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP` optionally disable process startup.
 - Adds updated README images showing docker logs output for the initialisation SQL template and MySQL Details.
+- Fixes issue with README example import of the Sakila MySQL example database.
 
 ### 1.7.3 - 2017-05-12
 
