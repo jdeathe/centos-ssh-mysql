@@ -1,0 +1,285 @@
+#!/usr/bin/env bash
+
+source /etc/mysqld-bootstrap.conf
+
+function __have_mysql_access ()
+{
+	local db_name="${3:-mysql}"
+	local db_password="${2:-}"
+	local db_user="${1:-root}"
+
+	if mysql \
+		--protocol=socket \
+		--user="${db_user}" \
+		--password="${db_password}" \
+		-e "use ${db_name}" \
+		2> /dev/null
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_throttled_interval ()
+{
+	local -i interval="${1:-10}"
+	local pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
+
+	# interval must be between 1 and 60 seconds
+	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]; then
+		interval=10
+	fi
+
+	if (( $(date +%-S)%${interval} == 0 )); then
+		return 0
+	else
+		return 1
+	fi
+}
+
+function __is_mysql_data_directory_populated ()
+{
+	local datadir="$(
+		__mysql_get_option \
+			mysqld \
+			datadir \
+			"/var/lib/mysql"
+	)"
+
+	if [[ -f ${datadir}/ibdata1 ]]; then
+		return 0
+	fi
+
+	return 1
+}
+
+function __last_check_passed ()
+{
+	local -i status=0
+
+	if [[ ! -f ${STATUS_PATH} ]]; then
+		return ${status}
+	else
+		read \
+			-n 1 \
+			status \
+		< "${STATUS_PATH}"
+
+		if [[ ${status} =~ ^[01]$ ]]; then
+			return ${status}
+		else
+			return 1
+		fi
+	fi
+}
+
+function __mysql_get_option ()
+{
+	local value="$(
+		/usr/bin/my_print_defaults "${1}" \
+		| sed -n "s/^--${2}=//p" \
+		| tail -n 1
+	)"
+
+	printf -- \
+		'%s' \
+		"${value:-$3}"
+}
+
+function __print_message ()
+{
+	local -r message="${2:-}"
+	local -r type="${1:-}"
+	local -r quiet=${QUIET:-false}
+	local prefix=""
+
+	case "${type}" in
+		error)
+			prefix="[ERROR] "
+			;;
+		info)
+			prefix="[INFO] "
+			;;
+		*)
+			message="${type}"
+			;;
+	esac
+
+	if [[ ${quiet} == true ]] \
+		&& [[ ${type} != error ]]
+	then
+		return 0
+	elif [[ ${quiet} == true ]] \
+		&& [[ ${type} == error ]]
+	then
+		>&2 printf -- \
+			'%s%s\n' \
+			"${prefix}" \
+			"${message}"
+	else
+		printf -- \
+			'%s%s\n' \
+			"${prefix}" \
+			"${message}"
+	fi
+}
+
+function __record_exit_status ()
+{
+	local -i status=${1:-${?}}
+	local status_directory="$(
+		dirname "${STATUS_PATH}"
+	)"
+
+	if [[ ! -d ${status_directory} ]]; then
+		install \
+			-d \
+			-m 0660 \
+			-o root \
+			-g root \
+			"${status_directory}"
+	fi
+
+	if [[ ! -f ${STATUS_PATH} ]]; then
+		install \
+			-m 0660 \
+			-o root \
+			-g root \
+			/dev/null \
+			"${STATUS_PATH}"
+	fi
+
+	printf -- \
+		'%d' \
+		"${status}" \
+	> "${STATUS_PATH}"
+
+	trap - \
+		EXIT
+
+	exit ${status}
+}
+
+function __usage ()
+{
+	cat <<-USAGE
+	
+	Usage: $(basename ${0}) [OPTIONS]
+	       $(basename ${0}) [-h|--help]
+	
+	Options:
+	  -i, --interval=<seconds>            After the first successful check the 
+	                                      check interval can be throttled to 
+	                                      repeat at an interval of seconds between
+	                                      1-60. An interval of 1 results in a 
+	                                      check occurring every second whereas an
+	                                      interval of 60 limits checks to once per
+	                                      minute. Default: 10
+	  -q, --quiet                         Do not print message output.
+	
+	USAGE
+
+	exit 1
+}
+
+function main ()
+{
+	local -r REDACTED_VALUE="********"
+	local -r STATUS_PATH="/var/lib/healthcheck/status"
+	local QUITE=false
+
+	local -i interval=10
+	local db_password
+	local pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
+
+	# Trap and record the exit status
+	trap "__record_exit_status \${?}" \
+		EXIT
+
+	while [[ ${#} -gt 0 ]]; do
+		case "${1}" in
+			-h|--help)
+				__usage
+				break
+				;;
+			-i)
+				interval="${2}"
+				shift 2 || break
+				;;
+			--interval=*)
+				interval="${1#*=}"
+				shift 1
+				;;
+			-q|--quiet)
+				QUIET=true
+				shift 1
+				;;
+			*)
+				__usage
+				;;
+		esac
+	done
+
+	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]; then
+		__print_message \
+			"error" \
+			"Invalid interval."
+		exit 1
+	fi
+
+	# mysqld-bootstrap
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP} == true ]]; then
+		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
+			|| ! __is_mysql_data_directory_populated
+		then
+			exit 1
+		fi
+	fi
+
+	# mysqld-wrapper
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]; then
+		if ! ps axo command \
+			| grep -qE '^/usr/libexec/mysqld '
+		then
+			exit 1
+		fi
+
+		# Skip connection tests if password is stored hashed
+		if [[ ${MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
+			exit 0
+		fi
+
+		# Throttle connection checks if last check passed.
+		if __last_check_passed \
+			&& ! __is_throttled_interval \
+				"${interval}"
+		then
+			exit 0
+		fi
+
+		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
+			&& [[ ${MYSQL_ROOT_PASSWORD} != ${REDACTED_VALUE} ]]
+		then
+			db_password="${MYSQL_ROOT_PASSWORD}"
+		else
+			db_password="$(
+				grep 'user : root@localhost' /var/log/mysqld.log \
+				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
+			)"
+		fi
+
+		if ! __have_mysql_access \
+			root \
+			"${db_password}"
+		then
+			__print_message \
+				"root@localhost access failed."
+			exit 1
+		fi
+	fi
+
+	exit 0
+}
+
+main "${@}"

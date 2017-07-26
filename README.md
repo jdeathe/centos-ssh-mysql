@@ -1,17 +1,17 @@
 centos-ssh-mysql
 ================
 
-Docker Image of CentOS-6 6.8 x86_64, MySQL 5.1.
+Docker Image of CentOS-6 6.9 x86_64, MySQL 5.1.
 
 Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via environment variables.
 
 ## Overview & links
 
-The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.7.3` or `1.7.3` for the [1.7.3](https://github.com/jdeathe/centos-ssh-mysql/tree/1.7.3) release tag.
+The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.0` or `1.8.0` for the [1.8.0](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.0) release tag.
 
 ### Tags and respective `Dockerfile` links
 
-- `centos-6`, `centos-6-1.7.3`, `1.7.3` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-6`, `centos-6-1.8.0`, `1.8.0` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
@@ -49,9 +49,11 @@ Now you can verify it is initialised and running successfully by inspecting the 
 $ docker logs mysql.pool-1.1.1
 ```
 
-If it is the first run there should be additional output showing the initialisation SQL that was run and the root user's password.
+On the first run, there will be additional output showing the initialisation SQL template and, before mysqld-bootstrap completes, the MySQL Details which shows the configured database, if applicable, and any associated user credentials.
 
-![Docker Logs MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysql-bootstrap.png)
+![Docker Logs - MySQL Initialisation SQL Template](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysqld-bootstrap-initialisation-sql.png)
+
+![Docker Logs - MySQL Details](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-6/images/docker-logs-mysqld-bootstrap-details.png)
 
 The MySQL table data is persistent across container restarts by setting the MySQL data directory `/var/lib/mysql` as a data volume. We didn't specify a name or docker_host path so Docker will give it a unique name and store it in `/var/lib/docker/volumes/`; to find out where the data is stored on the Docker host you can use `docker inspect`.
 
@@ -73,21 +75,20 @@ To import the Sakila example database from the [MySQL Documentation](https://dev
 $ export MYSQL_ROOT_PASSWORD={your-password}
 
 $ docker exec -i mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
-  <<< $(tar -xzOf /dev/stdin \
-    <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) \
-    sakila-db/sakila-schema.sql \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+  <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
+    | tar -xzO - "sakila-db/sakila-schema.sql" \
+    | sed -e '/^CREATE TABLE film_text/,/ENGINE=InnoDB / s/InnoDB/MyISAM/'
   )
 
 $ docker exec -i mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
-  <<< $(tar -xzOf /dev/stdin \
-    <<< $(curl -sS http://downloads.mysql.com/docs/sakila-db.tar.gz) \
-    sakila-db/sakila-data.sql \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+  <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
+    | tar -xzO - "sakila-db/sakila-data.sql"
   )
 
-$ docker exec -it  mysql.pool-1.1.1 \
-  mysql -p${MYSQL_ROOT_PASSWORD} -u root \
+$ docker exec mysql.pool-1.1.1 \
+  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
   -e "SELECT * FROM sakila.film LIMIT 2 \G"
 ```
 
@@ -110,10 +111,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.7.3 \
+  jdeathe/centos-ssh-mysql:1.8.0 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.7.3 \
+    --tag=1.8.0 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -127,10 +128,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.7.3 \
+  jdeathe/centos-ssh-mysql:1.8.0 \
   /usr/sbin/scmi uninstall \
     --chroot=/media/root \
-    --tag=1.7.3 \
+    --tag=1.8.0 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -144,10 +145,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.7.3 \
+  jdeathe/centos-ssh-mysql:1.8.0 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.7.3 \
+    --tag=1.8.0 \
     --name=mysql.pool-1.1.1 \
     --manager=systemd \
     --register \
@@ -172,7 +173,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.7.3
+    jdeathe/centos-ssh-mysql:1.8.0
   ) --info"
 ```
 
@@ -182,7 +183,7 @@ To perform an installation using the docker name `mysql.pool-1.2.1` simply use t
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.7.3
+    jdeathe/centos-ssh-mysql:1.8.0
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -192,7 +193,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.uninstall}}" \
-    jdeathe/centos-ssh-mysql:1.7.3
+    jdeathe/centos-ssh-mysql:1.8.0
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -205,7 +206,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.7.3 \
+  jdeathe/centos-ssh-mysql:1.8.0 \
   --info
 ```
 
@@ -214,14 +215,14 @@ To perform an installation using the docker name `mysql.pool-1.3.1` simply use t
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.7.3
+  jdeathe/centos-ssh-mysql:1.8.0
 ```
 
 Alternatively, you could use the `scmi` options `--name` or `-n` for naming the container.
 
 ```
 $ sudo -E atomic install \
-  jdeathe/centos-ssh-mysql:1.7.3 \
+  jdeathe/centos-ssh-mysql:1.8.0 \
   --name mysql.pool-1.3.1
 ```
 
@@ -230,7 +231,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 ```
 $ sudo -E atomic uninstall \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.7.3
+  jdeathe/centos-ssh-mysql:1.8.0
 ```
 
 #### Using environment variables
@@ -265,6 +266,17 @@ $ docker logs mysql.pool-1.1.1
 There are several environmental variables defined at runtime these allow the operator to customise the running container.
 
 *Note:* Most of these settings are only evaluated during the first run of a named container; if the data volume already exists and contains database table data then changing these values will have no effect.
+
+##### MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP & MYSQL_AUTOSTART_MYSQLD_WRAPPER
+
+It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld-wrapper scripts. For example, when using an image built from this Dockerfile as the source for another Dockerfile you could disable both mysqld-wrapper and mysqld from startup by setting `MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP` and `MYSQL_AUTOSTART_MYSQLD_WRAPPER` to `false`. The benefit of this is to reduce the number of running processes in the final container. Another use for this would be to make use of the packages installed in the image such as `mysql` and `mysqladmin`; effectively making the container a MySQL client.
+
+```
+...
+  --env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+  --env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+...
+```
 
 ##### MYSQL_ROOT_PASSWORD
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Create lock file
-touch /tmp/mysqld-bootstrap.lock
+touch /var/lock/subsys/mysqld-bootstrap
 
 TIMER_START="$(
 	date +%s.%N
@@ -45,11 +45,11 @@ function get_option ()
 
 function get_password ()
 {
-	local PASSWORD_LENGTH="${1:-16}"
+	local LENGTH="${1:-16}"
 	local PASSWORD="$(
 		head -n 4096 /dev/urandom \
 		| tr -cd '[:alnum:]' \
-		| cut -c1-"${PASSWORD_LENGTH}"
+		| cut -c1-"${LENGTH}"
 	)"
 
 	printf -- "%s" "${PASSWORD}"
@@ -91,23 +91,14 @@ OPTS_MYSQL_DATA_DIR="$(
 	get_option \
 		mysqld \
 		datadir \
-		"${MYSQL_DATA_DIR_DEFAULT:-/var/lib/mysql}"
+		"/var/lib/mysql"
 )"
-OPTS_FORCE_MYSQL_INSTALL="${FORCE_MYSQL_INSTALL:-0}"
-
-if [[ ${OPTS_FORCE_MYSQL_INSTALL} == 1 ]] \
-	&& [[ -n ${OPTS_MYSQL_DATA_DIR} ]]; then
-	echo "Purging MySQL data directory."
-	rm \
-		-rf \
-		"${OPTS_MYSQL_DATA_DIR}"/*
-fi
 
 # MySQL initialisation is a one-shot process.
 if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 
-	PASSWORD_LENGTH=16
-	REDACTED_VALUE="********"
+	readonly PASSWORD_LENGTH=16
+	readonly REDACTED_VALUE="********"
 
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-30}"
@@ -133,7 +124,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		"${MYSQL_SUBNET:-127.0.0.1}"
 	)"
 	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
-	OPTS_MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED:-false}
+	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
 	# Adjust the UID/GID values of the service user to match a directory that 
 	# could be a mounted volume
@@ -400,6 +391,6 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 fi
 
 # Release lock file
-rm -f /tmp/mysqld-bootstrap.lock
+rm -f /var/lock/subsys/mysqld-bootstrap
 
 exit 0

@@ -4,15 +4,15 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:1.7.6
-
-MAINTAINER James Deathe <james.deathe@gmail.com>
+FROM jdeathe/centos-ssh:1.8.1
 
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
 RUN rpm --rebuilddb \
-	&& yum --setopt=tsflags=nodocs --disableplugin=fastestmirror -y install \
+	&& yum -y install \
+		--setopt=tsflags=nodocs \
+		--disableplugin=fastestmirror \
 		mysql-server-5.1.73-8.el6_8 \
 	&& yum versionlock add \
 		mysql* \
@@ -22,17 +22,18 @@ RUN rpm --rebuilddb \
 # -----------------------------------------------------------------------------
 # Copy files into place
 # -----------------------------------------------------------------------------
-ADD usr/sbin/mysqld-bootstrap \
-	usr/sbin/mysqld-wrapper \
+ADD src/usr/bin \
+	/usr/bin/
+ADD src/usr/sbin \
 	/usr/sbin/
-ADD opt/scmi \
+ADD src/opt/scmi \
 	/opt/scmi/
-ADD etc/systemd/system \
+ADD src/etc/systemd/system \
 	/etc/systemd/system/
-ADD etc/services-config/mysql/my.cnf \
-	etc/services-config/mysql/mysqld-bootstrap.conf \
+ADD src/etc/services-config/mysql/my.cnf \
+	src/etc/services-config/mysql/mysqld-bootstrap.conf \
 	/etc/services-config/mysql/
-ADD etc/services-config/supervisor/supervisord.d \
+ADD src/etc/services-config/supervisor/supervisord.d \
 	/etc/services-config/supervisor/supervisord.d/
 
 RUN ln -sf \
@@ -50,14 +51,16 @@ RUN ln -sf \
 	&& chmod 600 \
 		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 700 \
-		/usr/sbin/mysqld-{bootstrap,wrapper}
+		/usr/{bin/healthcheck,sbin/mysqld-{bootstrap,wrapper}}
 
 EXPOSE 3306
 
 # -----------------------------------------------------------------------------
 # Set default environment variables
 # -----------------------------------------------------------------------------
-ENV MYSQL_ROOT_PASSWORD="" \
+ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
+	MYSQL_AUTOSTART_MYSQLD_WRAPPER=true \
+	MYSQL_ROOT_PASSWORD="" \
 	MYSQL_ROOT_PASSWORD_HASHED=false \
 	MYSQL_SUBNET="127.0.0.1" \
 	MYSQL_USER="" \
@@ -70,8 +73,9 @@ ENV MYSQL_ROOT_PASSWORD="" \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.7.3"
+ARG RELEASE_VERSION="1.8.0"
 LABEL \
+	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
 --rm \
 --privileged \
@@ -98,6 +102,12 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.8 x86_64 - MySQL 5.1."
+	org.deathe.description="CentOS-6 6.9 x86_64 - MySQL 5.1."
+
+HEALTHCHECK \
+	--interval=1s \
+	--timeout=1s \
+	--retries=10 \
+	CMD ["/usr/bin/healthcheck"]
 
 CMD ["/usr/bin/supervisord", "--configuration=/etc/supervisord.conf"]
