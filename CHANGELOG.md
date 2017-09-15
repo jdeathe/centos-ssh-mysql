@@ -9,6 +9,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 ### 1.8.1 - Unreleased
 
 - Updates source image to [1.8.2 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.2).
+- Fixes path error in log output for custom initialisation SQL.
 
 ### 1.8.0 - 2017-07-27
 
