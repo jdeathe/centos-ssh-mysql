@@ -11,6 +11,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 - Updates source image to [1.8.3 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.3).
 - Adds a `.dockerignore` file.
 - Adds minor correction to scmi default configuration file.
+- Adds generic ready state test function.
 
 ### 1.8.1 - 2017-09-16
 
