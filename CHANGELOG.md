@@ -6,6 +6,14 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.9 x86_64 - MySQL 5.1.
 
+### 1.8.2 - 2018-01-15
+
+- Updates source image to [1.8.3 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.3).
+- Adds a `.dockerignore` file.
+- Adds minor correction to scmi default configuration file.
+- Adds generic ready state test function.
+- Adds increased database initialisation timeout; from 30 to 60 seconds.
+
 ### 1.8.1 - 2017-09-16
 
 - Updates source image to [1.8.2 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.2).
