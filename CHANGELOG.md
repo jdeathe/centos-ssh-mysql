@@ -12,6 +12,7 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 - Adds a `.dockerignore` file.
 - Adds minor correction to scmi default configuration file.
 - Adds generic ready state test function.
+- Adds increased database initialisation timeout; from 30 to 60 seconds.
 
 ### 1.8.1 - 2017-09-16
 
