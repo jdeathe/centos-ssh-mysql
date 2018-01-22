@@ -6,6 +6,10 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.9 x86_64 - MySQL 5.1.
 
+### 1.8.3 - Unreleased
+
+- Fixes issue with unusable healthcheck error messages.
+
 ### 1.8.2 - 2018-01-15
 
 - Updates source image to [1.8.3 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.3).
