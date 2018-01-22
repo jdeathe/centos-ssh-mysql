@@ -259,7 +259,7 @@ function main ()
 		fi
 
 		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-			&& [[ ${MYSQL_ROOT_PASSWORD} != ${REDACTED_VALUE} ]]
+			&& [[ ${MYSQL_ROOT_PASSWORD} != "${REDACTED_VALUE}" ]]
 		then
 			db_password="${MYSQL_ROOT_PASSWORD}"
 		else
