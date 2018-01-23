@@ -89,9 +89,9 @@ function __mysql_get_option ()
 
 function __print_message ()
 {
-	local -r message="${2:-}"
 	local -r type="${1:-}"
 	local -r quiet=${QUIET:-false}
+	local message="${2:-}"
 	local prefix=""
 
 	case "${type}" in
@@ -259,7 +259,7 @@ function main ()
 		fi
 
 		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-			&& [[ ${MYSQL_ROOT_PASSWORD} != ${REDACTED_VALUE} ]]
+			&& [[ ${MYSQL_ROOT_PASSWORD} != "${REDACTED_VALUE}" ]]
 		then
 			db_password="${MYSQL_ROOT_PASSWORD}"
 		else

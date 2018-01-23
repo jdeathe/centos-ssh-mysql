@@ -73,7 +73,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.8.2"
+ARG RELEASE_VERSION="1.8.3"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
