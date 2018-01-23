@@ -7,11 +7,11 @@ Includes Automated password generation and an option for custom initialisation S
 
 ## Overview & links
 
-The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.2` or `1.8.2` for the [1.8.2](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.2) release tag.
+The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.3` or `1.8.3` for the [1.8.3](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.3) release tag.
 
 ### Tags and respective `Dockerfile` links
 
-- `centos-6`, `centos-6-1.8.2`, `1.8.2` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-6`, `centos-6-1.8.3`, `1.8.3` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
@@ -111,10 +111,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.2 \
+  jdeathe/centos-ssh-mysql:1.8.3 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.2 \
+    --tag=1.8.3 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -128,10 +128,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.2 \
+  jdeathe/centos-ssh-mysql:1.8.3 \
   /usr/sbin/scmi uninstall \
     --chroot=/media/root \
-    --tag=1.8.2 \
+    --tag=1.8.3 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -145,10 +145,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.2 \
+  jdeathe/centos-ssh-mysql:1.8.3 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.2 \
+    --tag=1.8.3 \
     --name=mysql.pool-1.1.1 \
     --manager=systemd \
     --register \
@@ -173,7 +173,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.2
+    jdeathe/centos-ssh-mysql:1.8.3
   ) --info"
 ```
 
@@ -183,7 +183,7 @@ To perform an installation using the docker name `mysql.pool-1.2.1` simply use t
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.2
+    jdeathe/centos-ssh-mysql:1.8.3
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -193,7 +193,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.uninstall}}" \
-    jdeathe/centos-ssh-mysql:1.8.2
+    jdeathe/centos-ssh-mysql:1.8.3
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -206,7 +206,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.2 \
+  jdeathe/centos-ssh-mysql:1.8.3 \
   --info
 ```
 
@@ -215,14 +215,14 @@ To perform an installation using the docker name `mysql.pool-1.3.1` simply use t
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.2
+  jdeathe/centos-ssh-mysql:1.8.3
 ```
 
 Alternatively, you could use the `scmi` options `--name` or `-n` for naming the container.
 
 ```
 $ sudo -E atomic install \
-  jdeathe/centos-ssh-mysql:1.8.2 \
+  jdeathe/centos-ssh-mysql:1.8.3 \
   --name mysql.pool-1.3.1
 ```
 
@@ -231,7 +231,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 ```
 $ sudo -E atomic uninstall \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.2
+  jdeathe/centos-ssh-mysql:1.8.3
 ```
 
 #### Using environment variables

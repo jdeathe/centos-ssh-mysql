@@ -6,7 +6,7 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.9 x86_64 - MySQL 5.1.
 
-### 1.8.3 - Unreleased
+### 1.8.3 - 2018-01-23
 
 - Fixes issue with unusable healthcheck error messages.
 - Fixes issue with healthcheck failure when `MYSQL_ROOT_PASSWORD` is set.
