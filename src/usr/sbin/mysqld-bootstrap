@@ -100,6 +100,19 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	readonly PASSWORD_LENGTH=16
 	readonly REDACTED_VALUE="********"
 
+	# Get passwords from file if applicable
+	if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
+		&& [[ -s ${MYSQL_ROOT_PASSWORD} ]]
+	then
+		MYSQL_ROOT_PASSWORD="$(< "${MYSQL_ROOT_PASSWORD}")"
+	fi
+
+	if [[ -n ${MYSQL_USER_PASSWORD} ]] \
+		&& [[ -s ${MYSQL_USER_PASSWORD} ]]
+	then
+		MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
+	fi
+
 	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-$(get_password ${PASSWORD_LENGTH})}"
