@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:1.8.3
+FROM jdeathe/centos-ssh:1.8.4
 
 # -----------------------------------------------------------------------------
 # Install MySQL
@@ -73,7 +73,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.8.3"
+ARG RELEASE_VERSION="1.8.4"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \

@@ -7,11 +7,11 @@ Includes Automated password generation and an option for custom initialisation S
 
 ## Overview & links
 
-The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.3` or `1.8.3` for the [1.8.3](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.3) release tag.
+The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.4` or `1.8.4` for the [1.8.4](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.4) release tag.
 
 ### Tags and respective `Dockerfile` links
 
-- `centos-6`, `centos-6-1.8.3`, `1.8.3` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-6`, `centos-6-1.8.4`, `1.8.4` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
@@ -111,10 +111,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.3 \
+  jdeathe/centos-ssh-mysql:1.8.4 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.3 \
+    --tag=1.8.4 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -128,10 +128,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.3 \
+  jdeathe/centos-ssh-mysql:1.8.4 \
   /usr/sbin/scmi uninstall \
     --chroot=/media/root \
-    --tag=1.8.3 \
+    --tag=1.8.4 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -145,10 +145,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.3 \
+  jdeathe/centos-ssh-mysql:1.8.4 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.3 \
+    --tag=1.8.4 \
     --name=mysql.pool-1.1.1 \
     --manager=systemd \
     --register \
@@ -173,7 +173,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.3
+    jdeathe/centos-ssh-mysql:1.8.4
   ) --info"
 ```
 
@@ -183,7 +183,7 @@ To perform an installation using the docker name `mysql.pool-1.2.1` simply use t
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.3
+    jdeathe/centos-ssh-mysql:1.8.4
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -193,7 +193,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.uninstall}}" \
-    jdeathe/centos-ssh-mysql:1.8.3
+    jdeathe/centos-ssh-mysql:1.8.4
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -206,7 +206,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.3 \
+  jdeathe/centos-ssh-mysql:1.8.4 \
   --info
 ```
 
@@ -215,14 +215,14 @@ To perform an installation using the docker name `mysql.pool-1.3.1` simply use t
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.3
+  jdeathe/centos-ssh-mysql:1.8.4
 ```
 
 Alternatively, you could use the `scmi` options `--name` or `-n` for naming the container.
 
 ```
 $ sudo -E atomic install \
-  jdeathe/centos-ssh-mysql:1.8.3 \
+  jdeathe/centos-ssh-mysql:1.8.4 \
   --name mysql.pool-1.3.1
 ```
 
@@ -231,7 +231,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 ```
 $ sudo -E atomic uninstall \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.3
+  jdeathe/centos-ssh-mysql:1.8.4
 ```
 
 #### Using environment variables
@@ -288,6 +288,14 @@ On first run the root user is created with an auto-generated password. If you re
 ...
 ```
 
+If set to a valid container file path the value will be read from the file - this allows for setting the value securely when combined with an orchestration feature such as Docker Swarm secrets.
+
+```
+...
+  --env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
+...
+```
+
 ##### MYSQL_ROOT_PASSWORD_HASHED
 
 To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_ROOT_PASSWORD_HASHED` to `true`.
@@ -323,6 +331,14 @@ On first run, if the database user `MYSQL_USER` is specified then it is created 
 ```
 ...
   --env "MYSQL_USER_PASSWORD=appPassw0rd!" \
+...
+```
+
+If set to a valid container file path the value will be read from the file - this allows for setting the value securely when combined with an orchestration feature such as Docker Swarm secrets.
+
+```
+...
+  --env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
 ...
 ```
 
