@@ -9,6 +9,8 @@ CentOS-6 6.9 x86_64 - MySQL 5.1.
 ### 1.8.4 - Unreleased
 
 - Updates source image to [1.8.4 tag](https://github.com/jdeathe/centos-ssh/releases/tag/1.8.4).
+- Adds feature to set `MYSQL_ROOT_PASSWORD` via a file path. e.g. Docker Swarm secrets.
+- Adds feature to set `MYSQL_USER_PASSWORD` via a file path. e.g. Docker Swarm secrets.
 
 ### 1.8.3 - 2018-01-23
 

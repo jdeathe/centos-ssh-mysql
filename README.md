@@ -288,6 +288,14 @@ On first run the root user is created with an auto-generated password. If you re
 ...
 ```
 
+If set to a valid container file path the value will be read from the file - this allows for setting the value securely when combined with an orchestration feature such as Docker Swarm secrets.
+
+```
+...
+  --env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
+...
+```
+
 ##### MYSQL_ROOT_PASSWORD_HASHED
 
 To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_ROOT_PASSWORD_HASHED` to `true`.
@@ -323,6 +331,14 @@ On first run, if the database user `MYSQL_USER` is specified then it is created 
 ```
 ...
   --env "MYSQL_USER_PASSWORD=appPassw0rd!" \
+...
+```
+
+If set to a valid container file path the value will be read from the file - this allows for setting the value securely when combined with an orchestration feature such as Docker Swarm secrets.
+
+```
+...
+  --env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
 ...
 ```
 
