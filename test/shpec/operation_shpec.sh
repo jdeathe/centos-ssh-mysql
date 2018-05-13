@@ -97,8 +97,6 @@ function __is_container_ready ()
 
 function __reset ()
 {
-	local -r private_network_1="bridge_internal_1"
-	local -r private_network_2="bridge_internal_2"
 	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
 	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
 
@@ -106,24 +104,6 @@ function __reset ()
 
 	case "${group}" in
 		2)
-			# Destroy the bridge network
-			if [[ -n $(docker network ls -q -f name="${private_network_2}") ]]; then
-				docker network rm \
-					${private_network_2} \
-				&> /dev/null
-			fi
-
-			# Create the bridge network
-			if [[ -z $(docker network ls -q -f name="${private_network_2}") ]]; then
-				docker network create \
-					--internal \
-					--driver bridge \
-					--gateway 172.172.42.1 \
-					--subnet 172.172.42.0/24 \
-					${private_network_2} \
-				&> /dev/null
-			fi
-
 			# Destroy the data volume
 			if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
 				docker volume rm \
@@ -140,24 +120,6 @@ function __reset ()
 			fi
 			;;
 		*)
-			# Destroy the bridge network
-			if [[ -n $(docker network ls -q -f name="${private_network_1}") ]]; then
-				docker network rm \
-					${private_network_1} \
-				&> /dev/null
-			fi
-
-			# Create the bridge network
-			if [[ -z $(docker network ls -q -f name="${private_network_1}") ]]; then
-				docker network create \
-					--internal \
-					--driver bridge \
-					--gateway 172.172.40.1 \
-					--subnet 172.172.40.0/24 \
-					${private_network_1} \
-				&> /dev/null
-			fi
-
 			# Destroy the data volume
 			if [[ -n $(docker volume ls -q -f name="${data_volume_1}") ]]; then
 				docker volume rm \
