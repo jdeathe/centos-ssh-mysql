@@ -95,7 +95,7 @@ function __is_container_ready ()
 	return 0
 }
 
-function __reset ()
+function __reset_data_volume ()
 {
 	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
 	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
@@ -671,7 +671,7 @@ function test_custom_configuration ()
 			show_databases=""
 
 			# Reset to clear data volume
-			__reset 1
+			__reset_data_volume 1
 
 			it "Runs a named server container."
 				docker run \
@@ -763,7 +763,7 @@ function test_custom_configuration ()
 			show_databases=""
 
 			# Reset to clear data volume
-			__reset 1
+			__reset_data_volume 1
 
 			it "Runs a named server container."
 				docker run \
