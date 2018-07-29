@@ -5,8 +5,8 @@ readonly DOCKER_USER=jdeathe
 readonly DOCKER_IMAGE_NAME=centos-ssh-mysql
 
 # Tag validation patterns
-readonly DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|((1|centos-6-1)\.[0-9]+\.[0-9]+))$'
-readonly DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|centos-6-1)\.[0-9]+\.[0-9]+$'
+readonly DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|centos-7-mysql57-community|(([1-2]|centos-(6-1|7-mysql57-community-2))\.[0-9]+\.[0-9]+))$'
+readonly DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|2|centos-(6-1|7-mysql57-community-2))\.[0-9]+\.[0-9]+$'
 
 # -----------------------------------------------------------------------------
 # Variables

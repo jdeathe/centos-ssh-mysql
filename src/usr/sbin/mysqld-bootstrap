@@ -9,6 +9,9 @@ TIMER_START="$(
 
 source /etc/mysqld-bootstrap.conf
 
+readonly MYSQLD=/usr/sbin/mysqld
+readonly PID_PATH=/run/mysqld/mysqld.pid
+
 function get_mysql_user_host ()
 {
 	local CLIENT_SUBNET="${1:-127.0.0.1}"
@@ -193,11 +196,14 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	fi
 
 	echo "Initalising MySQL data directory."
-	mysql_install_db \
-		--force \
+	${MYSQLD} \
+		--datadir="${OPTS_MYSQL_DATA_DIR}" \
+		--initialize-insecure \
+		--pid-file="${PID_PATH}" \
 		--skip-name-resolve \
 		--skip-networking \
 		--tmpdir="${OPTS_MYSQL_DATA_DIR}" \
+		--user=mysql \
 		&
 	PIDS[0]=${!}
 
@@ -295,8 +301,21 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	# Wait for the MySQL system table installation to complete
 	[[ -n ${PIDS[0]} ]] && wait ${PIDS[0]}
 
+	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
+		&& [[ ! -e ${OPTS_MYSQL_DATA_DIR}/server-key.pem ]]
+	then
+		echo "Generating MySQL certificates."
+		/usr/bin/mysql_ssl_rsa_setup \
+			--datadir="${OPTS_MYSQL_DATA_DIR}" \
+			--uid=mysql \
+		&> /dev/null \
+		&
+	fi
+	PIDS[1]=${!}
+
 	echo "Initialising MySQL."
-	mysqld_safe \
+	${MYSQLD} \
+		--pid-file="${PID_PATH}" \
 		--skip-networking \
 		--init-file=/tmp/mysql-init \
 		&
@@ -314,7 +333,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
 				mysql \
 					--password="${OPTS_MYSQL_ROOT_PASSWORD}" \
-					-e "SET PASSWORD = '${OPTS_MYSQL_ROOT_PASSWORD}'"
+					-e "UPDATE mysql.user SET authentication_string = '${OPTS_MYSQL_ROOT_PASSWORD}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
 			fi
 
 			break
@@ -353,14 +372,17 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 			/tmp/mysql-init{,-template}
 	fi
 
+	# Wait for the MySQL certificate setup to complete
+	[[ -n ${PIDS[1]} ]] && wait ${PIDS[1]}
+
 	if [[ -n ${MYSQL_ROOT_PASSWORD} ]]; then
-		 OPTS_MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
-		 MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
+		OPTS_MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
+		MYSQL_ROOT_PASSWORD="${REDACTED_VALUE}"
 	fi
 
 	if [[ -n ${MYSQL_USER_PASSWORD} ]]; then
-		 OPTS_MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
-		 MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
+		OPTS_MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
+		MYSQL_USER_PASSWORD="${REDACTED_VALUE}"
 	fi
 
 	# Local root user details
