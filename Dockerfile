@@ -22,8 +22,8 @@ RUN { \
 	&& yum -y install \
 		--setopt=tsflags=nodocs \
 		--disableplugin=fastestmirror \
-		mysql-community-server \
-		psmisc \
+		mysql-community-server-5.7.23-1.el7 \
+		psmisc-22.20-15.el7 \
 	&& yum versionlock add \
 		mysql* \
 	&& rm -rf /var/cache/yum/* \
