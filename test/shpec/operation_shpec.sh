@@ -1,4 +1,4 @@
-readonly STARTUP_TIME=7
+readonly STARTUP_TIME=10
 readonly TEST_DIRECTORY="test"
 
 # These should ideally be a static value but hosts might be using this port so 
