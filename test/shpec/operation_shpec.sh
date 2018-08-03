@@ -275,7 +275,7 @@ function test_basic_operations ()
 			"/usr/sbin/mysqld " \
 			"[[ -e /var/lib/mysql/ibdata1 ]] \
 				&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-				&& [[ -s /run/mysqld/mysqld.pid ]]"
+				&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 		then
 			exit 1
 		fi
@@ -380,7 +380,7 @@ function test_basic_operations ()
 					"/usr/sbin/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
 						&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-						&& [[ -s /run/mysqld/mysqld.pid ]]"
+						&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 				then
 					exit 1
 				fi
@@ -431,7 +431,7 @@ function test_basic_operations ()
 					"/usr/sbin/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
 						&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-						&& [[ -s /run/mysqld/mysqld.pid ]]"
+						&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 				then
 					exit 1
 				fi
@@ -577,7 +577,7 @@ function test_custom_configuration ()
 				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-					&& [[ -s /run/mysqld/mysqld.pid ]]"
+					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 			then
 				exit 1
 			fi
@@ -714,7 +714,7 @@ function test_custom_configuration ()
 				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-					&& [[ -s /run/mysqld/mysqld.pid ]]"
+					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 			then
 				exit 1
 			fi
@@ -812,7 +812,7 @@ function test_custom_configuration ()
 				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-					&& [[ -s /run/mysqld/mysqld.pid ]]"
+					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 			then
 				exit 1
 			fi
@@ -933,7 +933,7 @@ function test_custom_configuration ()
 				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
-					&& [[ -s /run/mysqld/mysqld.pid ]]"
+					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
 			then
 				exit 1
 			fi
@@ -1150,7 +1150,7 @@ function test_healthcheck ()
 				&& docker exec -t \
 					mysql.pool-1.1.1 \
 					bash -c "if [[ -n \$(pgrep -f '^/usr/sbin/mysqld ') ]]; then \
-						kill -9 -\$(ps axo pgid,command | grep -P '/usr/sbin/mysqld --pid-file=/run/mysqld/mysqld.pid$' | awk '{ print \$1; }')
+						kill -9 -\$(ps axo pgid,command | grep -P '/usr/sbin/mysqld --pid-file=/var/run/mysqld/mysqld.pid$' | awk '{ print \$1; }')
 					fi"
 
 				sleep $(

@@ -9,9 +9,6 @@ TIMER_START="$(
 
 source /etc/mysqld-bootstrap.conf
 
-readonly MYSQLD=/usr/sbin/mysqld
-readonly PID_PATH=/run/mysqld/mysqld.pid
-
 function get_mysql_user_host ()
 {
 	local CLIENT_SUBNET="${1:-127.0.0.1}"
@@ -100,7 +97,9 @@ OPTS_MYSQL_DATA_DIR="$(
 # MySQL initialisation is a one-shot process.
 if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 
+	readonly MYSQLD=/usr/sbin/mysqld
 	readonly PASSWORD_LENGTH=16
+	readonly PID_PATH=/var/run/mysqld/mysqld.pid
 	readonly REDACTED_VALUE="********"
 
 	# Get passwords from file if applicable

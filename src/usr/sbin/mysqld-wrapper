@@ -5,7 +5,7 @@ source /etc/mysqld-bootstrap.conf
 readonly MYSQLD=/usr/sbin/mysqld
 readonly NICE=/bin/nice
 readonly NICENESS="${MYSQL_NICENESS:-10}"
-readonly PID_PATH=/run/mysqld/mysqld.pid
+readonly PID_PATH=/var/run/mysqld/mysqld.pid
 
 while true; do
 	sleep 0.1
