@@ -14,7 +14,7 @@ The latest CentOS-7 based release can be pulled from the `centos-7-mysql57-commu
 ### Tags and respective `Dockerfile` links
 
 - `centos-7-mysql57-community`, `centos-7-mysql57-community-2.0.0`, `2.0.0`  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, `centos-6-1.8.4`, `1.8.4` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-6`, `centos-6-1.8.5`, `1.8.5` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
