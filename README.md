@@ -1,16 +1,19 @@
 centos-ssh-mysql
 ================
 
-Docker Image of CentOS-6 6.9 x86_64, MySQL 5.1.
+Docker Image including:
+- CentOS-6 6.9 x86_64, MySQL 5.1.
+- CentOS-7 7.4.1708 x86_64, MySQL 5.7 Community Server.
 
 Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via environment variables.
 
 ## Overview & links
 
-The latest CentOS-6 based release can be pulled from the centos-6 Docker tag. It is recommended to select a specific release tag - the convention is `centos-6-1.8.4` or `1.8.4` for the [1.8.4](https://github.com/jdeathe/centos-ssh-mysql/tree/1.8.4) release tag.
+The latest CentOS-7 based release can be pulled from the `centos-7-mysql57-community` Docker tag. It is recommended to select a specific release tag - the convention is `centos-7-mysql57-community-2.0.0` or `2.0.0` for the [2.0.0](https://github.com/jdeathe/centos-ssh-mysql/tree/2.0.0) release tag.
 
 ### Tags and respective `Dockerfile` links
 
+- `centos-7-mysql57-community`, `centos-7-mysql57-community-2.0.0`, `2.0.0`  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
 - `centos-6`, `centos-6-1.8.4`, `1.8.4` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
@@ -40,7 +43,7 @@ $ docker run -d \
   --name mysql.pool-1.1.1 \
   -p 3306:3306 \
   -v /var/lib/mysql \
-  jdeathe/centos-ssh-mysql:centos-6
+  jdeathe/centos-ssh-mysql:1.8.4
 ```
 
 Now you can verify it is initialised and running successfully by inspecting the container's logs.
@@ -96,7 +99,7 @@ $ docker exec mysql.pool-1.1.1 \
 
 ### Running
 
-To run the a docker container from this image you can use the standard docker commands. Alternatively, you can use the embedded (Service Container Manager Interface) [scmi](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/usr/sbin/scmi) that is included in the image since `1.7.1` or, if you have a checkout of the [source repository](https://github.com/jdeathe/centos-ssh-mysql), and have make installed the Makefile provides targets to build, install, start, stop etc. where environment variables can be used to configure the container options and set custom docker run parameters.
+To run the a docker container from this image you can use the standard docker commands. Alternatively, you can use the embedded (Service Container Manager Interface) [scmi](https://github.com/jdeathe/centos-ssh/blob/centos-6/src/usr/sbin/scmi) that is included in the image since `1.7.1` or, if you have a checkout of the [source repository](https://github.com/jdeathe/centos-ssh-mysql), and have make installed the Makefile provides targets to build, install, start, stop etc. where environment variables can be used to configure the container options and set custom docker run parameters.
 
 #### SCMI Installation Examples
 
@@ -160,6 +163,8 @@ $ docker run \
 ```
 
 ##### SCMI Fleet Support
+
+**_Deprecation Notice:_** The fleet project is no longer maintained. The fleet `--manager` option has been deprecated in `scmi`.
 
 If your docker host has systemd, fleetd (and optionally etcd) installed then `scmi` provides a method to schedule the container  to run on the cluster. This provides some additional features for managing a group of instances on a [fleet](https://github.com/coreos/fleet) cluster and has the option to use an etcd backed service registry. To use the fleet method of installation use the `-m` or `--manager` option of `scmi` and to include the optional etcd register companion unit use the `--register` option.
 
@@ -250,7 +255,7 @@ $ docker run \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
   --volume mysql.pool-1.1.1.data-mysql:/var/lib/mysql \
-  jdeathe/centos-ssh-mysql:centos-6
+  jdeathe/centos-ssh-mysql:1.8.4
 ```
 
 The environmental variable `MYSQL_SUBNET` is optional but can be used to generate users with access to databases outside the `localhost`, (the default for the root user). In the example, the subnet definition `0.0.0.0/0.0.0.0` allows connections from any network which is equivalent to the wildcard symbol, `%`, in MySQL GRANT definitions.
