@@ -14,7 +14,7 @@ The latest CentOS-7 based release can be pulled from the `centos-7-mysql57-commu
 ### Tags and respective `Dockerfile` links
 
 - `centos-7-mysql57-community`, `centos-7-mysql57-community-2.0.0`, `2.0.0`  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, `centos-6-1.8.4`, `1.8.4` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-6`, `centos-6-1.8.5`, `1.8.5` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 The Dockerfile can be used to build a base image that is the bases for several other docker images.
 
@@ -43,7 +43,7 @@ $ docker run -d \
   --name mysql.pool-1.1.1 \
   -p 3306:3306 \
   -v /var/lib/mysql \
-  jdeathe/centos-ssh-mysql:1.8.4
+  jdeathe/centos-ssh-mysql:1.8.5
 ```
 
 Now you can verify it is initialised and running successfully by inspecting the container's logs.
@@ -114,10 +114,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.4 \
+  jdeathe/centos-ssh-mysql:1.8.5 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.4 \
+    --tag=1.8.5 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -131,10 +131,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.4 \
+  jdeathe/centos-ssh-mysql:1.8.5 \
   /usr/sbin/scmi uninstall \
     --chroot=/media/root \
-    --tag=1.8.4 \
+    --tag=1.8.5 \
     --name=mysql.pool-1.1.1 \
     --setopt='--volume {{NAME}}.data-mysql:/var/lib/mysql'
 ```
@@ -148,10 +148,10 @@ $ docker run \
   --rm \
   --privileged \
   --volume /:/media/root \
-  jdeathe/centos-ssh-mysql:1.8.4 \
+  jdeathe/centos-ssh-mysql:1.8.5 \
   /usr/sbin/scmi install \
     --chroot=/media/root \
-    --tag=1.8.4 \
+    --tag=1.8.5 \
     --name=mysql.pool-1.1.1 \
     --manager=systemd \
     --register \
@@ -178,7 +178,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.4
+    jdeathe/centos-ssh-mysql:1.8.5
   ) --info"
 ```
 
@@ -188,7 +188,7 @@ To perform an installation using the docker name `mysql.pool-1.2.1` simply use t
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.install}}" \
-    jdeathe/centos-ssh-mysql:1.8.4
+    jdeathe/centos-ssh-mysql:1.8.5
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -198,7 +198,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 $ eval "sudo -E $(
     docker inspect \
     -f "{{.ContainerConfig.Labels.uninstall}}" \
-    jdeathe/centos-ssh-mysql:1.8.4
+    jdeathe/centos-ssh-mysql:1.8.5
   ) --name=mysql.pool-1.2.1"
 ```
 
@@ -211,7 +211,7 @@ To see detailed information about the image run `scmi` with the `--info` option.
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.4 \
+  jdeathe/centos-ssh-mysql:1.8.5 \
   --info
 ```
 
@@ -220,14 +220,14 @@ To perform an installation using the docker name `mysql.pool-1.3.1` simply use t
 ```
 $ sudo -E atomic install \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.4
+  jdeathe/centos-ssh-mysql:1.8.5
 ```
 
 Alternatively, you could use the `scmi` options `--name` or `-n` for naming the container.
 
 ```
 $ sudo -E atomic install \
-  jdeathe/centos-ssh-mysql:1.8.4 \
+  jdeathe/centos-ssh-mysql:1.8.5 \
   --name mysql.pool-1.3.1
 ```
 
@@ -236,7 +236,7 @@ To uninstall use the *same command* that was used to install but with the `unins
 ```
 $ sudo -E atomic uninstall \
   -n mysql.pool-1.3.1 \
-  jdeathe/centos-ssh-mysql:1.8.4
+  jdeathe/centos-ssh-mysql:1.8.5
 ```
 
 #### Using environment variables
@@ -255,7 +255,7 @@ $ docker run \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
   --volume mysql.pool-1.1.1.data-mysql:/var/lib/mysql \
-  jdeathe/centos-ssh-mysql:1.8.4
+  jdeathe/centos-ssh-mysql:1.8.5
 ```
 
 The environmental variable `MYSQL_SUBNET` is optional but can be used to generate users with access to databases outside the `localhost`, (the default for the root user). In the example, the subnet definition `0.0.0.0/0.0.0.0` allows connections from any network which is equivalent to the wildcard symbol, `%`, in MySQL GRANT definitions.
