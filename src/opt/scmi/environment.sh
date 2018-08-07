@@ -5,8 +5,8 @@ readonly DOCKER_USER=jdeathe
 readonly DOCKER_IMAGE_NAME=centos-ssh-mysql
 
 # Tag validation patterns
-readonly DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|((1|centos-6-1)\.[0-9]+\.[0-9]+))$'
-readonly DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|centos-6-1)\.[0-9]+\.[0-9]+$'
+readonly DOCKER_IMAGE_TAG_PATTERN='^(latest|centos-6|centos-7-mysql57-community|(([1-2]|centos-(6-1|7-mysql57-community-2))\.[0-9]+\.[0-9]+))$'
+readonly DOCKER_IMAGE_RELEASE_TAG_PATTERN='^(1|2|centos-(6-1|7-mysql57-community-2))\.[0-9]+\.[0-9]+$'
 
 # -----------------------------------------------------------------------------
 # Variables
@@ -27,7 +27,7 @@ NO_CACHE="${NO_CACHE:-false}"
 DIST_PATH="${DIST_PATH:-./dist}"
 
 # Number of seconds expected to complete container startup including bootstrap.
-STARTUP_TIME="${STARTUP_TIME:-7}"
+STARTUP_TIME="${STARTUP_TIME:-10}"
 
 # ETCD register service settings
 REGISTER_ETCD_PARAMETERS="${REGISTER_ETCD_PARAMETERS:-}"

@@ -1,19 +1,29 @@
 # =============================================================================
 # jdeathe/centos-ssh-mysql
 # 
-# CentOS-6, MySQL 5.1
+# CentOS-7, MySQL 5.7 Community Server
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:1.8.4
+FROM jdeathe/centos-ssh:2.3.2
 
 # -----------------------------------------------------------------------------
 # Install MySQL
 # -----------------------------------------------------------------------------
-RUN rpm --rebuilddb \
+RUN { \
+		echo '[mysql57-community]'; \
+		echo 'name=MySQL 5.7 Community Server'; \
+		echo 'baseurl=http://repo.mysql.com/yum/mysql-5.7-community/el/7/$basearch/'; \
+		echo 'gpgcheck=1'; \
+		echo 'enabled=1'; \
+		echo 'gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-mysql'; \
+	} > /etc/yum.repos.d/mysql-community.repo \
+	&& rpm --import \
+		https://repo.mysql.com/RPM-GPG-KEY-mysql  \
 	&& yum -y install \
 		--setopt=tsflags=nodocs \
 		--disableplugin=fastestmirror \
-		mysql-server-5.1.73-8.el6_8 \
+		mysql-community-server-5.7.23-1.el7 \
+		psmisc-22.20-15.el7 \
 	&& yum versionlock add \
 		mysql* \
 	&& rm -rf /var/cache/yum/* \
@@ -73,7 +83,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.8.4"
+ARG RELEASE_VERSION="2.0.0"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
@@ -102,7 +112,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.9 x86_64 - MySQL 5.1."
+	org.deathe.description="CentOS-7 7.4.1708 x86_64 - MySQL 5.7 Community Server."
 
 HEALTHCHECK \
 	--interval=1s \

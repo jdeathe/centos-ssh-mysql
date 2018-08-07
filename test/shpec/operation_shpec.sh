@@ -1,4 +1,4 @@
-readonly STARTUP_TIME=7
+readonly STARTUP_TIME=10
 readonly TEST_DIRECTORY="test"
 
 # These should ideally be a static value but hosts might be using this port so 
@@ -272,7 +272,7 @@ function test_basic_operations ()
 		if ! __is_container_ready \
 			mysql.pool-1.1.1 \
 			${STARTUP_TIME} \
-			"/usr/libexec/mysqld " \
+			"/usr/sbin/mysqld " \
 			"[[ -e /var/lib/mysql/ibdata1 ]] \
 				&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 				&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -301,7 +301,7 @@ function test_basic_operations ()
 							mysql.pool-1.1.1 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user;"
@@ -311,7 +311,11 @@ function test_basic_operations ()
 						"${select_users}" \
 						"$(
 							printf -- \
-								'%s\t%s' \
+								'%s\t%s\n%s\t%s\n%s\t%s' \
+								'mysql.session' \
+								'localhost' \
+								'mysql.sys' \
+								'localhost' \
 								'root' \
 								'localhost'
 						)"
@@ -325,7 +329,7 @@ function test_basic_operations ()
 							mysql.pool-1.1.1 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SHOW DATABASES;"
@@ -335,9 +339,11 @@ function test_basic_operations ()
 						"${show_databases}" \
 						"$(
 							printf -- \
-								'%s\n%s' \
+								'%s\n%s\n%s\n%s' \
 								'information_schema' \
-								'mysql'
+								'mysql' \
+								'performance_schema' \
+								'sys'
 						)"
 				end
 
@@ -371,7 +377,7 @@ function test_basic_operations ()
 				if ! __is_container_ready \
 					mysql.pool-1.1.1 \
 					${STARTUP_TIME} \
-					"/usr/libexec/mysqld " \
+					"/usr/sbin/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
 						&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 						&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -422,7 +428,7 @@ function test_basic_operations ()
 				if ! __is_container_ready \
 					mysql.pool-1.1.1 \
 					${STARTUP_TIME} \
-					"/usr/libexec/mysqld " \
+					"/usr/sbin/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
 						&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 						&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -445,8 +451,12 @@ function test_basic_operations ()
 					"${select_users}" \
 					"$(
 						printf -- \
-							'%s\t%s\n%s\t%s' \
+							'%s\t%s\n%s\t%s\n%s\t%s\n%s\t%s' \
 							'my-user' \
+							'localhost' \
+							'mysql.session' \
+							'localhost' \
+							'mysql.sys' \
 							'localhost' \
 							'root' \
 							'localhost'
@@ -478,7 +488,7 @@ function test_basic_operations ()
 
 				assert __shpec_matcher_egrep \
 					"${show_grants}" \
-					"^GRANT USAGE ON \*\.\* TO 'my-user'@'localhost' IDENTIFIED BY PASSWORD '[\*A-Z0-9]+'$"
+					"^GRANT USAGE ON \*\.\* TO 'my-user'@'localhost'$"
 			end
 		end
 
@@ -564,7 +574,7 @@ function test_custom_configuration ()
 			if ! __is_container_ready \
 				mysql.pool-1.1.2 \
 				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
+				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -620,7 +630,7 @@ function test_custom_configuration ()
 							mysql.pool-1.1.2 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -630,9 +640,13 @@ function test_custom_configuration ()
 						"${select_users}" \
 						"$(
 							printf -- \
-								'%s\t%s\n%s\t%s' \
+								'%s\t%s\n%s\t%s\n%s\t%s\n%s\t%s' \
 								'app-user' \
 								'172.172.40.0/255.255.255.0' \
+								'mysql.session' \
+								'localhost' \
+								'mysql.sys' \
+								'localhost' \
 								'root' \
 								'localhost'
 						)"
@@ -679,13 +693,13 @@ function test_custom_configuration ()
 					--name mysql.pool-1.1.2 \
 					--network-alias mysql.pool-1.1.2 \
 					--network ${private_network_1} \
-					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password" \
+					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app-user" \
-					--env "MYSQL_USER_PASSWORD=/var/run/secrets/mysql_user_password" \
+					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
 					--env "MYSQL_USER_DATABASE=app-db" \
 					--volume ${data_volume_1}:/var/lib/mysql \
-					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/var/run/secrets:ro \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -697,7 +711,7 @@ function test_custom_configuration ()
 			if ! __is_container_ready \
 				mysql.pool-1.1.2 \
 				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
+				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -712,7 +726,7 @@ function test_custom_configuration ()
 							mysql.pool-1.1.2 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -722,9 +736,13 @@ function test_custom_configuration ()
 						"${select_users}" \
 						"$(
 							printf -- \
-								'%s\t%s\n%s\t%s' \
+								'%s\t%s\n%s\t%s\n%s\t%s\n%s\t%s' \
 								'app-user' \
 								'172.172.40.0/255.255.255.0' \
+								'mysql.session' \
+								'localhost' \
+								'mysql.sys' \
+								'localhost' \
 								'root' \
 								'localhost'
 						)"
@@ -771,15 +789,15 @@ function test_custom_configuration ()
 					--name mysql.pool-1.1.2 \
 					--network-alias mysql.pool-1.1.2 \
 					--network ${private_network_1} \
-					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password_hashed" \
+					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password_hashed" \
 					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app-user" \
-					--env "MYSQL_USER_PASSWORD=/var/run/secrets/mysql_user_password_hashed" \
+					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password_hashed" \
 					--env "MYSQL_USER_PASSWORD_HASHED=true" \
 					--env "MYSQL_USER_DATABASE=app-db" \
 					--volume ${data_volume_1}:/var/lib/mysql \
-					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/var/run/secrets:ro \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -791,7 +809,7 @@ function test_custom_configuration ()
 			if ! __is_container_ready \
 				mysql.pool-1.1.2 \
 				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
+				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -806,7 +824,7 @@ function test_custom_configuration ()
 							mysql.pool-1.1.2 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -816,9 +834,13 @@ function test_custom_configuration ()
 						"${select_users}" \
 						"$(
 							printf -- \
-								'%s\t%s\n%s\t%s' \
+								'%s\t%s\n%s\t%s\n%s\t%s\n%s\t%s' \
 								'app-user' \
 								'172.172.40.0/255.255.255.0' \
+								'mysql.session' \
+								'localhost' \
+								'mysql.sys' \
+								'localhost' \
 								'root' \
 								'localhost'
 						)"
@@ -908,7 +930,7 @@ function test_custom_configuration ()
 			if ! __is_container_ready \
 				mysql.pool-1.1.4 \
 				${STARTUP_TIME} \
-				"/usr/libexec/mysqld " \
+				"/usr/sbin/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
 					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
 					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
@@ -923,7 +945,7 @@ function test_custom_configuration ()
 							mysql.pool-1.1.4 \
 							mysql \
 								--batch \
-								--password=${mysql_root_password} \
+								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -933,9 +955,13 @@ function test_custom_configuration ()
 						"${select_users}" \
 						"$(
 							printf -- \
-								'%s\t%s\n%s\t%s' \
+								'%s\t%s\n%s\t%s\n%s\t%s\n%s\t%s' \
 								'app2-user' \
 								'%' \
+								'mysql.session' \
+								'localhost' \
+								'mysql.sys' \
+								'localhost' \
 								'root' \
 								'localhost'
 						)"
@@ -1006,7 +1032,7 @@ function test_custom_configuration ()
 			if ! __is_container_ready \
 				mysql.pool-1.1.1 \
 				${STARTUP_TIME} \
-				"/usr/libexec/mysqld "
+				"/usr/sbin/mysqld "
 			then
 				exit 1
 			fi
@@ -1031,11 +1057,19 @@ function test_custom_configuration ()
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
-			sleep ${STARTUP_TIME}
+			if ! __is_container_ready \
+				mysql.pool-1.1.1 \
+				${STARTUP_TIME} \
+				"/usr/bin/python /usr/bin/supervisord " \
+				"[[ -e /var/lib/mysql/ibdata1 ]] \
+					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]]"
+			then
+				exit 1
+			fi
 
 			it "Can disable mysqld-wrapper."
 				docker top mysql.pool-1.1.1 \
-					| grep -qE '/usr/libexec/mysqld '
+					| grep -qE '/usr/sbin/mysqld '
 
 				assert equal \
 					"${?}" \
@@ -1111,12 +1145,12 @@ function test_healthcheck ()
 				docker exec -t \
 					mysql.pool-1.1.1 \
 					bash -c "mv \
-						/usr/libexec/mysqld \
-						/usr/libexec/mysqld2" \
+						/usr/sbin/mysqld \
+						/usr/sbin/mysqld2" \
 				&& docker exec -t \
 					mysql.pool-1.1.1 \
-					bash -c "if [[ -n \$(pgrep -f '^/usr/libexec/mysqld ') ]]; then \
-						kill -9 -\$(ps axo pgid,command | grep -P '/bin/sh /usr/bin/mysqld_safe$' | awk '{ print \$1; }')
+					bash -c "if [[ -n \$(pgrep -f '^/usr/sbin/mysqld ') ]]; then \
+						kill -9 -\$(ps axo pgid,command | grep -P '/usr/sbin/mysqld --pid-file=/var/run/mysqld/mysqld.pid$' | awk '{ print \$1; }')
 					fi"
 
 				sleep $(

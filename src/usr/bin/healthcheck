@@ -185,6 +185,8 @@ function __usage ()
 
 function main ()
 {
+	readonly MYSQLD=/usr/sbin/mysqld
+
 	local -r REDACTED_VALUE="********"
 	local -r STATUS_PATH="/var/lib/healthcheck/status"
 	local QUITE=false
@@ -240,7 +242,7 @@ function main ()
 	# mysqld-wrapper
 	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]; then
 		if ! ps axo command \
-			| grep -qE '^/usr/libexec/mysqld '
+			| grep -qE "^${MYSQLD} "
 		then
 			exit 1
 		fi
