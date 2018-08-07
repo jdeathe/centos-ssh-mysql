@@ -6,7 +6,7 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.9 x86_64 - MySQL 5.1.
 
-### 1.8.5 - Unreleased
+### 1.8.5 - 2018-08-07
 
 - Updates README with details of version 2.
 
