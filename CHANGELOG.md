@@ -4,7 +4,11 @@
 
 Summary of release changes for Version 1.
 
-CentOS-6 6.9 x86_64 - MySQL 5.1.
+CentOS-6 6.10 x86_64 - MySQL 5.1.
+
+### 1.9.0 - Unreleased
+
+- Updates source image to [1.9.0](https://github.com/jdeathe/centos-ssh/releases/tag/1.9.0).
 
 ### 1.8.5 - 2018-08-07
 
