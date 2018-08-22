@@ -3,7 +3,7 @@ centos-ssh-mysql
 
 Docker Image including:
 - CentOS-6 6.9 x86_64, MySQL 5.1.
-- CentOS-7 7.4.1708 x86_64, MySQL 5.7 Community Server.
+- CentOS-7 7.5.1804 x86_64, MySQL 5.7 Community Server.
 
 Includes Automated password generation and an option for custom initialisation SQL. Supports custom configuration via environment variables.
 
