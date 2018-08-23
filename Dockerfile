@@ -4,7 +4,7 @@
 # CentOS-7, MySQL 5.7 Community Server
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:2.3.2
+FROM jdeathe/centos-ssh:2.4.0
 
 # -----------------------------------------------------------------------------
 # Install MySQL
@@ -83,7 +83,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="2.0.0"
+ARG RELEASE_VERSION="2.1.0"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
@@ -112,7 +112,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-7 7.4.1708 x86_64 - MySQL 5.7 Community Server."
+	org.deathe.description="CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server."
 
 HEALTHCHECK \
 	--interval=1s \
