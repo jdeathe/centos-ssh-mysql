@@ -4,7 +4,7 @@
 # CentOS-6, MySQL 5.1
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:1.8.4
+FROM jdeathe/centos-ssh:1.9.0
 
 # -----------------------------------------------------------------------------
 # Install MySQL
@@ -73,7 +73,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.8.5"
+ARG RELEASE_VERSION="1.9.0"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
@@ -102,7 +102,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.9 x86_64 - MySQL 5.1."
+	org.deathe.description="CentOS-6 6.10 x86_64 - MySQL 5.1."
 
 HEALTHCHECK \
 	--interval=1s \
