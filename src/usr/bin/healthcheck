@@ -235,6 +235,9 @@ function main ()
 		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
 			|| ! __is_mysql_data_directory_populated
 		then
+			__print_message \
+				"error" \
+				"Bootstrap failed to complete."
 			exit 1
 		fi
 	fi
@@ -244,6 +247,9 @@ function main ()
 		if ! ps axo command \
 			| grep -qE "^${MYSQLD} "
 		then
+			__print_message \
+				"error" \
+				"Service process not running."
 			exit 1
 		fi
 
