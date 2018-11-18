@@ -4,7 +4,7 @@
 # CentOS-7, MySQL 5.7 Community Server
 # 
 # =============================================================================
-FROM jdeathe/centos-ssh:2.4.0
+FROM jdeathe/centos-ssh:2.4.1
 
 # -----------------------------------------------------------------------------
 # Install MySQL
@@ -83,7 +83,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="2.1.0"
+ARG RELEASE_VERSION="2.1.1"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \
