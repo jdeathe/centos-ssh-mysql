@@ -6,7 +6,7 @@ Summary of release changes for Version 2.
 
 CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 
-### 2.1.1 - Unreleased
+### 2.1.1 - 2018-11-18
 
 - Updates source image to [2.4.1](https://github.com/jdeathe/centos-ssh/releases/tag/2.4.1).
 - Adds missing error messages to internal healthcheck.
