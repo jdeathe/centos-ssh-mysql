@@ -6,7 +6,7 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.10 x86_64 - MySQL 5.1.
 
-### 1.9.1 - Unreleased
+### 1.9.1 - 2018-11-18
 
 - Updates source image to [1.9.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.9.1).
 - Adds missing error messages to internal healthcheck.
