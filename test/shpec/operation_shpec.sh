@@ -1088,9 +1088,11 @@ function test_custom_configuration ()
 
 function test_healthcheck ()
 {
+	local -r event_lag_seconds=2
 	local -r interval_seconds=1
 	local -r retries=10
-	local health_status=""
+	local events_since_timestamp
+	local health_status
 
 	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
 		__destroy; \
@@ -1109,6 +1111,10 @@ function test_healthcheck ()
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
+			events_since_timestamp="$(
+				date +%s
+			)"
+
 			it "Returns a valid status on starting."
 				health_status="$(
 					docker inspect \
@@ -1121,23 +1127,27 @@ function test_healthcheck ()
 					"\"(starting|healthy|unhealthy)\""
 			end
 
-			sleep $(
-				awk \
-					-v interval_seconds="${interval_seconds}" \
-					-v startup_time="${STARTUP_TIME}" \
-					'BEGIN { print 1 + interval_seconds + startup_time; }'
-			)
-
 			it "Returns healthy after startup."
+				events_timeout="$(
+					awk \
+						-v event_lag="${event_lag_seconds}" \
+						-v interval="${interval_seconds}" \
+						-v startup_time="${STARTUP_TIME}" \
+						'BEGIN { print event_lag + startup_time + interval; }'
+				)"
+
 				health_status="$(
-					docker inspect \
-						--format='{{json .State.Health.Status}}' \
-						mysql.pool-1.1.1
+					test/health_status \
+						--container=mysql.pool-1.1.1 \
+						--since="${events_since_timestamp}" \
+						--timeout="${events_timeout}" \
+						--monochrome \
+					2>&1
 				)"
 
 				assert equal \
 					"${health_status}" \
-					"\"healthy\""
+					"✓ healthy"
 			end
 
 			it "Returns unhealthy on failure."
@@ -1153,22 +1163,30 @@ function test_healthcheck ()
 						kill -9 -\$(ps axo pgid,command | grep -P '/usr/sbin/mysqld --pid-file=/var/run/mysqld/mysqld.pid$' | awk '{ print \$1; }')
 					fi"
 
-				sleep $(
+				events_since_timestamp="$(
+					date +%s
+				)"
+
+				events_timeout="$(
 					awk \
-						-v interval_seconds="${interval_seconds}" \
+						-v event_lag="${event_lag_seconds}" \
+						-v interval="${interval_seconds}" \
 						-v retries="${retries}" \
-						'BEGIN { print 1 + interval_seconds * retries; }'
-				)
+						'BEGIN { print event_lag + (interval * retries); }'
+				)"
 
 				health_status="$(
-					docker inspect \
-						--format='{{json .State.Health.Status}}' \
-						mysql.pool-1.1.1
+					test/health_status \
+						--container=mysql.pool-1.1.1 \
+						--since="$(( ${event_lag_seconds} + ${events_since_timestamp} ))" \
+						--timeout="${events_timeout}" \
+						--monochrome \
+					2>&1
 				)"
 
 				assert equal \
 					"${health_status}" \
-					"\"unhealthy\""
+					"✗ unhealthy"
 			end
 
 			__terminate_container \
