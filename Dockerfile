@@ -29,38 +29,21 @@ RUN { printf -- \
 # ------------------------------------------------------------------------------
 # Copy files into place
 # ------------------------------------------------------------------------------
-ADD src/etc/systemd/system \
-	/etc/systemd/system/
-ADD src/etc/services-config/mysql/my.cnf \
-	src/etc/services-config/mysql/mysqld-bootstrap.conf \
-	/etc/services-config/mysql/
-ADD src/etc/services-config/supervisor/supervisord.d \
-	/etc/services-config/supervisor/supervisord.d/
+ADD src/etc \
+	/etc/
 ADD src/opt/scmi \
 	/opt/scmi/
-ADD src/usr/bin \
-	/usr/bin/
-ADD src/usr/sbin \
-	/usr/sbin/
+ADD src/usr \
+	/usr/
 
 # ------------------------------------------------------------------------------
 # Provisioning
 # - Set permissions
 # ------------------------------------------------------------------------------
-RUN ln -sf \
-		/etc/services-config/mysql/my.cnf \
-		/etc/my.cnf \
-	&& ln -sf \
-		/etc/services-config/mysql/mysqld-bootstrap.conf \
-		/etc/mysqld-bootstrap.conf \
-	&& ln -sf \
-		/etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf \
-		/etc/supervisord.d/mysqld-bootstrap.conf \
-	&& ln -sf \
-		/etc/services-config/supervisor/supervisord.d/mysqld-wrapper.conf \
-		/etc/supervisord.d/mysqld-wrapper.conf \
-	&& chmod 600 \
-		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
+RUN chmod 600 \
+		/etc/{my.cnf,mysqld-bootstrap.conf} \
+	&& chmod 644 \
+		/etc/supervisord.d/mysqld-{bootstrap,wrapper}.conf \
 	&& chmod 700 \
 		/usr/{bin/healthcheck,sbin/mysqld-{bootstrap,wrapper}}
 
