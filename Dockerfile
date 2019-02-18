@@ -38,9 +38,13 @@ ADD src/usr \
 
 # ------------------------------------------------------------------------------
 # Provisioning
+# - Replace placeholders with values in systemd service unit template
 # - Set permissions
 # ------------------------------------------------------------------------------
-RUN chmod 600 \
+RUN sed -i \
+		-e "s~{{RELEASE_VERSION}}~${RELEASE_VERSION}~g" \
+		/etc/systemd/system/centos-ssh-mysql@.service \
+	&& chmod 600 \
 		/etc/{my.cnf,mysqld-bootstrap.conf} \
 	&& chmod 644 \
 		/etc/supervisord.d/mysqld-{bootstrap,wrapper}.conf \
