@@ -12,6 +12,7 @@ CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 - Updates and restructures Dockerfile.
 - Removes use of `/etc/services-config` paths.
 - Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
+- Removes X-Fleet section from etcd register template unit-file.
 
 ### 2.1.1 - 2018-11-18
 
