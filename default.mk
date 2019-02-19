@@ -1,4 +1,42 @@
 
+# Handle incrementing the docker host port for instances unless a port range is defined.
+DOCKER_PUBLISH := $(shell \
+	if [[ "$(DOCKER_PORT_MAP_TCP_3306)" != NULL ]]; \
+	then \
+		if grep -qE \
+				'^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?[1-9][0-9]*$$' \
+				<<< "$(DOCKER_PORT_MAP_TCP_3306)" \
+			&& grep -qE \
+				'^.+\.[0-9]+(\.[0-9]+)?$$' \
+				<<< "$(DOCKER_NAME)"; \
+		then \
+			printf -- ' --publish %s%s:3306' \
+				"$$(\
+					grep -o '^[0-9\.]*:' \
+						<<< "$(DOCKER_PORT_MAP_TCP_3306)" \
+				)" \
+				"$$(( \
+					$$(\
+						grep -oE \
+							'[0-9]+$$' \
+							<<< "$(DOCKER_PORT_MAP_TCP_3306)" \
+					) \
+					+ $$(\
+						grep -oE \
+							'([0-9]+)(\.[0-9]+)?$$' \
+							<<< "$(DOCKER_NAME)" \
+						| awk -F. \
+							'{ print $$1; }' \
+					) \
+					- 1 \
+				))"; \
+		else \
+			printf -- ' --publish %s:3306' \
+				"$(DOCKER_PORT_MAP_TCP_3306)"; \
+		fi; \
+	fi; \
+)
+
 # Common parameters of create and run targets
 define DOCKER_CONTAINER_PARAMETERS
 --name $(DOCKER_NAME) \
@@ -13,7 +51,3 @@ define DOCKER_CONTAINER_PARAMETERS
 --env "MYSQL_USER_PASSWORD=$(MYSQL_USER_PASSWORD)" \
 --env "MYSQL_USER_PASSWORD_HASHED=$(MYSQL_USER_PASSWORD_HASHED)"
 endef
-
-DOCKER_PUBLISH := $(shell \
-	if [[ $(DOCKER_PORT_MAP_TCP_3306) != NULL ]]; then printf -- '--publish %s:3306\n' $(DOCKER_PORT_MAP_TCP_3306); fi; \
-)
