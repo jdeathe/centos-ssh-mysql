@@ -1,14 +1,10 @@
-# =============================================================================
-# jdeathe/centos-ssh-mysql
-# 
-# CentOS-6, MySQL 5.1
-# 
-# =============================================================================
-FROM jdeathe/centos-ssh:1.9.1
+FROM jdeathe/centos-ssh:1.10.0
 
-# -----------------------------------------------------------------------------
-# Install MySQL
-# -----------------------------------------------------------------------------
+ARG RELEASE_VERSION="1.9.1"
+
+# ------------------------------------------------------------------------------
+# Base install of required packages
+# ------------------------------------------------------------------------------
 RUN rpm --rebuilddb \
 	&& yum -y install \
 		--setopt=tsflags=nodocs \
@@ -19,61 +15,51 @@ RUN rpm --rebuilddb \
 	&& rm -rf /var/cache/yum/* \
 	&& yum clean all
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Copy files into place
-# -----------------------------------------------------------------------------
-ADD src/usr/bin \
-	/usr/bin/
-ADD src/usr/sbin \
-	/usr/sbin/
+# ------------------------------------------------------------------------------
+ADD src/etc \
+	/etc/
 ADD src/opt/scmi \
 	/opt/scmi/
-ADD src/etc/systemd/system \
-	/etc/systemd/system/
-ADD src/etc/services-config/mysql/my.cnf \
-	src/etc/services-config/mysql/mysqld-bootstrap.conf \
-	/etc/services-config/mysql/
-ADD src/etc/services-config/supervisor/supervisord.d \
-	/etc/services-config/supervisor/supervisord.d/
+ADD src/usr \
+	/usr/
 
-RUN ln -sf \
-		/etc/services-config/mysql/my.cnf \
-		/etc/my.cnf \
-	&& ln -sf \
-		/etc/services-config/mysql/mysqld-bootstrap.conf \
-		/etc/mysqld-bootstrap.conf \
-	&& ln -sf \
-		/etc/services-config/supervisor/supervisord.d/mysqld-bootstrap.conf \
-		/etc/supervisord.d/mysqld-bootstrap.conf \
-	&& ln -sf \
-		/etc/services-config/supervisor/supervisord.d/mysqld-wrapper.conf \
-		/etc/supervisord.d/mysqld-wrapper.conf \
+# ------------------------------------------------------------------------------
+# Provisioning
+# - Replace placeholders with values in systemd service unit template
+# - Set permissions
+# ------------------------------------------------------------------------------
+RUN sed -i \
+		-e "s~{{RELEASE_VERSION}}~${RELEASE_VERSION}~g" \
+		/etc/systemd/system/centos-ssh-mysql@.service \
 	&& chmod 600 \
-		/etc/services-config/mysql/{my.cnf,mysqld-bootstrap.conf} \
+		/etc/{my.cnf,mysqld-bootstrap.conf} \
+	&& chmod 644 \
+		/etc/supervisord.d/mysqld-{bootstrap,wrapper}.conf \
 	&& chmod 700 \
 		/usr/{bin/healthcheck,sbin/mysqld-{bootstrap,wrapper}}
 
 EXPOSE 3306
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Set default environment variables
-# -----------------------------------------------------------------------------
-ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true \
-	MYSQL_AUTOSTART_MYSQLD_WRAPPER=true \
+# ------------------------------------------------------------------------------
+ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP="true" \
+	MYSQL_AUTOSTART_MYSQLD_WRAPPER="true" \
 	MYSQL_ROOT_PASSWORD="" \
-	MYSQL_ROOT_PASSWORD_HASHED=false \
+	MYSQL_ROOT_PASSWORD_HASHED="false" \
 	MYSQL_SUBNET="127.0.0.1" \
 	MYSQL_USER="" \
 	MYSQL_USER_DATABASE="" \
 	MYSQL_USER_PASSWORD="" \
-	MYSQL_USER_PASSWORD_HASHED=false \
-	SSH_AUTOSTART_SSHD=false \
-	SSH_AUTOSTART_SSHD_BOOTSTRAP=false
+	MYSQL_USER_PASSWORD_HASHED="false" \
+	SSH_AUTOSTART_SSHD="false" \
+	SSH_AUTOSTART_SSHD_BOOTSTRAP="false"
 
 # -----------------------------------------------------------------------------
 # Set image metadata
 # -----------------------------------------------------------------------------
-ARG RELEASE_VERSION="1.9.1"
 LABEL \
 	maintainer="James Deathe <james.deathe@gmail.com>" \
 	install="docker run \

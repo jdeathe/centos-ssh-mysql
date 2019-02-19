@@ -10,8 +10,8 @@ function __destroy ()
 {
 	local -r private_network_1="bridge_internal_1"
 	local -r private_network_2="bridge_internal_2"
-	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
+	local -r data_volume_1="mysql.2.data-mysql"
+	local -r data_volume_2="mysql.4.data-mysql"
 
 	# Destroy the bridge networks
 	if [[ -n $(docker network ls -q -f name="${private_network_1}") ]]; then
@@ -97,8 +97,8 @@ function __is_container_ready ()
 
 function __reset_data_volume ()
 {
-	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
+	local -r data_volume_1="mysql.2.data-mysql"
+	local -r data_volume_2="mysql.4.data-mysql"
 
 	local group="${1:-1}"
 
@@ -142,8 +142,8 @@ function __setup ()
 {
 	local -r private_network_1="bridge_internal_1"
 	local -r private_network_2="bridge_internal_2"
-	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
+	local -r data_volume_1="mysql.2.data-mysql"
+	local -r data_volume_2="mysql.4.data-mysql"
 
 	# Create the bridge networks
 	if [[ -z $(docker network ls -q -f name="${private_network_1}") ]]; then
@@ -231,7 +231,7 @@ function test_basic_operations ()
 	local show_databases=""
 	local show_grants=""
 
-	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+	trap "__terminate_container mysql.1 &> /dev/null; \
 		__destroy; \
 		exit 1" \
 		INT TERM EXIT
@@ -239,20 +239,20 @@ function test_basic_operations ()
 	describe "Basic MySQL operations"
 		describe "Runs named container"
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 
 			it "Can publish ${DOCKER_PORT_MAP_TCP_3306}:3306."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.1 \
+					--name mysql.1 \
 					--publish ${DOCKER_PORT_MAP_TCP_3306}:3306 \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
 				container_port_3306="$(
 					__get_container_port \
-						mysql.pool-1.1.1 \
+						mysql.1 \
 						3306/tcp
 				)"
 
@@ -270,7 +270,7 @@ function test_basic_operations ()
 		end
 
 		if ! __is_container_ready \
-			mysql.pool-1.1.1 \
+			mysql.1 \
 			${STARTUP_TIME} \
 			"/usr/libexec/mysqld " \
 			"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -285,7 +285,7 @@ function test_basic_operations ()
 				it "Sets a 16 character password."
 					mysql_root_password="$(
 						docker logs \
-							mysql.pool-1.1.1 \
+							mysql.1 \
 						| grep 'user : root@localhost' \
 						| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
 					)"
@@ -298,7 +298,7 @@ function test_basic_operations ()
 				it "Limits access to localhost only."
 					select_users="$(
 						docker exec \
-							mysql.pool-1.1.1 \
+							mysql.1 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -322,7 +322,7 @@ function test_basic_operations ()
 				it "Removes all but the necessary databases."
 					show_databases="$(
 						docker exec \
-							mysql.pool-1.1.1 \
+							mysql.1 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -343,7 +343,7 @@ function test_basic_operations ()
 
 				it "Shows N/A in MySQL Details."
 					docker logs \
-						mysql.pool-1.1.1 \
+						mysql.1 \
 					| grep -q 'database : N/A' \
 					&> /dev/null
 
@@ -357,19 +357,19 @@ function test_basic_operations ()
 		describe "Database setup"
 			it "Creates a database on first run."
 				__terminate_container \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 				&> /dev/null
 
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.1 \
+					--name mysql.1 \
 					--env "MYSQL_ROOT_PASSWORD=mypasswd" \
 					--env "MYSQL_USER_DATABASE=my-db" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
 				if ! __is_container_ready \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 					${STARTUP_TIME} \
 					"/usr/libexec/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -381,7 +381,7 @@ function test_basic_operations ()
 
 				docker exec \
 					-t \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 					mysql \
 						-pmypasswd \
 						-uroot \
@@ -395,7 +395,7 @@ function test_basic_operations ()
 
 			it "Has database name in MySQL Details."
 				docker logs \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 				| grep -q 'database : my-db' \
 				&> /dev/null
 
@@ -408,19 +408,19 @@ function test_basic_operations ()
 		describe "User setup"
 			it "Creates a user on first run."
 				__terminate_container \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 				&> /dev/null
 
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.1 \
+					--name mysql.1 \
 					--env "MYSQL_ROOT_PASSWORD=mypasswd" \
 					--env "MYSQL_USER=my-user" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
 				if ! __is_container_ready \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 					${STARTUP_TIME} \
 					"/usr/libexec/mysqld " \
 					"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -432,7 +432,7 @@ function test_basic_operations ()
 
 				select_users="$(
 					docker exec \
-						mysql.pool-1.1.1 \
+						mysql.1 \
 						mysql \
 							--batch \
 							--password=mypasswd \
@@ -455,7 +455,7 @@ function test_basic_operations ()
 
 			it "Has user in MySQL Details."
 				docker logs \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 				| grep -q 'user : my-user@localhost' \
 				&> /dev/null
 
@@ -467,7 +467,7 @@ function test_basic_operations ()
 			it "Grants the user USAGE privileges."
 				show_grants="$(
 					docker exec \
-						mysql.pool-1.1.1 \
+						mysql.1 \
 						mysql \
 							--batch \
 							--password=mypasswd \
@@ -483,7 +483,7 @@ function test_basic_operations ()
 		end
 
 		__terminate_container \
-			mysql.pool-1.1.1 \
+			mysql.1 \
 		&> /dev/null
 	end
 
@@ -493,8 +493,8 @@ function test_basic_operations ()
 
 function test_custom_configuration ()
 {
-	local -r data_volume_1="mysql.pool-1.1.2.data-mysql"
-	local -r data_volume_2="mysql.pool-1.1.4.data-mysql"
+	local -r data_volume_1="mysql.2.data-mysql"
+	local -r data_volume_2="mysql.4.data-mysql"
 	local -r private_network_1="bridge_internal_1"
 	local -r private_network_2="bridge_internal_2"
 	local -r redacted_value="********"
@@ -507,29 +507,29 @@ function test_custom_configuration ()
 	local select_users=""
 	local show_databases=""
 
-	trap "__terminate_container mysql.pool-1.1.2 &> /dev/null; \
-		__terminate_container mysql.pool-1.1.3 &> /dev/null; \
-		__terminate_container mysql.pool-1.1.4 &> /dev/null; \
-		__terminate_container mysql.pool-1.1.5 &> /dev/null; \
+	trap "__terminate_container mysql.2 &> /dev/null; \
+		__terminate_container mysql.3 &> /dev/null; \
+		__terminate_container mysql.4 &> /dev/null; \
+		__terminate_container mysql.5 &> /dev/null; \
 		__destroy; \
 		exit 1" \
 		INT TERM EXIT
 
 	describe "Customised MySQL configuration"
 		__terminate_container \
-			mysql.pool-1.1.2 \
+			mysql.2 \
 		&> /dev/null
 
 		__terminate_container \
-			mysql.pool-1.1.3 \
+			mysql.3 \
 		&> /dev/null
 
 		describe "Single internal network"
 			it "Runs a named server container."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.2 \
-					--network-alias mysql.pool-1.1.2 \
+					--name mysql.2 \
+					--network-alias mysql.2 \
 					--network ${private_network_1} \
 					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
 					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
@@ -549,7 +549,7 @@ function test_custom_configuration ()
 			it "Runs a named client container."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.3 \
+					--name mysql.3 \
 					--network ${private_network_1} \
 					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
 					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
@@ -562,7 +562,7 @@ function test_custom_configuration ()
 			end
 
 			if ! __is_container_ready \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -575,7 +575,7 @@ function test_custom_configuration ()
 			describe "MySQL Details log output"
 				it "Has the database name."
 					docker logs \
-						mysql.pool-1.1.2 \
+						mysql.2 \
 					| grep -q 'database : app-db' \
 					&> /dev/null
 
@@ -588,7 +588,7 @@ function test_custom_configuration ()
 					it "Redacts root password."
 						mysql_root_password_log="$(
 							docker logs \
-								mysql.pool-1.1.2 \
+								mysql.2 \
 							| grep 'user : root@localhost' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
@@ -601,7 +601,7 @@ function test_custom_configuration ()
 					it "Redacts user password."
 						mysql_user_password_log="$(
 							docker logs \
-								mysql.pool-1.1.2 \
+								mysql.2 \
 							| grep 'user : app-user@172.172.40.0/255.255.255.0' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
@@ -617,7 +617,7 @@ function test_custom_configuration ()
 				it "Creates a subnet restricted user."
 					select_users="$(
 						docker exec \
-							mysql.pool-1.1.2 \
+							mysql.2 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -644,9 +644,9 @@ function test_custom_configuration ()
 					show_databases="$(
 						docker exec \
 							-t \
-							mysql.pool-1.1.3 \
+							mysql.3 \
 							mysql \
-								-h mysql.pool-1.1.2 \
+								-h mysql.2 \
 								-p${mysql_user_password} \
 								-uapp-user \
 								app-db \
@@ -662,7 +662,7 @@ function test_custom_configuration ()
 
 			# Clean up server but keep client running.
 			__terminate_container \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 			&> /dev/null
 		end
 
@@ -676,8 +676,8 @@ function test_custom_configuration ()
 			it "Runs a named server container."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.2 \
-					--network-alias mysql.pool-1.1.2 \
+					--name mysql.2 \
+					--network-alias mysql.2 \
 					--network ${private_network_1} \
 					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
@@ -695,7 +695,7 @@ function test_custom_configuration ()
 			end
 
 			if ! __is_container_ready \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -709,7 +709,7 @@ function test_custom_configuration ()
 				it "Creates a subnet restricted user."
 					select_users="$(
 						docker exec \
-							mysql.pool-1.1.2 \
+							mysql.2 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -736,9 +736,9 @@ function test_custom_configuration ()
 					show_databases="$(
 						docker exec \
 							-t \
-							mysql.pool-1.1.3 \
+							mysql.3 \
 							mysql \
-								-h mysql.pool-1.1.2 \
+								-h mysql.2 \
 								-p${mysql_user_password} \
 								-uapp-user \
 								app-db \
@@ -754,7 +754,7 @@ function test_custom_configuration ()
 
 			# Clean up server but keep client running.
 			__terminate_container \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 			&> /dev/null
 		end
 
@@ -768,8 +768,8 @@ function test_custom_configuration ()
 			it "Runs a named server container."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.2 \
-					--network-alias mysql.pool-1.1.2 \
+					--name mysql.2 \
+					--network-alias mysql.2 \
 					--network ${private_network_1} \
 					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password_hashed" \
 					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
@@ -789,7 +789,7 @@ function test_custom_configuration ()
 			end
 
 			if ! __is_container_ready \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -803,7 +803,7 @@ function test_custom_configuration ()
 				it "Creates a subnet restricted user."
 					select_users="$(
 						docker exec \
-							mysql.pool-1.1.2 \
+							mysql.2 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -830,9 +830,9 @@ function test_custom_configuration ()
 					show_databases="$(
 						docker exec \
 							-t \
-							mysql.pool-1.1.3 \
+							mysql.3 \
 							mysql \
-								-h mysql.pool-1.1.2 \
+								-h mysql.2 \
 								-p${mysql_user_password} \
 								-uapp-user \
 								app-db \
@@ -848,22 +848,22 @@ function test_custom_configuration ()
 
 			# Clean up server but keep client running.
 			__terminate_container \
-				mysql.pool-1.1.2 \
+				mysql.2 \
 			&> /dev/null
 		end
 
 		describe "Multiple internal networks"
 			__terminate_container \
-				mysql.pool-1.1.4 \
+				mysql.4 \
 			&> /dev/null
 
 			__terminate_container \
-				mysql.pool-1.1.5 \
+				mysql.5 \
 			&> /dev/null
 
 			it "Runs a named server container."
 				docker create \
-					--name mysql.pool-1.1.4 \
+					--name mysql.4 \
 					--network ${private_network_1} \
 					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
 					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
@@ -878,11 +878,11 @@ function test_custom_configuration ()
 
 				docker network connect \
 					${private_network_2} \
-					mysql.pool-1.1.4 \
+					mysql.4 \
 				&> /dev/null
 
 				docker start \
-					mysql.pool-1.1.4 \
+					mysql.4 \
 				&> /dev/null
 
 				assert equal \
@@ -893,7 +893,7 @@ function test_custom_configuration ()
 			it "Runs a named client container."
 				docker run \
 					--detach \
-					--name mysql.pool-1.1.5 \
+					--name mysql.5 \
 					--network ${private_network_2} \
 					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
 					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
@@ -906,7 +906,7 @@ function test_custom_configuration ()
 			end
 
 			if ! __is_container_ready \
-				mysql.pool-1.1.4 \
+				mysql.4 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld " \
 				"[[ -e /var/lib/mysql/ibdata1 ]] \
@@ -920,7 +920,7 @@ function test_custom_configuration ()
 				it "Creates an unrestricted user."
 					select_users="$(
 						docker exec \
-							mysql.pool-1.1.4 \
+							mysql.4 \
 							mysql \
 								--batch \
 								--password=${mysql_root_password} \
@@ -947,9 +947,9 @@ function test_custom_configuration ()
 					show_databases="$(
 						docker exec \
 							-t \
-							mysql.pool-1.1.5 \
+							mysql.5 \
 							mysql \
-								-h mysql.pool-1.1.4 \
+								-h mysql.4 \
 								-p${mysql_user_password} \
 								-uapp2-user \
 								app2-db \
@@ -962,9 +962,9 @@ function test_custom_configuration ()
 					show_databases+="$(
 						docker exec \
 							-t \
-							mysql.pool-1.1.3 \
+							mysql.3 \
 							mysql \
-								-h mysql.pool-1.1.4 \
+								-h mysql.4 \
 								-p${mysql_user_password} \
 								-uapp2-user \
 								app2-db \
@@ -979,32 +979,32 @@ function test_custom_configuration ()
 			end
 
 			__terminate_container \
-				mysql.pool-1.1.3 \
+				mysql.3 \
 			&> /dev/null
 
 			__terminate_container \
-				mysql.pool-1.1.4 \
+				mysql.4 \
 			&> /dev/null
 
 			__terminate_container \
-				mysql.pool-1.1.5 \
+				mysql.5 \
 			&> /dev/null
 		end
 
 		describe "Configure autostart"
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 
 			docker run \
 				--detach \
-				--name mysql.pool-1.1.1 \
+				--name mysql.1 \
 				--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
 			if ! __is_container_ready \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 				${STARTUP_TIME} \
 				"/usr/libexec/mysqld "
 			then
@@ -1012,7 +1012,7 @@ function test_custom_configuration ()
 			fi
 
 			it "Can disable mysqld-bootstrap."
-				docker logs mysql.pool-1.1.1 \
+				docker logs mysql.1 \
 					| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
 
 				assert equal \
@@ -1021,12 +1021,12 @@ function test_custom_configuration ()
 			end
 
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 
 			docker run \
 				--detach \
-				--name mysql.pool-1.1.1 \
+				--name mysql.1 \
 				--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
@@ -1034,7 +1034,7 @@ function test_custom_configuration ()
 			sleep ${STARTUP_TIME}
 
 			it "Can disable mysqld-wrapper."
-				docker top mysql.pool-1.1.1 \
+				docker top mysql.1 \
 					| grep -qE '/usr/libexec/mysqld '
 
 				assert equal \
@@ -1043,7 +1043,7 @@ function test_custom_configuration ()
 			end
 
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 		end
 	end
@@ -1054,11 +1054,13 @@ function test_custom_configuration ()
 
 function test_healthcheck ()
 {
+	local -r event_lag_seconds=2
 	local -r interval_seconds=1
 	local -r retries=10
-	local health_status=""
+	local events_since_timestamp
+	local health_status
 
-	trap "__terminate_container mysql.pool-1.1.1 &> /dev/null; \
+	trap "__terminate_container mysql.1 &> /dev/null; \
 		__destroy; \
 		exit 1" \
 		INT TERM EXIT
@@ -1066,20 +1068,24 @@ function test_healthcheck ()
 	describe "Healthcheck"
 		describe "Default configuration"
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 
 			docker run \
 				--detach \
-				--name mysql.pool-1.1.1 \
+				--name mysql.1 \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
+
+			events_since_timestamp="$(
+				date +%s
+			)"
 
 			it "Returns a valid status on starting."
 				health_status="$(
 					docker inspect \
 						--format='{{json .State.Health.Status}}' \
-						mysql.pool-1.1.1
+						mysql.1
 				)"
 
 				assert __shpec_matcher_egrep \
@@ -1087,58 +1093,70 @@ function test_healthcheck ()
 					"\"(starting|healthy|unhealthy)\""
 			end
 
-			sleep $(
-				awk \
-					-v interval_seconds="${interval_seconds}" \
-					-v startup_time="${STARTUP_TIME}" \
-					'BEGIN { print 1 + interval_seconds + startup_time; }'
-			)
-
 			it "Returns healthy after startup."
+				events_timeout="$(
+					awk \
+						-v event_lag="${event_lag_seconds}" \
+						-v interval="${interval_seconds}" \
+						-v startup_time="${STARTUP_TIME}" \
+						'BEGIN { print event_lag + startup_time + interval; }'
+				)"
+
 				health_status="$(
-					docker inspect \
-						--format='{{json .State.Health.Status}}' \
-						mysql.pool-1.1.1
+					test/health_status \
+						--container=mysql.1 \
+						--since="${events_since_timestamp}" \
+						--timeout="${events_timeout}" \
+						--monochrome \
+					2>&1
 				)"
 
 				assert equal \
 					"${health_status}" \
-					"\"healthy\""
+					"✓ healthy"
 			end
 
 			it "Returns unhealthy on failure."
 				# mysqld-wrapper failure
 				docker exec -t \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 					bash -c "mv \
 						/usr/libexec/mysqld \
 						/usr/libexec/mysqld2" \
 				&& docker exec -t \
-					mysql.pool-1.1.1 \
+					mysql.1 \
 					bash -c "if [[ -n \$(pgrep -f '^/usr/libexec/mysqld ') ]]; then \
 						kill -9 -\$(ps axo pgid,command | grep -P '/bin/sh /usr/bin/mysqld_safe$' | awk '{ print \$1; }')
 					fi"
 
-				sleep $(
+				events_since_timestamp="$(
+					date +%s
+				)"
+
+				events_timeout="$(
 					awk \
-						-v interval_seconds="${interval_seconds}" \
+						-v event_lag="${event_lag_seconds}" \
+						-v interval="${interval_seconds}" \
 						-v retries="${retries}" \
-						'BEGIN { print 1 + interval_seconds * retries; }'
-				)
+						'BEGIN { print event_lag + (interval * retries); }'
+				)"
 
 				health_status="$(
-					docker inspect \
-						--format='{{json .State.Health.Status}}' \
-						mysql.pool-1.1.1
+					test/health_status \
+						--container=mysql.1 \
+						--since="$(( ${event_lag_seconds} + ${events_since_timestamp} ))" \
+						--timeout="${events_timeout}" \
+						--monochrome \
+					2>&1
 				)"
 
 				assert equal \
 					"${health_status}" \
-					"\"unhealthy\""
+					"✗ unhealthy"
 			end
 
 			__terminate_container \
-				mysql.pool-1.1.1 \
+				mysql.1 \
 			&> /dev/null
 		end
 	end
