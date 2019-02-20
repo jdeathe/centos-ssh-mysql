@@ -23,6 +23,7 @@ CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 - Removes X-Fleet section from etcd register template unit-file.
 - Removes the unused group element from the default container name.
 - Removes the node element from the default container name.
+- Removes unused environment variables from Makefile and scmi configuration.
 
 ### 2.1.1 - 2018-11-18
 
