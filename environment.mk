@@ -17,7 +17,6 @@ DOCKER_IMAGE_RELEASE_TAG_PATTERN := ^(1|2|centos-(6-1|7-mysql57-community-2))\.[
 DOCKER_CONTAINER_OPTS ?=
 DOCKER_IMAGE_TAG ?= latest
 DOCKER_NAME ?= mysql.1
-DOCKER_PORT_MAP_TCP_22 ?= NULL
 DOCKER_PORT_MAP_TCP_3306 ?= 3306
 DOCKER_RESTART_POLICY ?= always
 
@@ -32,20 +31,6 @@ STARTUP_TIME ?= 10
 
 # ------------------------------------------------------------------------------
 # Application container configuration
-# ------------------------------------------------------------------------------
-SSH_AUTHORIZED_KEYS ?=
-SSH_AUTOSTART_SSHD ?= false
-SSH_AUTOSTART_SSHD_BOOTSTRAP ?= false
-SSH_CHROOT_DIRECTORY ?= %h
-SSH_INHERIT_ENVIRONMENT ?= false
-SSH_SUDO ?= ALL=(ALL) ALL
-SSH_USER ?= app-admin
-SSH_USER_FORCE_SFTP ?= false
-SSH_USER_HOME ?= /home/%u
-SSH_USER_ID ?= 500:500
-SSH_USER_PASSWORD ?=
-SSH_USER_PASSWORD_HASHED ?= false
-SSH_USER_SHELL ?= /bin/bash
 # ------------------------------------------------------------------------------
 MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP ?= true
 MYSQL_AUTOSTART_MYSQLD_WRAPPER ?= true
