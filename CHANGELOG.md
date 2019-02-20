@@ -17,6 +17,7 @@ CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 - Adds consideration for event lag into test cases for unhealthy health_status events.
 - Adds port incrementation to Makefile's run template for container names with an instance suffix.
 - Adds supervisord check to healthcheck script and removes unnecessary source script.
+- Adds images directory `.dockerignore` to reduce size of build context.
 - Removes use of `/etc/services-config` paths.
 - Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
 - Removes X-Fleet section from etcd register template unit-file.
