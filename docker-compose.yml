@@ -13,11 +13,8 @@
 # docker-compose logs mysql
 #
 # Usage:
-# docker-compose exec mysql mysqladmin --help
-# docker-compose exec mysql mysqladmin -p status
-# docker-compose exec mysql mysqladmin -p processlist
-# docker-compose exec mysql mysqladmin -p create app-db
-# docker-compose exec mysql mysql -p app-db
+# docker-compose exec mysql mysqladmin -p --help
+# docker-compose exec mysql mysql -p
 #
 # Reset - bring down services + delete volume data:
 # docker-compose down -v
