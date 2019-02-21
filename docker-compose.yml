@@ -1,0 +1,44 @@
+# ------------------------------------------------------------------------------
+# Ref: https://docs.docker.com/compose/compose-file/
+#
+# Setup:
+# Copy .env.example to .env and modify values as required.
+# docker-compose build
+# docker-compose down
+#
+# Run Default example:
+# docker-compose up -d
+#
+# Check service logs:
+# docker-compose logs mysql
+#
+# Usage:
+# docker-compose exec mysql mysqladmin --help
+# docker-compose exec mysql mysql -p
+#
+# Reset - bring down services + delete volume data:
+# docker-compose down -v
+# ------------------------------------------------------------------------------
+version: "3.0"
+volumes:
+  data-mysql:
+    driver: "local"
+services:
+  mysql:
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_ROOT_PASSWORD_HASHED: "${MYSQL_ROOT_PASSWORD_HASHED}"
+      MYSQL_SUBNET: "${MYSQL_SUBNET}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_USER_DATABASE: "${MYSQL_USER_DATABASE}"
+      MYSQL_USER_PASSWORD: "${MYSQL_USER_PASSWORD}"
+      MYSQL_USER_PASSWORD_HASHED: "${MYSQL_USER_PASSWORD_HASHED}"
+    image: "jdeathe/centos-ssh-mysql:latest"
+    ports:
+      - "3306:3306"
+    restart: "always"
+    volumes:
+      - "data-mysql:/var/lib/mysql"
