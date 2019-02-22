@@ -26,7 +26,7 @@ NO_CACHE="${NO_CACHE:-false}"
 DIST_PATH="${DIST_PATH:-./dist}"
 
 # Number of seconds expected to complete container startup including bootstrap.
-STARTUP_TIME="${STARTUP_TIME:-9}"
+STARTUP_TIME="${STARTUP_TIME:-8}"
 
 # ETCD register service settings
 REGISTER_ETCD_PARAMETERS="${REGISTER_ETCD_PARAMETERS:-}"
