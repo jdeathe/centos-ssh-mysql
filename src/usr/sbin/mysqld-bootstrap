@@ -410,7 +410,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		{ print T2 - T1; }"
 	)"
 
-	cat \
+	tee /var/log/mysqld.log \
 		<<-EOT
 
 		================================================================================
