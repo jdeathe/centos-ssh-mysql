@@ -281,17 +281,17 @@ function test_basic_operations ()
 
 		describe "Default initialisation"
 			describe "Setup of root user"
-				it "Sets a 16 character password."
+				it "Redacts password in logs output."
 					mysql_root_password="$(
 						docker logs \
 							mysql.1 \
 						| grep 'user : root@localhost' \
-						| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
+						| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 					)"
 
-					assert __shpec_matcher_egrep \
+					assert equal \
 						"${mysql_root_password}" \
-						"[a-zA-Z0-9]{16}"
+						"********"
 				end
 
 				it "Limits access to localhost only."
@@ -300,7 +300,6 @@ function test_basic_operations ()
 							mysql.1 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user;"
@@ -328,7 +327,6 @@ function test_basic_operations ()
 							mysql.1 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SHOW DATABASES;"
@@ -388,7 +386,6 @@ function test_basic_operations ()
 					-t \
 					mysql.1 \
 					mysql \
-						-pmypasswd \
 						-uroot \
 						-e "USE my-db;" \
 				&> /dev/null
@@ -440,7 +437,6 @@ function test_basic_operations ()
 						mysql.1 \
 						mysql \
 							--batch \
-							--password=mypasswd \
 							--skip-column-names \
 							--user=root \
 							-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -479,7 +475,6 @@ function test_basic_operations ()
 						mysql.1 \
 						mysql \
 							--batch \
-							--password=mypasswd \
 							--skip-column-names \
 							--user=root \
 							-e "SHOW GRANTS FOR 'my-user'@'localhost';"
@@ -540,8 +535,7 @@ function test_custom_configuration ()
 					--name mysql.2 \
 					--network-alias mysql.2 \
 					--network ${private_network_1} \
-					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password_hash}" \
-					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
+					--env "MYSQL_ROOT_PASSWORD=${mysql_root_password}" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app-user" \
 					--env "MYSQL_USER_PASSWORD=${mysql_user_password}" \
@@ -629,7 +623,6 @@ function test_custom_configuration ()
 							mysql.2 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -725,7 +718,6 @@ function test_custom_configuration ()
 							mysql.2 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
