@@ -349,13 +349,27 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 			password=${OPTS_MYSQL_ROOT_PASSWORD}
 		EOT
 	else
-		SSHPASS="${OPTS_MYSQL_ROOT_PASSWORD}" \
+		touch \
+			/root/.mypasswd.cnf
+		chown root:root \
+			/root/.mypasswd.cnf
+		chmod 0600 \
+			/root/.mypasswd.cnf
+
+		printf -- \
+			'%s\n' \
+			"${OPTS_MYSQL_ROOT_PASSWORD}" \
+			> /root/.mypasswd.cnf
+
 		sshpass \
-			-e \
+			-f /root/.mypasswd.cnf \
 			mysql_config_editor \
 				set \
 				--skip-warn \
 				--password
+
+		rm -f \
+			/root/.mypasswd.cnf
 	fi
 
 	# Wait for the MySQL database to be initialised by testing 
