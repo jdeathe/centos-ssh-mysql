@@ -336,40 +336,85 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	if ! command -v mysql_config_editor \
 		&> /dev/null
 	then
-		touch \
-			/root/.my.cnf
+		tee /root/.my.cnf &> /dev/null \
+			<<-EOT
+			[client]
+			password={{MYSQL_ROOT_PASSWORD}}
+		EOT
+
 		chown root:root \
 			/root/.my.cnf
 		chmod 0600 \
 			/root/.my.cnf
 
-		tee /root/.my.cnf &> /dev/null \
-			<<-EOT
-			[client]
-			password=${OPTS_MYSQL_ROOT_PASSWORD}
-		EOT
+		sed -i \
+			-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
+			/root/.my.cnf
 	else
-		touch \
-			/root/.mypasswd.cnf
-		chown root:root \
-			/root/.mypasswd.cnf
-		chmod 0600 \
-			/root/.mypasswd.cnf
+		fifo_path="$(
+			mktemp -d
+		)"
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				'%s %s %s\n' \
+				"ERROR: Failed to create directory" \
+				"${fifo_path}"
+				"- aborting."
+			exit 1
+		fi
+
+		trap \
+			"rm -rf \"${fifo_path}\"" \
+			INT TERM EXIT
+
+		mkfifo \
+			-m 0600 \
+			"${fifo_path}/mypasswd"
+
+		exec \
+			{mypasswd_fd}<>"${fifo_path}/mypasswd"
+
+		trap \
+			"exec {mypasswd_fd}>&-" \
+			INT TERM EXIT
+
+		rm -rf \
+			"${fifo_path}"
+
+		# Send into background waiting to read the password
+		sshpass \
+			-d ${mypasswd_fd} \
+			mysql_config_editor \
+				set \
+				--skip-warn \
+				--password \
+				&
+		PIDS[2]=${!}
+
+		trap \
+			"exec {mypasswd_fd}>&- ; \
+				kill -9 ${PIDS[2]};" \
+			INT TERM EXIT
 
 		printf -- \
 			'%s\n' \
 			"${OPTS_MYSQL_ROOT_PASSWORD}" \
-			> /root/.mypasswd.cnf
+			>&${mypasswd_fd} \
+			&
+		PIDS[3]=${!}
 
-		sshpass \
-			-f /root/.mypasswd.cnf \
-			mysql_config_editor \
-				set \
-				--skip-warn \
-				--password
+		trap \
+			"exec {mypasswd_fd}>&- ; \
+				[[ -n ${PIDS[2]} ]] && kill -9 ${PIDS[2]}; \
+				[[ -n ${PIDS[3]} ]] && kill -9 ${PIDS[3]};" \
+			INT TERM EXIT
 
-		rm -f \
-			/root/.mypasswd.cnf
+		[[ -n ${PIDS[2]} ]] && wait ${PIDS[2]}
+
+		exec \
+			{mypasswd_fd}>&-
 	fi
 
 	# Wait for the MySQL database to be initialised by testing 
@@ -475,6 +520,9 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		${TIMER_TOTAL}
 
 	EOT
+
+	trap - \
+		INT TERM EXIT
 fi
 
 # Release lock file
