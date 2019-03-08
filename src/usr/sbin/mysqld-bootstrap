@@ -411,7 +411,17 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 				[[ -n ${PIDS[3]} ]] && kill -9 ${PIDS[3]};" \
 			INT TERM EXIT
 
-		[[ -n ${PIDS[2]} ]] && wait ${PIDS[2]}
+		if [[ -n ${PIDS[2]} ]]
+		then
+			wait ${PIDS[2]}
+		fi
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				"ERROR: Unable to set MySQL root password - aborting.\n"
+			exit 1
+		fi
 
 		exec \
 			{mypasswd_fd}>&-
