@@ -810,12 +810,24 @@ function test_custom_configuration ()
 
 			describe "Root password"
 				it "Creates a subnet restricted user."
+					# Set MySQL root password
+					if docker exec mysql.2 bash command -v mysql_config_editor &> /dev/null
+					then
+						docker exec -i mysql.2 sshpass mysql_config_editor set --skip-warn --password \
+							< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_root_password
+					else
+						docker exec mysql.2 bash -c "printf -- '[client]\npassword={{MYSQL_ROOT_PASSWORD}}\n' > /root/.my.cnf"
+						docker exec mysql.2 chown 0:0 /root/.my.cnf
+						docker exec mysql.2 chmod 0600 /root/.my.cnf
+						docker exec -i mysql.2 bash -c "IFS= read -r mysql_root_password; sed -i -e \"s~{{MYSQL_ROOT_PASSWORD}}~\${mysql_root_password}~g\" /root/.my.cnf;" \
+							< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_root_password
+					fi
+
 					select_users="$(
 						docker exec \
 							mysql.2 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
@@ -931,12 +943,24 @@ function test_custom_configuration ()
 
 			describe "User creation"
 				it "Creates an unrestricted user."
+					# Set MySQL root password
+					if docker exec mysql.4 bash command -v mysql_config_editor &> /dev/null
+					then
+						docker exec -i mysql.4 sshpass mysql_config_editor set --skip-warn --password \
+							< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_root_password
+					else
+						docker exec mysql.4 bash -c "printf -- '[client]\npassword={{MYSQL_ROOT_PASSWORD}}\n' > /root/.my.cnf"
+						docker exec mysql.4 chown 0:0 /root/.my.cnf
+						docker exec mysql.4 chmod 0600 /root/.my.cnf
+						docker exec -i mysql.4 bash -c "IFS= read -r mysql_root_password; sed -i -e \"s~{{MYSQL_ROOT_PASSWORD}}~\${mysql_root_password}~g\" /root/.my.cnf;" \
+							< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_root_password
+					fi
+
 					select_users="$(
 						docker exec \
 							mysql.4 \
 							mysql \
 								--batch \
-								--password="${mysql_root_password}" \
 								--skip-column-names \
 								--user=root \
 								-e "SELECT User, Host from mysql.user ORDER BY User ASC;"
