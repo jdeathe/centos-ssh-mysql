@@ -6,14 +6,26 @@ function __have_mysql_access ()
 	local db_password="${2:-}"
 	local db_user="${1:-root}"
 
-	if mysql \
-		--protocol=socket \
-		--user="${db_user}" \
-		--password="${db_password}" \
-		-e "use ${db_name}" \
-		2> /dev/null
+	if [[ ${db_user} == root ]]
 	then
-		return 0
+		if mysql \
+			--protocol=socket \
+			--user="${db_user}" \
+			-e "use ${db_name}" \
+			2> /dev/null
+		then
+			return 0
+		fi
+	else
+		if mysql \
+			--protocol=socket \
+			--user="${db_user}" \
+			--password="${db_password}" \
+			-e "use ${db_name}" \
+			2> /dev/null
+		then
+			return 0
+		fi
 	fi
 
 	return 1
@@ -278,20 +290,8 @@ function main ()
 			exit 0
 		fi
 
-		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-			&& [[ ${MYSQL_ROOT_PASSWORD} != "${redacted_value}" ]]
-		then
-			db_password="${MYSQL_ROOT_PASSWORD}"
-		else
-			db_password="$(
-				grep 'user : root@localhost' /var/log/mysqld.log \
-				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
-			)"
-		fi
-
 		if ! __have_mysql_access \
-			root \
-			"${db_password}"
+			root
 		then
 			__print_message \
 				"root@localhost access failed."

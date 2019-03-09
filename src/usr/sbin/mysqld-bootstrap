@@ -63,13 +63,26 @@ function have_mysql_access ()
 	local DB_PASSWORD="${2:-}"
 	local DB_NAME="${3:-mysql}"
 
-	if mysql \
-		--protocol=socket \
-		--user="${DB_USER}" \
-		--password="${DB_PASSWORD}" \
-		-e "use ${DB_NAME}" \
-		2> /dev/null; then
-		return 0
+	if [[ ${DB_USER} == root ]]
+	then
+		if mysql \
+			--protocol=socket \
+			--user="${DB_USER}" \
+			-e "use ${DB_NAME}" \
+			2> /dev/null;
+		then
+			return 0
+		fi
+	else
+		if mysql \
+			--protocol=socket \
+			--user="${DB_USER}" \
+			--password="${DB_PASSWORD}" \
+			-e "use ${DB_NAME}" \
+			2> /dev/null;
+		then
+			return 0
+		fi
 	fi
 
 	return 1
@@ -319,6 +332,103 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		--init-file=/tmp/mysql-init \
 		&
 
+	# Set MySQL root user password
+	# - Prefer to store encrypted via mysql_config_editor.
+	# - Fallback to store as plaintext in secured file.
+	if command -v mysql_config_editor &> /dev/null \
+		&& command -v sshpass &> /dev/null
+	then
+		fifo_path="$(
+			mktemp -d
+		)"
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				'%s %s %s\n' \
+				"ERROR: Failed to create directory" \
+				"${fifo_path}"
+				"- aborting."
+			exit 1
+		fi
+
+		trap \
+			"rm -rf \"${fifo_path}\"" \
+			INT TERM EXIT
+
+		mkfifo \
+			-m 0600 \
+			"${fifo_path}/mypasswd"
+
+		exec \
+			{mypasswd_fd}<>"${fifo_path}/mypasswd"
+
+		trap \
+			"exec {mypasswd_fd}>&-" \
+			INT TERM EXIT
+
+		rm -rf \
+			"${fifo_path}"
+
+		# Send into background waiting to read the password
+		sshpass \
+			-d ${mypasswd_fd} \
+			mysql_config_editor \
+				set \
+				--skip-warn \
+				--password \
+				&
+		PIDS[2]=${!}
+
+		trap \
+			"exec {mypasswd_fd}>&- ; \
+				kill -9 ${PIDS[2]};" \
+			INT TERM EXIT
+
+		printf -- \
+			'%s\n' \
+			"${OPTS_MYSQL_ROOT_PASSWORD}" \
+			>&${mypasswd_fd} \
+			&
+		PIDS[3]=${!}
+
+		trap \
+			"exec {mypasswd_fd}>&- ; \
+				[[ -n ${PIDS[2]} ]] && kill -9 ${PIDS[2]}; \
+				[[ -n ${PIDS[3]} ]] && kill -9 ${PIDS[3]};" \
+			INT TERM EXIT
+
+		if [[ -n ${PIDS[2]} ]]
+		then
+			wait ${PIDS[2]}
+		fi
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				"ERROR: Unable to set MySQL root password - aborting.\n"
+			exit 1
+		fi
+
+		exec \
+			{mypasswd_fd}>&-
+	else
+		tee /root/.my.cnf &> /dev/null \
+			<<-EOT
+			[client]
+			password={{MYSQL_ROOT_PASSWORD}}
+		EOT
+
+		chown root:root \
+			/root/.my.cnf
+		chmod 0600 \
+			/root/.my.cnf
+
+		sed -i \
+			-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
+			/root/.my.cnf
+	fi
+
 	# Wait for the MySQL database to be initialised by testing 
 	COUNTER=$((
 		2 * OPTS_MYSQL_INIT_LIMIT
@@ -326,13 +436,15 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	until (( COUNTER == 0 )); do
 		sleep 0.5
 
-		if have_mysql_access root "${OPTS_MYSQL_ROOT_PASSWORD}" mysql; then
+		if have_mysql_access root "-" mysql; then
 
 			# Set the password if it was supplied pre-hashed.
 			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
 				mysql \
-					--password="${OPTS_MYSQL_ROOT_PASSWORD}" \
 					-e "UPDATE mysql.user SET authentication_string = '${OPTS_MYSQL_ROOT_PASSWORD}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
+
+				rm -f \
+					/root/.{my,mylogin}.cnf
 			fi
 
 			break
@@ -363,7 +475,6 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		else
 			mysqladmin \
 				--user=root \
-				--password="${OPTS_MYSQL_ROOT_PASSWORD}" \
 				shutdown
 		fi
 
@@ -390,7 +501,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		-- "user : %s@%s, password : %s" \
 		root \
 		localhost \
-		"${OPTS_MYSQL_ROOT_PASSWORD}"
+		"${REDACTED_VALUE}"
 
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]; then
@@ -422,6 +533,9 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		${TIMER_TOTAL}
 
 	EOT
+
+	trap - \
+		INT TERM EXIT
 fi
 
 # Release lock file
