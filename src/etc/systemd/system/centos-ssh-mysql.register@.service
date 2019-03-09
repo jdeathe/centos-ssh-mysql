@@ -112,11 +112,9 @@ ExecStart=/bin/bash -c \
             ${REGISTER_KEY_ROOT}/ports/tcp/3306 \
           &> /dev/null; \
         then \
-          printf -- 'set
-'; \
+          printf -- 'set\n'; \
         else \
-          printf -- 'update
-'; \
+          printf -- 'update\n'; \
         fi) \
         ${REGISTER_KEY_ROOT}/ports/tcp/3306 \
         \"$(/usr/bin/docker port \
@@ -134,11 +132,9 @@ ExecStart=/bin/bash -c \
           ${REGISTER_KEY_ROOT}/hostname \
         &> /dev/null; \
       then \
-        printf -- 'set
-'; \
+        printf -- 'set\n'; \
       else \
-        printf -- 'update
-'; \
+        printf -- 'update\n'; \
       fi) \
       ${REGISTER_KEY_ROOT}/hostname \
       %H \
