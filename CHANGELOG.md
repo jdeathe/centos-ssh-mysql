@@ -8,10 +8,12 @@ CentOS-6 6.10 x86_64 - MySQL 5.1.
 
 ### 1.10.0 - Unreleased
 
-- Updates source image to [1.10.0](https://github.com/jdeathe/centos-ssh/releases/tag/1.10.0).
+- Updates source image to [1.10.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.10.1).
 - Updates and restructures Dockerfile.
 - Updates container naming conventions and readability of `Makefile`.
+- Updates Dockerfile with combined ADD to reduce layer count in final image.
 - Fixes issue with unexpected published port in run templates when `DOCKER_PORT_MAP_TCP_3306` is set to an empty string or 0.
+- Fixes binary paths in systemd unit files for compatibility with both EL and Ubuntu hosts.
 - Adds placeholder replacement of `RELEASE_VERSION` docker argument to systemd service unit template.
 - Adds consideration for event lag into test cases for unhealthy health_status events.
 - Adds port incrementation to Makefile's run template for container names with an instance suffix.
@@ -20,6 +22,8 @@ CentOS-6 6.10 x86_64 - MySQL 5.1.
 - Adds docker-compose configuration example.
 - Adds improved logging output.
 - Adds improved root password configuration.
+- Adds improvement to pull logic in systemd unit install template.
+- Adds `SSH_AUTOSTART_SUPERVISOR_STDOUT` with a value "false", disabling startup of `supervisor_stdout`.
 - Removes use of `/etc/services-config` paths.
 - Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
 - Removes X-Fleet section from etcd register template unit-file.
