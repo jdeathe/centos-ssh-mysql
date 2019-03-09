@@ -26,7 +26,8 @@
 #     sudo systemctl enable -f {service-unit-instance-name}
 #
 # Start using:
-#     sudo systemctl [start|stop|restart|kill|status] {service-unit-instance-name}
+#     sudo systemctl [start|stop|restart|kill|status] \
+#       {service-unit-instance-name}
 #
 # Debugging:
 #     sudo systemctl status {service-unit-instance-name}
@@ -34,6 +35,7 @@
 #
 # To uninstall:
 #     sudo systemctl disable -f {service-unit-instance-name}
+#     sudo systemctl daemon-reload
 #     sudo systemctl stop {service-unit-instance-name}
 #     sudo rm /etc/systemd/system/{service-unit-template-name}
 #     sudo docker rm -f {service-unit-long-name}
@@ -66,20 +68,12 @@ Environment="MYSQL_USER_PASSWORD_HASHED=false"
 
 # Initialisation: Load image from local storage if available, otherwise pull.
 ExecStartPre=/bin/bash -c \
-  "if [[ -z $( \
-      if [[ -n $(/usr/bin/docker images -q \
-          ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-        ) ]]; \
-      then \
-        echo $(/usr/bin/docker images -q \
-          ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-        ); \
-      else \
-        echo $(/usr/bin/docker images -q \
-          docker.io/${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
-        ); \
-      fi; \
-    ) ]]; \
+  "if [[ -z \"$(/usr/bin/docker images -q \
+      ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+    )\" ]] \
+    && [[ -z \"$(/usr/bin/docker images -q \
+      docker.io/${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+    )\" ]]; \
   then \
     if [[ -f ${DOCKER_IMAGE_PACKAGE_PATH}/${DOCKER_USER}/${DOCKER_IMAGE_NAME}.${DOCKER_IMAGE_TAG}.tar.xz ]]; \
     then \
@@ -138,27 +132,27 @@ ExecStart=/bin/bash -c \
     --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
     $(if [[ ${DOCKER_PORT_MAP_TCP_3306} != NULL ]]; \
     then \
-      if /usr/bin/grep -qE \
+      if /bin/grep -qE \
           '^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:)?[1-9][0-9]*$' \
           <<< \"${DOCKER_PORT_MAP_TCP_3306}\"; \
-        && /usr/bin/grep -qE \
+        && /bin/grep -qE \
           '^.+\.[0-9]+(\.[0-9]+)?$' \
-          <<< "${DOCKER_NAME}"
+          <<< %p.%i; \
       then \
         printf -- '--publish %%s%%s:3306' \
           $(\
-            /usr/bin/grep -o \
+            /bin/grep -o \
               '^[0-9\.]*:' \
               <<< \"${DOCKER_PORT_MAP_TCP_3306}\" \
           ) \
           $(( \
             $(\
-              /usr/bin/grep -oE \
+              /bin/grep -oE \
                 '[0-9]+$' \
                 <<< \"${DOCKER_PORT_MAP_TCP_3306}\" \
             ) \
             + $(\
-              /usr/bin/grep -oE \
+              /bin/grep -oE \
                 '^[0-9]+' \
                 <<< %i \
             ) \
