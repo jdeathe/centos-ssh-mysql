@@ -1,4 +1,4 @@
-FROM jdeathe/centos-ssh:1.10.0
+FROM jdeathe/centos-ssh:1.10.1
 
 ARG RELEASE_VERSION="1.9.1"
 
@@ -20,12 +20,7 @@ RUN rpm --rebuilddb \
 # ------------------------------------------------------------------------------
 # Copy files into place
 # ------------------------------------------------------------------------------
-ADD src/etc \
-	/etc/
-ADD src/opt/scmi \
-	/opt/scmi/
-ADD src/usr \
-	/usr/
+ADD src /
 
 # ------------------------------------------------------------------------------
 # Provisioning
@@ -57,7 +52,8 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP="true" \
 	MYSQL_USER_PASSWORD="" \
 	MYSQL_USER_PASSWORD_HASHED="false" \
 	SSH_AUTOSTART_SSHD="false" \
-	SSH_AUTOSTART_SSHD_BOOTSTRAP="false"
+	SSH_AUTOSTART_SSHD_BOOTSTRAP="false" \
+	SSH_AUTOSTART_SUPERVISOR_STDOUT="false"
 
 # -----------------------------------------------------------------------------
 # Set image metadata
