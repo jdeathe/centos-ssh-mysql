@@ -326,7 +326,6 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	PIDS[1]=${!}
 
 	echo "Initialising MySQL."
-
 	${MYSQLD} \
 		--pid-file="${PID_PATH}" \
 		--skip-networking \
@@ -336,7 +335,8 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	# Set MySQL root user password
 	# - Prefer to store encrypted via mysql_config_editor.
 	# - Fallback to store as plaintext in secured file.
-	if command -v mysql_config_editor &> /dev/null
+	if command -v mysql_config_editor &> /dev/null \
+		&& command -v sshpass &> /dev/null
 	then
 		fifo_path="$(
 			mktemp -d
@@ -435,6 +435,7 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 	))
 	until (( COUNTER == 0 )); do
 		sleep 0.5
+
 		if have_mysql_access root "-" mysql; then
 
 			# Set the password if it was supplied pre-hashed.
