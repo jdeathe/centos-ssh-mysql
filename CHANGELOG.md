@@ -19,6 +19,7 @@ CentOS-6 6.10 x86_64 - MySQL 5.1.
 - Adds images directory `.dockerignore` to reduce size of build context.
 - Adds docker-compose configuration example.
 - Adds improved logging output.
+- Adds improved root password configuration.
 - Removes use of `/etc/services-config` paths.
 - Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
 - Removes X-Fleet section from etcd register template unit-file.
