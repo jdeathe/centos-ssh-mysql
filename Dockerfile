@@ -9,6 +9,8 @@ RUN rpm --rebuilddb \
 	&& yum -y install \
 		--setopt=tsflags=nodocs \
 		--disableplugin=fastestmirror \
+		mysql-5.1.73-8.el6_8 \
+		mysql-libs-5.1.73-8.el6_8 \
 		mysql-server-5.1.73-8.el6_8 \
 	&& yum versionlock add \
 		mysql* \

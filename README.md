@@ -66,32 +66,38 @@ $ docker inspect \
   mysql.1
 ```
 
-To access the MySQL SQL shell run the following:
+To access the interactive MySQL SQL shell run the following:
 
 ```
-$ docker exec -it mysql.1 mysql -p -u root
+$ docker exec -it mysql.1 mysql
 ```
+### Sakila Example
 
 To import the Sakila example database from the [MySQL Documentation](https://dev.mysql.com/doc/index-other.html) and view the first 2 records from the film table.
 
-```
-$ export MYSQL_ROOT_PASSWORD={your-password}
+#### Import Schema
 
-$ docker exec -i mysql.1 \
-  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+```
+$ docker exec -i mysql.1 mysql \
   <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
     | tar -xzO - "sakila-db/sakila-schema.sql" \
     | sed -e '/^CREATE TABLE film_text/,/ENGINE=InnoDB / s/InnoDB/MyISAM/'
   )
+```
 
-$ docker exec -i mysql.1 \
-  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+#### Import Data
+
+```
+$ docker exec -i mysql.1 mysql \
   <<< $(curl -sSL http://downloads.mysql.com/docs/sakila-db.tar.gz \
     | tar -xzO - "sakila-db/sakila-data.sql"
   )
+```
 
-$ docker exec mysql.1 \
-  mysql -u root -p${MYSQL_ROOT_PASSWORD} \
+#### Select 2 Records from the film Table
+
+```
+$ docker exec mysql.1 mysql \
   -e "SELECT * FROM sakila.film LIMIT 2 \G"
 ```
 
@@ -303,7 +309,7 @@ If set to a valid container file path the value will be read from the file - thi
 
 ##### MYSQL_ROOT_PASSWORD_HASHED
 
-To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_ROOT_PASSWORD_HASHED` to `true`.
+To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default plain-text type set `MYSQL_ROOT_PASSWORD_HASHED` to `true`. When using this option the MySQL root user password will not be stored in the running container so you will need to either add it as a manual step or you will need to supply the password when running `mysql` or `mysqladmin`.
 
 ```
 ...
@@ -315,7 +321,7 @@ To indicate `MYSQL_ROOT_PASSWORD` is a pre-hashed value instead of the default p
 *Note:* To generate a pre-hashed password you could use the following MySQL command.
 
 ```
-$ mysql -u root -p{mysql_root_password} \
+$ docker exec mysql.1 mysql -NB \
   -e "SELECT PASSWORD('{mysql_user_password}');"
 ```
 
