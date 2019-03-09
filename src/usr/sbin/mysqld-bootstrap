@@ -333,24 +333,11 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 		--init-file=/tmp/mysql-init \
 		&
 
-	if ! command -v mysql_config_editor \
-		&> /dev/null
+	# Set MySQL root user password
+	# - Prefer to store encrypted via mysql_config_editor.
+	# - Fallback to store as plaintext in secured file.
+	if command -v mysql_config_editor &> /dev/null
 	then
-		tee /root/.my.cnf &> /dev/null \
-			<<-EOT
-			[client]
-			password={{MYSQL_ROOT_PASSWORD}}
-		EOT
-
-		chown root:root \
-			/root/.my.cnf
-		chmod 0600 \
-			/root/.my.cnf
-
-		sed -i \
-			-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
-			/root/.my.cnf
-	else
 		fifo_path="$(
 			mktemp -d
 		)"
@@ -425,6 +412,21 @@ if ! is_mysql_data_directory_populated "${OPTS_MYSQL_DATA_DIR}"; then
 
 		exec \
 			{mypasswd_fd}>&-
+	else
+		tee /root/.my.cnf &> /dev/null \
+			<<-EOT
+			[client]
+			password={{MYSQL_ROOT_PASSWORD}}
+		EOT
+
+		chown root:root \
+			/root/.my.cnf
+		chmod 0600 \
+			/root/.my.cnf
+
+		sed -i \
+			-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
+			/root/.my.cnf
 	fi
 
 	# Wait for the MySQL database to be initialised by testing 
