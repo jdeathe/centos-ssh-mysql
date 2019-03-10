@@ -353,45 +353,45 @@ then
 		&
 	PIDS[0]="${!}"
 
-	MYSQL_INIT_SQL_TEMPLATE_DATABASE="-- Create database"
+	MYSQL_INIT_TEMPLATE_DATABASE="-- Create database"
 	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]
 	then
 		printf \
-			-v MYSQL_INIT_SQL_TEMPLATE_DATABASE \
+			-v MYSQL_INIT_TEMPLATE_DATABASE \
 			-- "%s\nCREATE DATABASE IF NOT EXISTS \`%s\`;" \
-			"${MYSQL_INIT_SQL_TEMPLATE_DATABASE}" \
+			"${MYSQL_INIT_TEMPLATE_DATABASE}" \
 			"{{MYSQL_USER_DATABASE}}"
 	fi
 
-	MYSQL_INIT_SQL_TEMPLATE_USER="-- Create user"
+	MYSQL_INIT_TEMPLATE_USER="-- Create user"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]
 	then
-		MYSQL_INIT_SQL_USER_IDENTIFIED_BY="IDENTIFIED BY"
+		IDENTIFIED_BY="IDENTIFIED BY"
 		if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]
 		then
-			MYSQL_INIT_SQL_USER_IDENTIFIED_BY+=" PASSWORD"
+			IDENTIFIED_BY+=" PASSWORD"
 		fi
 
 		printf \
-			-v MYSQL_INIT_SQL_TEMPLATE_USER \
+			-v MYSQL_INIT_TEMPLATE_USER \
 			-- "%s\nCREATE USER '%s'@'%s' \n%s '%s';" \
-			"${MYSQL_INIT_SQL_TEMPLATE_USER}" \
+			"${MYSQL_INIT_TEMPLATE_USER}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}" \
-			"${MYSQL_INIT_SQL_USER_IDENTIFIED_BY}" \
+			"${IDENTIFIED_BY}" \
 			"{{MYSQL_USER_PASSWORD}}"
 	fi
 
-	MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES="-- Grant privileges"
+	MYSQL_INIT_TEMPLATE_PRIVILEGES="-- Grant privileges"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]
 	then
 		printf \
-			-v MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES \
+			-v MYSQL_INIT_TEMPLATE_PRIVILEGES \
 			-- "%s\nGRANT %s \nON \`%s\`.* \nTO '%s'@'%s';" \
-			"${MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES}" \
+			"${MYSQL_INIT_TEMPLATE_PRIVILEGES}" \
 			"ALL PRIVILEGES" \
 			"{{MYSQL_USER_DATABASE}}" \
 			"{{MYSQL_USER}}" \
@@ -410,8 +410,8 @@ then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.user WHERE User='' OR User='root' AND Host != 'localhost';
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-		${MYSQL_INIT_SQL_TEMPLATE_DATABASE}
-		${MYSQL_INIT_SQL_TEMPLATE_USER}
+		${MYSQL_INIT_TEMPLATE_DATABASE}
+		${MYSQL_INIT_TEMPLATE_USER}
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
@@ -419,7 +419,7 @@ then
 		-- 
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
-		${MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES}
+		${MYSQL_INIT_TEMPLATE_PRIVILEGES}
 		GRANT ALL PRIVILEGES 
 		ON *.* 
 		TO 'root'@'localhost' 
