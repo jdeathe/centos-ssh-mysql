@@ -9,10 +9,10 @@ TIMER_START="$(
 
 source /etc/mysqld-bootstrap.conf
 
-# Set MySQL root user password
+# Set MySQL client root user password
 # - Prefer to store encrypted via mysql_config_editor.
 # - Fallback to store as plaintext in secured file.
-function __configure_mysql_root_password ()
+function __configure_mysql_client_root_password ()
 {
 	local -r password="${1:-}"
 
@@ -476,7 +476,7 @@ then
 		--init-file=/tmp/mysql-init \
 		&
 
-	__configure_mysql_root_password \
+	__configure_mysql_client_root_password \
 		"${OPTS_MYSQL_ROOT_PASSWORD}"
 
 	# Wait for the MySQL database to be initialised by testing 
