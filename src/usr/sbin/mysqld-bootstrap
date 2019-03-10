@@ -3,7 +3,7 @@
 # Create lock
 touch /var/lock/subsys/mysqld-bootstrap
 
-TIMER_START="$(
+timer_start="$(
 	date +%s.%N
 )"
 
@@ -564,11 +564,15 @@ then
 			"${OPTS_MYSQL_USER_PASSWORD}"
 	fi
 
-	TIMER_TOTAL="$(
-		echo - | awk "\
-		{ T1=\"${TIMER_START}\" } \
-		{ T2=\"$(date +%s.%N)\" } \
-		{ print T2 - T1; }"
+	timer_total="$(
+		awk \
+			-v timer_end="$(
+				date +%s.%N
+			)" \
+			-v timer_start="${timer_start}" \
+			'BEGIN { print \
+				timer_end - timer_start;
+			}'
 	)"
 
 	# Send to log file until user password can be stored in configuration file.
@@ -581,7 +585,7 @@ then
 		database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
 		${DETAILS_MYSQL_USER_CREDENTIALS}
 		--------------------------------------------------------------------------------
-		${TIMER_TOTAL}
+		${timer_total}
 
 	EOT
 fi
