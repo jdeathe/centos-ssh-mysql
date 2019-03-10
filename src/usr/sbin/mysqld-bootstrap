@@ -310,20 +310,18 @@ then
 	readonly redacted_value="********"
 
 	# Get passwords from file if applicable
-	if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-		&& [[ -s ${MYSQL_ROOT_PASSWORD} ]]
+	if [[ -s ${MYSQL_ROOT_PASSWORD} ]]
 	then
 		MYSQL_ROOT_PASSWORD="$(< "${MYSQL_ROOT_PASSWORD}")"
 	fi
 
-	if [[ -n ${MYSQL_USER_PASSWORD} ]] \
-		&& [[ -s ${MYSQL_USER_PASSWORD} ]]
+	if [[ -s ${MYSQL_USER_PASSWORD} ]]
 	then
 		MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
 	fi
 
-	OPTS_CUSTOM_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
+	OPTS_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-"$(
 		__get_password "${password_length}"
 	)"}"
@@ -356,46 +354,45 @@ then
 		&
 	PIDS[0]="${!}"
 
-	MYSQL_INIT_SQL_DATABASE_TEMPLATE="-- Create database"
+	MYSQL_INIT_SQL_TEMPLATE_DATABASE="-- Create database"
 	if [[ -n ${OPTS_MYSQL_USER_DATABASE} ]]
 	then
 		printf \
-			-v MYSQL_INIT_SQL_DATABASE_TEMPLATE \
+			-v MYSQL_INIT_SQL_TEMPLATE_DATABASE \
 			-- "%s\nCREATE DATABASE IF NOT EXISTS \`%s\`;" \
-			"${MYSQL_INIT_SQL_DATABASE_TEMPLATE}" \
+			"${MYSQL_INIT_SQL_TEMPLATE_DATABASE}" \
 			"{{MYSQL_USER_DATABASE}}"
 	fi
 
-	MYSQL_INIT_SQL_USER_TEMPLATE="-- Create user"
+	MYSQL_INIT_SQL_TEMPLATE_USER="-- Create user"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]
 	then
-
-		MYSQL_INIT_SQL_IDENTIFIED_BY="IDENTIFIED BY"
+		MYSQL_INIT_SQL_USER_IDENTIFIED_BY="IDENTIFIED BY"
 		if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]
 		then
-			MYSQL_INIT_SQL_IDENTIFIED_BY+=" PASSWORD"
+			MYSQL_INIT_SQL_USER_IDENTIFIED_BY+=" PASSWORD"
 		fi
 
 		printf \
-			-v MYSQL_INIT_SQL_USER_TEMPLATE \
+			-v MYSQL_INIT_SQL_TEMPLATE_USER \
 			-- "%s\nCREATE USER '%s'@'%s' \n%s '%s';" \
-			"${MYSQL_INIT_SQL_USER_TEMPLATE}" \
+			"${MYSQL_INIT_SQL_TEMPLATE_USER}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}" \
-			"${MYSQL_INIT_SQL_IDENTIFIED_BY}" \
+			"${MYSQL_INIT_SQL_USER_IDENTIFIED_BY}" \
 			"{{MYSQL_USER_PASSWORD}}"
 	fi
 
-	MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE="-- Grant privileges"
+	MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES="-- Grant privileges"
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_DATABASE} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_HOST} ]]
 	then
 		printf \
-			-v MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE \
+			-v MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES \
 			-- "%s\nGRANT %s \nON \`%s\`.* \nTO '%s'@'%s';" \
-			"${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}" \
+			"${MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES}" \
 			"ALL PRIVILEGES" \
 			"{{MYSQL_USER_DATABASE}}" \
 			"{{MYSQL_USER}}" \
@@ -414,16 +411,16 @@ then
 		DROP DATABASE IF EXISTS test;
 		DELETE FROM mysql.user WHERE User='' OR User='root' AND Host != 'localhost';
 		DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-		${MYSQL_INIT_SQL_DATABASE_TEMPLATE}
-		${MYSQL_INIT_SQL_USER_TEMPLATE}
+		${MYSQL_INIT_SQL_TEMPLATE_DATABASE}
+		${MYSQL_INIT_SQL_TEMPLATE_USER}
 		-- =============================================================================
 		-- Custom Initialisation SQL start
 		-- 
-		${OPTS_CUSTOM_MYSQL_INIT_SQL}
+		${OPTS_MYSQL_INIT_SQL}
 		-- 
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
-		${MYSQL_INIT_SQL_PRIVILEGES_TEMPLATE}
+		${MYSQL_INIT_SQL_TEMPLATE_PRIVILEGES}
 		GRANT ALL PRIVILEGES 
 		ON *.* 
 		TO 'root'@'localhost' 
@@ -542,18 +539,6 @@ then
 		wait ${PIDS[1]}
 	fi
 
-	if [[ -n ${MYSQL_ROOT_PASSWORD} ]]
-	then
-		OPTS_MYSQL_ROOT_PASSWORD="${redacted_value}"
-		MYSQL_ROOT_PASSWORD="${redacted_value}"
-	fi
-
-	if [[ -n ${MYSQL_USER_PASSWORD} ]]
-	then
-		OPTS_MYSQL_USER_PASSWORD="${redacted_value}"
-		MYSQL_USER_PASSWORD="${redacted_value}"
-	fi
-
 	# Local root user details
 	printf \
 		-v DETAILS_MYSQL_USER_CREDENTIALS \
@@ -565,6 +550,12 @@ then
 	if [[ -n ${OPTS_MYSQL_USER} ]] \
 		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]
 	then
+		# Redact operator supplied password
+		if [[ -n ${MYSQL_USER_PASSWORD} ]]
+		then
+			OPTS_MYSQL_USER_PASSWORD="${redacted_value}"
+		fi
+
 		printf \
 			-v DETAILS_MYSQL_USER_CREDENTIALS \
 			-- "%s\nuser : %s@%s, password : %s" \
@@ -581,6 +572,7 @@ then
 		{ print T2 - T1; }"
 	)"
 
+	# Send to log file until user password can be stored in configuration file.
 	tee /var/log/mysqld.log \
 		<<-EOT
 
