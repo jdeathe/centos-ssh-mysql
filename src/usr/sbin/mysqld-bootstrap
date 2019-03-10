@@ -306,7 +306,6 @@ OPTS_MYSQL_DATADIR="$(
 if ! __is_mysql_datadir_populated "${OPTS_MYSQL_DATADIR}"
 then
 	readonly mysqld=/usr/sbin/mysqld
-	readonly password_length=16
 	readonly redacted_value="********"
 
 	# Get passwords from file if applicable
@@ -323,7 +322,7 @@ then
 	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
 	OPTS_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
 	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-"$(
-		__get_password "${password_length}"
+		__get_password
 	)"}"
 	OPTS_MYSQL_ROOT_PASSWORD_HASHED="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
 	OPTS_MYSQL_USER="${MYSQL_USER:-}"
@@ -333,7 +332,7 @@ then
 		"${MYSQL_SUBNET:-127.0.0.1}"
 	)"
 	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-"$(
-		__get_password "${password_length}"
+		__get_password
 	)"}"
 	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
