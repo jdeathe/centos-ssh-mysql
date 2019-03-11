@@ -437,14 +437,16 @@ then
 		-e '/^[ \t]*--.*$/d' \
 		-e 's/;[ \t]*--.*$/;/g' \
 		-e '/^$/d' \
+		| \
+	awk \
+		'{ ORS=( /;$/ ? RS:FS ) } 1' \
+		| \
+	sed \
 		-e "s~{{MYSQL_ROOT_PASSWORD}}~${OPTS_MYSQL_ROOT_PASSWORD}~g" \
 		-e "s~{{MYSQL_USER}}~${OPTS_MYSQL_USER}~g" \
 		-e "s~{{MYSQL_USER_DATABASE}}~${OPTS_MYSQL_USER_DATABASE}~g" \
 		-e "s~{{MYSQL_USER_HOST}}~${OPTS_MYSQL_USER_HOST}~g" \
 		-e "s~{{MYSQL_USER_PASSWORD}}~${OPTS_MYSQL_USER_PASSWORD}~g" \
-		| \
-	awk \
-		'{ ORS=( /;$/ ? RS:FS ) } 1' \
 		> /tmp/mysql-init
 
 	# Wait for the MySQL system table installation to complete
