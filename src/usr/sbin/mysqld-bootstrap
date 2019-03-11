@@ -121,19 +121,12 @@ function __configure_mysql_client_root_password ()
 		INT TERM EXIT
 }
 
-# __get_mysql_init_template \
-#	--init-sql="${OPTS_MYSQL_INIT_SQL}" \
-#	--user="${OPTS_MYSQL_USER}" \
-#	--database="${OPTS_MYSQL_USER_DATABASE}" \
-#	--host="${OPTS_MYSQL_USER_HOST}" \
-#	--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
-#	--compact
 function __get_mysql_init_template ()
 {
 	local compact="false"
 	local database
 	local host
-	local init_sql
+	local init_sql="-- Custom Initialisation SQL"
 	local password_hashed="false"
 	local -a pids
 	local template_database="-- Create database"
@@ -146,15 +139,19 @@ function __get_mysql_init_template ()
 	while [[ "${#}" -gt 0 ]]
 	do
 		case "${1}" in
-			--compact)
+			--compact|--compact=true)
 				compact="true"
 				shift 1
 				;;
-			--database=|--database=*)
+			--compact=*)
+				compact="false"
+				shift 1
+				;;
+			--database=*)
 				database="${1#*=}"
 				shift 1
 				;;
-			--host=|--host=*)
+			--host=*)
 				host="${1#*=}"
 				shift 1
 				;;
@@ -162,11 +159,15 @@ function __get_mysql_init_template ()
 				init_sql="${1#*=}"
 				shift 1
 				;;
-			--password-hashed)
+			--password-hashed|--password-hashed=true)
 				password_hashed="true"
 				shift 1
 				;;
-			--user=|--user=*)
+			--password-hashed=*)
+				password_hashed="false"
+				shift 1
+				;;
+			--user=*)
 				user="${1#*=}"
 				shift 1
 				;;
@@ -534,11 +535,6 @@ then
 	)"}"
 	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
-	# Adjust the UID/GID values of the service user to match a directory that 
-	# could be a mounted volume
-	__map_mysql_service_user_to_datadir \
-		"${OPTS_MYSQL_DATADIR}"
-
 	echo "Initalising MySQL data directory."
 	${mysqld} \
 		--datadir="${OPTS_MYSQL_DATADIR}" \
@@ -551,18 +547,19 @@ then
 		&
 	PIDS[0]="${!}"
 
+	# Adjust the UID/GID values of the service user to match a directory that
+	# could be a mounted volume
+	__map_mysql_service_user_to_datadir \
+		"${OPTS_MYSQL_DATADIR}" \
+		&
+	PIDS[1]="${!}"
+
 	# MySQL Initialisation Template logs output
 	__get_mysql_init_template \
 		--user="${OPTS_MYSQL_USER}" \
 		--database="${OPTS_MYSQL_USER_DATABASE}" \
 		--host="${OPTS_MYSQL_USER_HOST}" \
-		$(
-			if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]
-			then
-				printf -- \
-					'--password-hashed'
-			fi
-		) \
+		--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
 		--init-sql="${OPTS_MYSQL_INIT_SQL}"
 
 	# Replace compact template placeholders with values
@@ -571,13 +568,7 @@ then
 			--user="${OPTS_MYSQL_USER}" \
 			--database="${OPTS_MYSQL_USER_DATABASE}" \
 			--host="${OPTS_MYSQL_USER_HOST}" \
-			$(
-				if [[ ${OPTS_MYSQL_USER_PASSWORD_HASHED} == true ]]
-				then
-					printf -- \
-						'--password-hashed'
-				fi
-			) \
+			--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
 			--init-sql="${OPTS_MYSQL_INIT_SQL}" \
 			--compact
 	)"
@@ -595,7 +586,7 @@ then
 	# Wait for the MySQL system table installation to complete
 	if [[ ${PIDS[0]} -gt 0 ]]
 	then
-		 wait ${PIDS[0]}
+		wait ${PIDS[0]}
 	fi
 
 	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
@@ -607,8 +598,8 @@ then
 			--uid=mysql \
 		&> /dev/null \
 		&
+		PIDS[2]="${!}"
 	fi
-	PIDS[1]="${!}"
 
 	echo "Initialising MySQL."
 	${mysqld} \
@@ -677,12 +668,6 @@ then
 			/tmp/mysql-init{,-template}
 	fi
 
-	# Wait for the MySQL certificate setup to complete
-	if [[ ${PIDS[1]} -gt 0 ]]
-	then
-		wait ${PIDS[1]}
-	fi
-
 	# Local root user details
 	printf \
 		-v DETAILS_MYSQL_USER_CREDENTIALS \
@@ -707,6 +692,18 @@ then
 			"${OPTS_MYSQL_USER}" \
 			"${OPTS_MYSQL_USER_HOST}" \
 			"${OPTS_MYSQL_USER_PASSWORD}"
+	fi
+
+	# Wait for the service user modifications to complete
+	if [[ ${PIDS[1]} -gt 0 ]]
+	then
+		wait ${PIDS[1]}
+	fi
+
+	# Wait for the MySQL certificate setup to complete
+	if [[ ${PIDS[2]} -gt 0 ]]
+	then
+		wait ${PIDS[2]}
 	fi
 
 	timer_total="$(
