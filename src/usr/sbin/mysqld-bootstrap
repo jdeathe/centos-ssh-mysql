@@ -41,7 +41,7 @@ function __configure_mysql_client_root_password ()
 		fi
 
 		trap \
-			"rm -rf \"${fifo_path}\"" \
+			"rm -rf \"${fifo_path}\";" \
 			INT TERM EXIT
 
 		mkfifo \
@@ -52,7 +52,7 @@ function __configure_mysql_client_root_password ()
 			{mypasswd_fd}<>"${fifo_path}/mypasswd"
 
 		trap \
-			"exec {mypasswd_fd}>&-" \
+			"exec {mypasswd_fd}>&- ;" \
 			INT TERM EXIT
 
 		rm -rf \
@@ -195,7 +195,7 @@ function __get_mysql_init_template ()
 	fi
 
 	trap \
-		"rm -rf \"${fifo_path}\"" \
+		"rm -rf \"${fifo_path}\";" \
 		INT TERM EXIT
 
 	mkfifo \
@@ -506,6 +506,38 @@ if ! __is_mysql_datadir_populated "${OPTS_MYSQL_DATADIR}"
 then
 	readonly mysqld=/usr/sbin/mysqld
 	readonly redacted_value="********"
+	readonly server_key="${OPTS_MYSQL_DATADIR}"/server-key.pem
+	server_key_path=""
+
+	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
+		&& [[ ! -e ${server_key} ]]
+	then
+		echo "Generating MySQL certificates."
+		server_key_path="$(
+			mktemp -d
+		)"
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				'%s %s %s\n' \
+				"ERROR: Failed to create directory" \
+				"${server_key_path}"
+				"- aborting."
+			exit 1
+		fi
+
+		trap \
+			"rm -rf \"${server_key_path}\";" \
+			INT TERM EXIT
+
+		/usr/bin/mysql_ssl_rsa_setup \
+			--datadir="${server_key_path}" \
+			--uid=mysql \
+		&> /dev/null \
+		&
+		PIDS[2]="${!}"
+	fi
 
 	# Get passwords from file if applicable
 	if [[ -s ${MYSQL_ROOT_PASSWORD} ]]
@@ -583,22 +615,15 @@ then
 		"${mysql_init_template}" \
 		> /tmp/mysql-init
 
+	trap \
+		"rm -rf \"${server_key_path}\"; \
+			rm -f /tmp/mysql-init;" \
+		INT TERM EXIT
+
 	# Wait for the MySQL system table installation to complete
 	if [[ ${PIDS[0]} -gt 0 ]]
 	then
 		wait ${PIDS[0]}
-	fi
-
-	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
-		&& [[ ! -e ${OPTS_MYSQL_DATADIR}/server-key.pem ]]
-	then
-		echo "Generating MySQL certificates."
-		/usr/bin/mysql_ssl_rsa_setup \
-			--datadir="${OPTS_MYSQL_DATADIR}" \
-			--uid=mysql \
-		&> /dev/null \
-		&
-		PIDS[2]="${!}"
 	fi
 
 	echo "Initialising MySQL."
@@ -665,7 +690,11 @@ then
 		fi
 
 		rm -f \
-			/tmp/mysql-init{,-template}
+			/tmp/mysql-init
+
+		trap \
+			"rm -rf \"${server_key_path}\";" \
+			INT TERM EXIT
 	fi
 
 	# Local root user details
@@ -706,6 +735,19 @@ then
 		wait ${PIDS[2]}
 	fi
 
+	# Finalise certificate setup
+	if [[ -f ${server_key_path}/server-key.pem ]]
+	then
+		mv \
+			"${server_key_path}"/server-key.pem \
+			"${server_key}"
+		rm -rf \
+			"${server_key_path}"
+
+		trap - \
+			INT TERM EXIT
+	fi
+
 	timer_total="$(
 		awk \
 			-v timer_end="$(
@@ -733,4 +775,5 @@ then
 fi
 
 # Release lock
-rm -f /var/lock/subsys/mysqld-bootstrap
+rm -f \
+	/var/lock/subsys/mysqld-bootstrap
