@@ -269,7 +269,7 @@ function __get_mysql_init_template ()
 	fi
 	pids[1]="${!}"
 
-	# Generate the initialisation SQL used secure MySQL
+	# Generate the initialisation SQL template
 	cat \
 		<<-EOT > "${fifo_path}"/mysql-init-template &
 
@@ -516,7 +516,8 @@ then
 	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
 		&& [[ ! -e ${server_key} ]]
 	then
-		echo "Generating MySQL certificates."
+		printf -- \
+			"Generating MySQL certificates.\n"
 		server_key_path="$(
 			mktemp -d
 		)"
@@ -571,7 +572,8 @@ then
 	)"}"
 	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
-	echo "Initalising MySQL data directory."
+	printf -- \
+		"Initalising MySQL data directory.\n"
 	${mysqld} \
 		--datadir="${OPTS_MYSQL_DATADIR}" \
 		--initialize-insecure \
@@ -630,7 +632,8 @@ then
 		wait ${PIDS[0]}
 	fi
 
-	echo "Initialising MySQL."
+	printf -- \
+		"Initialising MySQL.\n"
 	${mysqld} \
 		--pid-file=/var/run/mysqld/mysqld.pid \
 		--skip-networking \
@@ -668,7 +671,7 @@ then
 
 	if [[ ${COUNTER} -eq 0 ]]
 	then
-		printf \
+		>&2 printf \
 			-- "MySQL initilisation failed after %s seconds.\n" \
 			"${OPTS_MYSQL_INIT_LIMIT}"
 
@@ -678,7 +681,8 @@ then
 
 		exit 1
 	else
-		echo "Stopping MySQL."
+		printf --\
+			"Stopping MySQL.\n"
 
 		# Prefer mysqladmin shutdown method if password is known
 		if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
