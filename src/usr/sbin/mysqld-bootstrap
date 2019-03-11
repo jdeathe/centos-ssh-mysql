@@ -573,7 +573,7 @@ then
 	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
 	printf -- \
-		"Initalising MySQL data directory.\n"
+		"Initialising MySQL data directory.\n"
 	${mysqld} \
 		--datadir="${OPTS_MYSQL_DATADIR}" \
 		--initialize-insecure \
@@ -592,7 +592,7 @@ then
 		&
 	PIDS[1]="${!}"
 
-	# MySQL Initialisation Template logs output
+	# MySQL initialisation template output
 	__get_mysql_init_template \
 		--user="${OPTS_MYSQL_USER}" \
 		--database="${OPTS_MYSQL_USER_DATABASE}" \
