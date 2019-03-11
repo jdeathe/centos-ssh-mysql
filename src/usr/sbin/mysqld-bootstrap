@@ -16,6 +16,7 @@ function __configure_mysql_client_root_password ()
 {
 	local -r password="${1:-}"
 
+	local config
 	local -a pids
 
 	if [[ -z ${password} ]]
@@ -112,9 +113,12 @@ function __configure_mysql_client_root_password ()
 		chmod 0600 \
 			/root/.my.cnf
 
-		sed -i \
-			-e "s~{{MYSQL_ROOT_PASSWORD}}~${password}~g" \
-			/root/.my.cnf
+		config="$(< /root/.my.cnf)"
+
+		printf -- \
+			'%s\n' \
+			"${config//'{{MYSQL_ROOT_PASSWORD}}'/${password}}" \
+			> /root/.my.cnf
 	fi
 
 	trap - \
