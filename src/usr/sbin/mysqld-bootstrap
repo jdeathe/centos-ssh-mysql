@@ -495,29 +495,35 @@ function __map_mysql_service_user_to_datadir ()
 function main ()
 {
 	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
+	local -r mysqld="/usr/sbin/mysqld"
+	local -r redacted_value="********"
+	local -r server_key="${datadir}"/server-key.pem
 	local -r timer_start="$(
 		date +%s.%N
 	)"
+
+	local counter
+	local datadir
+	local mysql_init_template
+	local -a pids
+	local server_key_path
+	local user_details
 
 	# Create lock
 	touch \
 		"${lock_file}"
 
-	OPTS_MYSQL_DATADIR="$(
+	datadir="$(
 		__get_option \
 			mysqld \
 			datadir \
 			"/var/lib/mysql"
 	)"
 
-	# MySQL initialisation is a one-shot process.
-	if ! __is_mysql_datadir_populated "${OPTS_MYSQL_DATADIR}"
+	# Initialisation is a one-shot process.
+	if ! __is_mysql_datadir_populated "${datadir}"
 	then
-		readonly mysqld=/usr/sbin/mysqld
-		readonly redacted_value="********"
-		readonly server_key="${OPTS_MYSQL_DATADIR}"/server-key.pem
-		server_key_path=""
-
+		# Certificate generation
 		if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
 			&& [[ ! -e ${server_key} ]]
 		then
@@ -546,7 +552,7 @@ function main ()
 				--uid=mysql \
 			&> /dev/null \
 			&
-			PIDS[2]="${!}"
+			pids[2]="${!}"
 		fi
 
 		# Get passwords from file if applicable
@@ -580,24 +586,24 @@ function main ()
 		printf -- \
 			"Initialising MySQL data directory.\n"
 		${mysqld} \
-			--datadir="${OPTS_MYSQL_DATADIR}" \
+			--datadir="${datadir}" \
 			--initialize-insecure \
 			--pid-file=/var/run/mysqld/mysqld.pid \
 			--skip-name-resolve \
 			--skip-networking \
-			--tmpdir="${OPTS_MYSQL_DATADIR}" \
+			--tmpdir="${datadir}" \
 			--user=mysql \
 			&
-		PIDS[0]="${!}"
+		pids[0]="${!}"
 
-		# Adjust the UID/GID values of the service user to match a directory that
-		# could be a mounted volume
+		# Adjust the UID/GID values of the service user to match a directory
+		# that could be a mounted volume
 		__map_mysql_service_user_to_datadir \
-			"${OPTS_MYSQL_DATADIR}" \
+			"${datadir}" \
 			&
-		PIDS[1]="${!}"
+		pids[1]="${!}"
 
-		# MySQL initialisation template output
+		# Initialisation template output
 		__get_mysql_init_template \
 			--user="${OPTS_MYSQL_USER}" \
 			--database="${OPTS_MYSQL_USER_DATABASE}" \
@@ -631,10 +637,10 @@ function main ()
 				rm -f /tmp/mysql-init;" \
 			INT TERM EXIT
 
-		# Wait for the MySQL system table installation to complete
-		if [[ ${PIDS[0]} -gt 0 ]]
+		# Wait to complete system table installation
+		if [[ ${pids[0]} -gt 0 ]]
 		then
-			wait ${PIDS[0]}
+			wait ${pids[0]}
 		fi
 
 		printf -- \
@@ -648,11 +654,11 @@ function main ()
 		__configure_mysql_client_root_password \
 			"${OPTS_MYSQL_ROOT_PASSWORD}"
 
-		# Wait for the MySQL database to be initialised by testing 
-		COUNTER=$((
+		# Wait for initialisation to complete (poll for access) or timeout
+		counter="$((
 			2 * OPTS_MYSQL_INIT_LIMIT
-		))
-		until (( COUNTER == 0 ))
+		))"
+		until (( counter == 0 ))
 		do
 			sleep 0.5
 
@@ -671,10 +677,10 @@ function main ()
 				break
 			fi
 
-			(( COUNTER -= 1 ))
+			(( counter -= 1 ))
 		done
 
-		if [[ ${COUNTER} -eq 0 ]]
+		if [[ ${counter} -eq 0 ]]
 		then
 			>&2 printf \
 				-- "MySQL initilisation failed after %s seconds.\n" \
@@ -712,7 +718,7 @@ function main ()
 
 		# Local root user details
 		printf \
-			-v DETAILS_MYSQL_USER_CREDENTIALS \
+			-v user_details \
 			-- "user : %s@%s, password : %s" \
 			root \
 			localhost \
@@ -728,24 +734,24 @@ function main ()
 			fi
 
 			printf \
-				-v DETAILS_MYSQL_USER_CREDENTIALS \
+				-v user_details \
 				-- "%s\nuser : %s@%s, password : %s" \
-				"${DETAILS_MYSQL_USER_CREDENTIALS}" \
+				"${user_details}" \
 				"${OPTS_MYSQL_USER}" \
 				"${OPTS_MYSQL_USER_HOST}" \
 				"${OPTS_MYSQL_USER_PASSWORD}"
 		fi
 
 		# Wait for the service user modifications to complete
-		if [[ ${PIDS[1]} -gt 0 ]]
+		if [[ ${pids[1]} -gt 0 ]]
 		then
-			wait ${PIDS[1]}
+			wait ${pids[1]}
 		fi
 
-		# Wait for the MySQL certificate setup to complete
-		if [[ ${PIDS[2]} -gt 0 ]]
+		# Wait to complete certificate generation
+		if [[ ${pids[2]} -gt 0 ]]
 		then
-			wait ${PIDS[2]}
+			wait ${pids[2]}
 		fi
 
 		# Finalise certificate setup
@@ -780,7 +786,7 @@ function main ()
 			MySQL Details
 			--------------------------------------------------------------------------------
 			database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
-			${DETAILS_MYSQL_USER_CREDENTIALS}
+			${user_details}
 			--------------------------------------------------------------------------------
 			${timer_total}
 
