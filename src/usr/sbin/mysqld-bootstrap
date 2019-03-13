@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-# Create lock
-touch /var/lock/subsys/mysqld-bootstrap
-
-timer_start="$(
-	date +%s.%N
-)"
-
 source /etc/mysqld-bootstrap.conf
 
 # Set MySQL client root user password
@@ -252,6 +245,7 @@ function __get_mysql_init_template ()
 	then
 		cat <<-EOF &
 			$(<"${fifo_path}"/mysql-init-template)
+
 		EOF
 	else
 		cat -s \
@@ -498,290 +492,304 @@ function __map_mysql_service_user_to_datadir ()
 	fi
 }
 
-OPTS_MYSQL_DATADIR="$(
-	__get_option \
-		mysqld \
-		datadir \
-		"/var/lib/mysql"
-)"
+function main ()
+{
+	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
+	local -r timer_start="$(
+		date +%s.%N
+	)"
 
-# MySQL initialisation is a one-shot process.
-if ! __is_mysql_datadir_populated "${OPTS_MYSQL_DATADIR}"
-then
-	readonly mysqld=/usr/sbin/mysqld
-	readonly redacted_value="********"
-	readonly server_key="${OPTS_MYSQL_DATADIR}"/server-key.pem
-	server_key_path=""
+	# Create lock
+	touch \
+		"${lock_file}"
 
-	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
-		&& [[ ! -e ${server_key} ]]
+	OPTS_MYSQL_DATADIR="$(
+		__get_option \
+			mysqld \
+			datadir \
+			"/var/lib/mysql"
+	)"
+
+	# MySQL initialisation is a one-shot process.
+	if ! __is_mysql_datadir_populated "${OPTS_MYSQL_DATADIR}"
 	then
-		printf -- \
-			"Generating MySQL certificates.\n"
-		server_key_path="$(
-			mktemp -d
-		)"
+		readonly mysqld=/usr/sbin/mysqld
+		readonly redacted_value="********"
+		readonly server_key="${OPTS_MYSQL_DATADIR}"/server-key.pem
+		server_key_path=""
 
-		if [[ ${?} -ne 0 ]]
+		if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
+			&& [[ ! -e ${server_key} ]]
 		then
-			>&2 printf -- \
-				'%s %s %s\n' \
-				"ERROR: Failed to create directory" \
-				"${server_key_path}"
-				"- aborting."
-			exit 1
+			printf -- \
+				"Generating MySQL certificates.\n"
+			server_key_path="$(
+				mktemp -d
+			)"
+
+			if [[ ${?} -ne 0 ]]
+			then
+				>&2 printf -- \
+					'%s %s %s\n' \
+					"ERROR: Failed to create directory" \
+					"${server_key_path}"
+					"- aborting."
+				exit 1
+			fi
+
+			trap \
+				"rm -rf \"${server_key_path}\";" \
+				INT TERM EXIT
+
+			/usr/bin/mysql_ssl_rsa_setup \
+				--datadir="${server_key_path}" \
+				--uid=mysql \
+			&> /dev/null \
+			&
+			PIDS[2]="${!}"
 		fi
 
-		trap \
-			"rm -rf \"${server_key_path}\";" \
-			INT TERM EXIT
+		# Get passwords from file if applicable
+		if [[ -s ${MYSQL_ROOT_PASSWORD} ]]
+		then
+			MYSQL_ROOT_PASSWORD="$(< "${MYSQL_ROOT_PASSWORD}")"
+		fi
 
-		/usr/bin/mysql_ssl_rsa_setup \
-			--datadir="${server_key_path}" \
-			--uid=mysql \
-		&> /dev/null \
-		&
-		PIDS[2]="${!}"
-	fi
+		if [[ -s ${MYSQL_USER_PASSWORD} ]]
+		then
+			MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
+		fi
 
-	# Get passwords from file if applicable
-	if [[ -s ${MYSQL_ROOT_PASSWORD} ]]
-	then
-		MYSQL_ROOT_PASSWORD="$(< "${MYSQL_ROOT_PASSWORD}")"
-	fi
+		OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
+		OPTS_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
+		OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-"$(
+			__get_password
+		)"}"
+		OPTS_MYSQL_ROOT_PASSWORD_HASHED="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
+		OPTS_MYSQL_USER="${MYSQL_USER:-}"
+		OPTS_MYSQL_USER_DATABASE="${MYSQL_USER_DATABASE:-}"
+		OPTS_MYSQL_USER_HOST="$(
+			__get_mysql_user_host \
+			"${MYSQL_SUBNET:-127.0.0.1}"
+		)"
+		OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-"$(
+			__get_password
+		)"}"
+		OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
-	if [[ -s ${MYSQL_USER_PASSWORD} ]]
-	then
-		MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
-	fi
+		printf -- \
+			"Initialising MySQL data directory.\n"
+		${mysqld} \
+			--datadir="${OPTS_MYSQL_DATADIR}" \
+			--initialize-insecure \
+			--pid-file=/var/run/mysqld/mysqld.pid \
+			--skip-name-resolve \
+			--skip-networking \
+			--tmpdir="${OPTS_MYSQL_DATADIR}" \
+			--user=mysql \
+			&
+		PIDS[0]="${!}"
 
-	OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
-	OPTS_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
-	OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-"$(
-		__get_password
-	)"}"
-	OPTS_MYSQL_ROOT_PASSWORD_HASHED="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
-	OPTS_MYSQL_USER="${MYSQL_USER:-}"
-	OPTS_MYSQL_USER_DATABASE="${MYSQL_USER_DATABASE:-}"
-	OPTS_MYSQL_USER_HOST="$(
-		__get_mysql_user_host \
-		"${MYSQL_SUBNET:-127.0.0.1}"
-	)"
-	OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-"$(
-		__get_password
-	)"}"
-	OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
+		# Adjust the UID/GID values of the service user to match a directory that
+		# could be a mounted volume
+		__map_mysql_service_user_to_datadir \
+			"${OPTS_MYSQL_DATADIR}" \
+			&
+		PIDS[1]="${!}"
 
-	printf -- \
-		"Initialising MySQL data directory.\n"
-	${mysqld} \
-		--datadir="${OPTS_MYSQL_DATADIR}" \
-		--initialize-insecure \
-		--pid-file=/var/run/mysqld/mysqld.pid \
-		--skip-name-resolve \
-		--skip-networking \
-		--tmpdir="${OPTS_MYSQL_DATADIR}" \
-		--user=mysql \
-		&
-	PIDS[0]="${!}"
-
-	# Adjust the UID/GID values of the service user to match a directory that
-	# could be a mounted volume
-	__map_mysql_service_user_to_datadir \
-		"${OPTS_MYSQL_DATADIR}" \
-		&
-	PIDS[1]="${!}"
-
-	# MySQL initialisation template output
-	__get_mysql_init_template \
-		--user="${OPTS_MYSQL_USER}" \
-		--database="${OPTS_MYSQL_USER_DATABASE}" \
-		--host="${OPTS_MYSQL_USER_HOST}" \
-		--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
-		--init-sql="${OPTS_MYSQL_INIT_SQL}"
-
-	# Replace compact template placeholders with values
-	mysql_init_template="$(
+		# MySQL initialisation template output
 		__get_mysql_init_template \
 			--user="${OPTS_MYSQL_USER}" \
 			--database="${OPTS_MYSQL_USER_DATABASE}" \
 			--host="${OPTS_MYSQL_USER_HOST}" \
 			--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
-			--init-sql="${OPTS_MYSQL_INIT_SQL}" \
-			--compact
-	)"
-	mysql_init_template="${mysql_init_template//'{{MYSQL_USER}}'/${OPTS_MYSQL_USER}}"
-	mysql_init_template="${mysql_init_template//'{{MYSQL_USER_DATABASE}}'/${OPTS_MYSQL_USER_DATABASE}}"
-	mysql_init_template="${mysql_init_template//'{{MYSQL_USER_HOST}}'/${OPTS_MYSQL_USER_HOST}}"
-	mysql_init_template="${mysql_init_template//'{{MYSQL_USER_PASSWORD}}'/${OPTS_MYSQL_USER_PASSWORD}}"
-	mysql_init_template="${mysql_init_template//'{{MYSQL_ROOT_PASSWORD}}'/${OPTS_MYSQL_ROOT_PASSWORD}}"
+			--init-sql="${OPTS_MYSQL_INIT_SQL}"
 
-	printf -- \
-		'%s\n' \
-		"${mysql_init_template}" \
-		> /tmp/mysql-init
+		# Replace compact template placeholders with values
+		mysql_init_template="$(
+			__get_mysql_init_template \
+				--user="${OPTS_MYSQL_USER}" \
+				--database="${OPTS_MYSQL_USER_DATABASE}" \
+				--host="${OPTS_MYSQL_USER_HOST}" \
+				--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
+				--init-sql="${OPTS_MYSQL_INIT_SQL}" \
+				--compact
+		)"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER}}'/${OPTS_MYSQL_USER}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_DATABASE}}'/${OPTS_MYSQL_USER_DATABASE}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_HOST}}'/${OPTS_MYSQL_USER_HOST}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_PASSWORD}}'/${OPTS_MYSQL_USER_PASSWORD}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_ROOT_PASSWORD}}'/${OPTS_MYSQL_ROOT_PASSWORD}}"
 
-	trap \
-		"rm -rf \"${server_key_path}\"; \
-			rm -f /tmp/mysql-init;" \
-		INT TERM EXIT
-
-	# Wait for the MySQL system table installation to complete
-	if [[ ${PIDS[0]} -gt 0 ]]
-	then
-		wait ${PIDS[0]}
-	fi
-
-	printf -- \
-		"Initialising MySQL.\n"
-	${mysqld} \
-		--pid-file=/var/run/mysqld/mysqld.pid \
-		--skip-networking \
-		--init-file=/tmp/mysql-init \
-		&
-
-	__configure_mysql_client_root_password \
-		"${OPTS_MYSQL_ROOT_PASSWORD}"
-
-	# Wait for the MySQL database to be initialised by testing 
-	COUNTER=$((
-		2 * OPTS_MYSQL_INIT_LIMIT
-	))
-	until (( COUNTER == 0 ))
-	do
-		sleep 0.5
-
-		if __have_mysql_access
-		then
-			# Set the password if it was supplied pre-hashed.
-			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
-			then
-				mysql \
-					-e "UPDATE mysql.user SET authentication_string = '${OPTS_MYSQL_ROOT_PASSWORD}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
-
-				rm -f \
-					/root/.{my,mylogin}.cnf
-			fi
-
-			break
-		fi
-
-		(( COUNTER -= 1 ))
-	done
-
-	if [[ ${COUNTER} -eq 0 ]]
-	then
-		>&2 printf \
-			-- "MySQL initilisation failed after %s seconds.\n" \
-			"${OPTS_MYSQL_INIT_LIMIT}"
-
-		killall \
-			-15 \
-			mysqld
-
-		exit 1
-	else
-		printf --\
-			"Stopping MySQL.\n"
-
-		# Prefer mysqladmin shutdown method if password is known
-		if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
-		then
-			killall \
-				-w \
-				-15 \
-				mysqld
-		else
-			mysqladmin \
-				--user=root \
-				shutdown
-		fi
-
-		rm -f \
-			/tmp/mysql-init
+		printf -- \
+			'%s\n' \
+			"${mysql_init_template}" \
+			> /tmp/mysql-init
 
 		trap \
-			"rm -rf \"${server_key_path}\";" \
+			"rm -rf \"${server_key_path}\"; \
+				rm -f /tmp/mysql-init;" \
 			INT TERM EXIT
-	fi
 
-	# Local root user details
-	printf \
-		-v DETAILS_MYSQL_USER_CREDENTIALS \
-		-- "user : %s@%s, password : %s" \
-		root \
-		localhost \
-		"${redacted_value}"
-
-	if [[ -n ${OPTS_MYSQL_USER} ]] \
-		&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]
-	then
-		# Redact operator supplied password
-		if [[ -n ${MYSQL_USER_PASSWORD} ]]
+		# Wait for the MySQL system table installation to complete
+		if [[ ${PIDS[0]} -gt 0 ]]
 		then
-			OPTS_MYSQL_USER_PASSWORD="${redacted_value}"
+			wait ${PIDS[0]}
 		fi
 
+		printf -- \
+			"Initialising MySQL.\n"
+		${mysqld} \
+			--pid-file=/var/run/mysqld/mysqld.pid \
+			--skip-networking \
+			--init-file=/tmp/mysql-init \
+			&
+
+		__configure_mysql_client_root_password \
+			"${OPTS_MYSQL_ROOT_PASSWORD}"
+
+		# Wait for the MySQL database to be initialised by testing 
+		COUNTER=$((
+			2 * OPTS_MYSQL_INIT_LIMIT
+		))
+		until (( COUNTER == 0 ))
+		do
+			sleep 0.5
+
+			if __have_mysql_access
+			then
+				# Set the password if it was supplied pre-hashed.
+				if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
+				then
+					mysql \
+						-e "UPDATE mysql.user SET authentication_string = '${OPTS_MYSQL_ROOT_PASSWORD}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
+
+					rm -f \
+						/root/.{my,mylogin}.cnf
+				fi
+
+				break
+			fi
+
+			(( COUNTER -= 1 ))
+		done
+
+		if [[ ${COUNTER} -eq 0 ]]
+		then
+			>&2 printf \
+				-- "MySQL initilisation failed after %s seconds.\n" \
+				"${OPTS_MYSQL_INIT_LIMIT}"
+
+			killall \
+				-15 \
+				mysqld
+
+			exit 1
+		else
+			printf -- \
+				"Stopping MySQL.\n"
+
+			# Prefer mysqladmin shutdown method if password is known
+			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
+			then
+				killall \
+					-w \
+					-15 \
+					mysqld
+			else
+				mysqladmin \
+					--user=root \
+					shutdown
+			fi
+
+			rm -f \
+				/tmp/mysql-init
+
+			trap \
+				"rm -rf \"${server_key_path}\";" \
+				INT TERM EXIT
+		fi
+
+		# Local root user details
 		printf \
 			-v DETAILS_MYSQL_USER_CREDENTIALS \
-			-- "%s\nuser : %s@%s, password : %s" \
-			"${DETAILS_MYSQL_USER_CREDENTIALS}" \
-			"${OPTS_MYSQL_USER}" \
-			"${OPTS_MYSQL_USER_HOST}" \
-			"${OPTS_MYSQL_USER_PASSWORD}"
+			-- "user : %s@%s, password : %s" \
+			root \
+			localhost \
+			"${redacted_value}"
+
+		if [[ -n ${OPTS_MYSQL_USER} ]] \
+			&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]
+		then
+			# Redact operator supplied password
+			if [[ -n ${MYSQL_USER_PASSWORD} ]]
+			then
+				OPTS_MYSQL_USER_PASSWORD="${redacted_value}"
+			fi
+
+			printf \
+				-v DETAILS_MYSQL_USER_CREDENTIALS \
+				-- "%s\nuser : %s@%s, password : %s" \
+				"${DETAILS_MYSQL_USER_CREDENTIALS}" \
+				"${OPTS_MYSQL_USER}" \
+				"${OPTS_MYSQL_USER_HOST}" \
+				"${OPTS_MYSQL_USER_PASSWORD}"
+		fi
+
+		# Wait for the service user modifications to complete
+		if [[ ${PIDS[1]} -gt 0 ]]
+		then
+			wait ${PIDS[1]}
+		fi
+
+		# Wait for the MySQL certificate setup to complete
+		if [[ ${PIDS[2]} -gt 0 ]]
+		then
+			wait ${PIDS[2]}
+		fi
+
+		# Finalise certificate setup
+		if [[ -f ${server_key_path}/server-key.pem ]]
+		then
+			mv \
+				"${server_key_path}"/server-key.pem \
+				"${server_key}"
+			rm -rf \
+				"${server_key_path}"
+
+			trap - \
+				INT TERM EXIT
+		fi
+
+		timer_total="$(
+			awk \
+				-v timer_end="$(
+					date +%s.%N
+				)" \
+				-v timer_start="${timer_start}" \
+				'BEGIN { print \
+					timer_end - timer_start;
+				}'
+		)"
+
+		# Send to log file until user password can be stored in configuration file.
+		tee /var/log/mysqld.log \
+			<<-EOT
+
+			================================================================================
+			MySQL Details
+			--------------------------------------------------------------------------------
+			database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
+			${DETAILS_MYSQL_USER_CREDENTIALS}
+			--------------------------------------------------------------------------------
+			${timer_total}
+
+		EOT
 	fi
 
-	# Wait for the service user modifications to complete
-	if [[ ${PIDS[1]} -gt 0 ]]
-	then
-		wait ${PIDS[1]}
-	fi
+	# Release lock
+	rm -f \
+		"${lock_file}"
+}
 
-	# Wait for the MySQL certificate setup to complete
-	if [[ ${PIDS[2]} -gt 0 ]]
-	then
-		wait ${PIDS[2]}
-	fi
-
-	# Finalise certificate setup
-	if [[ -f ${server_key_path}/server-key.pem ]]
-	then
-		mv \
-			"${server_key_path}"/server-key.pem \
-			"${server_key}"
-		rm -rf \
-			"${server_key_path}"
-
-		trap - \
-			INT TERM EXIT
-	fi
-
-	timer_total="$(
-		awk \
-			-v timer_end="$(
-				date +%s.%N
-			)" \
-			-v timer_start="${timer_start}" \
-			'BEGIN { print \
-				timer_end - timer_start;
-			}'
-	)"
-
-	# Send to log file until user password can be stored in configuration file.
-	tee /var/log/mysqld.log \
-		<<-EOT
-
-		================================================================================
-		MySQL Details
-		--------------------------------------------------------------------------------
-		database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
-		${DETAILS_MYSQL_USER_CREDENTIALS}
-		--------------------------------------------------------------------------------
-		${timer_total}
-
-	EOT
-fi
-
-# Release lock
-rm -f \
-	/var/lock/subsys/mysqld-bootstrap
+main "${@}"
