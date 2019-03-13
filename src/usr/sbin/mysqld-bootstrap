@@ -504,7 +504,16 @@ function main ()
 
 	local counter
 	local datadir
+	local mysql_init_limit
+	local mysql_init_sql
 	local mysql_init_template
+	local mysql_root_password
+	local mysql_root_password_hashed
+	local mysql_user
+	local mysql_user_database
+	local mysql_user_host
+	local mysql_user_password
+	local mysql_user_password_hashed
 	local -a pids
 	local server_key_path
 	local user_details
@@ -566,22 +575,22 @@ function main ()
 			MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
 		fi
 
-		OPTS_MYSQL_INIT_LIMIT="${MYSQL_INIT_LIMIT:-60}"
-		OPTS_MYSQL_INIT_SQL="${CUSTOM_MYSQL_INIT_SQL:-}"
-		OPTS_MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-"$(
+		mysql_init_limit="${MYSQL_INIT_LIMIT:-60}"
+		mysql_init_sql="${CUSTOM_MYSQL_INIT_SQL:-"-- Custom Initialisation SQL"}"
+		mysql_root_password="${MYSQL_ROOT_PASSWORD:-"$(
 			__get_password
 		)"}"
-		OPTS_MYSQL_ROOT_PASSWORD_HASHED="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
-		OPTS_MYSQL_USER="${MYSQL_USER:-}"
-		OPTS_MYSQL_USER_DATABASE="${MYSQL_USER_DATABASE:-}"
-		OPTS_MYSQL_USER_HOST="$(
+		mysql_root_password_hashed="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
+		mysql_user="${MYSQL_USER:-}"
+		mysql_user_database="${MYSQL_USER_DATABASE:-}"
+		mysql_user_host="$(
 			__get_mysql_user_host \
 			"${MYSQL_SUBNET:-127.0.0.1}"
 		)"
-		OPTS_MYSQL_USER_PASSWORD="${MYSQL_USER_PASSWORD:-"$(
+		mysql_user_password="${MYSQL_USER_PASSWORD:-"$(
 			__get_password
 		)"}"
-		OPTS_MYSQL_USER_PASSWORD_HASHED="${MYSQL_USER_PASSWORD_HASHED:-false}"
+		mysql_user_password_hashed="${MYSQL_USER_PASSWORD_HASHED:-false}"
 
 		printf -- \
 			"Initialising MySQL data directory.\n"
@@ -605,27 +614,27 @@ function main ()
 
 		# Initialisation template output
 		__get_mysql_init_template \
-			--user="${OPTS_MYSQL_USER}" \
-			--database="${OPTS_MYSQL_USER_DATABASE}" \
-			--host="${OPTS_MYSQL_USER_HOST}" \
-			--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
-			--init-sql="${OPTS_MYSQL_INIT_SQL}"
+			--user="${mysql_user}" \
+			--database="${mysql_user_database}" \
+			--host="${mysql_user_host}" \
+			--password-hashed="${mysql_user_password_hashed}" \
+			--init-sql="${mysql_init_sql}"
 
 		# Replace compact template placeholders with values
 		mysql_init_template="$(
 			__get_mysql_init_template \
-				--user="${OPTS_MYSQL_USER}" \
-				--database="${OPTS_MYSQL_USER_DATABASE}" \
-				--host="${OPTS_MYSQL_USER_HOST}" \
-				--password-hashed="${OPTS_MYSQL_USER_PASSWORD_HASHED}" \
-				--init-sql="${OPTS_MYSQL_INIT_SQL}" \
+				--user="${mysql_user}" \
+				--database="${mysql_user_database}" \
+				--host="${mysql_user_host}" \
+				--password-hashed="${mysql_user_password_hashed}" \
+				--init-sql="${mysql_init_sql}" \
 				--compact
 		)"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER}}'/${OPTS_MYSQL_USER}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_DATABASE}}'/${OPTS_MYSQL_USER_DATABASE}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_HOST}}'/${OPTS_MYSQL_USER_HOST}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_PASSWORD}}'/${OPTS_MYSQL_USER_PASSWORD}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_ROOT_PASSWORD}}'/${OPTS_MYSQL_ROOT_PASSWORD}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER}}'/${mysql_user}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
+		mysql_init_template="${mysql_init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
 
 		printf -- \
 			'%s\n' \
@@ -652,11 +661,11 @@ function main ()
 			&
 
 		__configure_mysql_client_root_password \
-			"${OPTS_MYSQL_ROOT_PASSWORD}"
+			"${mysql_root_password}"
 
 		# Wait for initialisation to complete (poll for access) or timeout
 		counter="$((
-			2 * OPTS_MYSQL_INIT_LIMIT
+			2 * mysql_init_limit
 		))"
 		until (( counter == 0 ))
 		do
@@ -665,10 +674,10 @@ function main ()
 			if __have_mysql_access
 			then
 				# Set the password if it was supplied pre-hashed.
-				if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
+				if [[ ${mysql_root_password_hashed} == true ]]
 				then
 					mysql \
-						-e "UPDATE mysql.user SET authentication_string = '${OPTS_MYSQL_ROOT_PASSWORD}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
+						-e "UPDATE mysql.user SET authentication_string = '${mysql_root_password}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
 
 					rm -f \
 						/root/.{my,mylogin}.cnf
@@ -684,7 +693,7 @@ function main ()
 		then
 			>&2 printf \
 				-- "MySQL initilisation failed after %s seconds.\n" \
-				"${OPTS_MYSQL_INIT_LIMIT}"
+				"${mysql_init_limit}"
 
 			killall \
 				-15 \
@@ -696,7 +705,7 @@ function main ()
 				"Stopping MySQL.\n"
 
 			# Prefer mysqladmin shutdown method if password is known
-			if [[ ${OPTS_MYSQL_ROOT_PASSWORD_HASHED} == true ]]
+			if [[ ${mysql_root_password_hashed} == true ]]
 			then
 				killall \
 					-w \
@@ -724,22 +733,22 @@ function main ()
 			localhost \
 			"${redacted_value}"
 
-		if [[ -n ${OPTS_MYSQL_USER} ]] \
-			&& [[ -n ${OPTS_MYSQL_USER_PASSWORD} ]]
+		if [[ -n ${mysql_user} ]] \
+			&& [[ -n ${mysql_user_password} ]]
 		then
 			# Redact operator supplied password
 			if [[ -n ${MYSQL_USER_PASSWORD} ]]
 			then
-				OPTS_MYSQL_USER_PASSWORD="${redacted_value}"
+				mysql_user_password="${redacted_value}"
 			fi
 
 			printf \
 				-v user_details \
 				-- "%s\nuser : %s@%s, password : %s" \
 				"${user_details}" \
-				"${OPTS_MYSQL_USER}" \
-				"${OPTS_MYSQL_USER_HOST}" \
-				"${OPTS_MYSQL_USER_PASSWORD}"
+				"${mysql_user}" \
+				"${mysql_user_host}" \
+				"${mysql_user_password}"
 		fi
 
 		# Wait for the service user modifications to complete
@@ -785,7 +794,7 @@ function main ()
 			================================================================================
 			MySQL Details
 			--------------------------------------------------------------------------------
-			database : ${OPTS_MYSQL_USER_DATABASE:-N/A}
+			database : ${mysql_user_database:-N/A}
 			${user_details}
 			--------------------------------------------------------------------------------
 			${timer_total}
