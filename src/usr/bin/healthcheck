@@ -2,16 +2,16 @@
 
 function __have_mysql_access ()
 {
-	local db_name="${3:-mysql}"
-	local db_password="${2:-}"
-	local db_user="${1:-root}"
+	local -r database="${3:-mysql}"
+	local -r password="${2:-}"
+	local -r user="${1:-root}"
 
-	if [[ ${db_user} == root ]]
+	if [[ ${user} == root ]]
 	then
 		if mysql \
 			--protocol=socket \
-			--user="${db_user}" \
-			-e "use ${db_name}" \
+			--user="${user}" \
+			-e "use ${database}" \
 			2> /dev/null
 		then
 			return 0
@@ -19,9 +19,9 @@ function __have_mysql_access ()
 	else
 		if mysql \
 			--protocol=socket \
-			--user="${db_user}" \
-			--password="${db_password}" \
-			-e "use ${db_name}" \
+			--user="${user}" \
+			--password="${password}" \
+			-e "use ${database}" \
 			2> /dev/null
 		then
 			return 0
@@ -203,7 +203,6 @@ function main ()
 
 	local QUIET="false"
 	local -i interval=10
-	local db_password
 
 	# Trap and record the exit status
 	trap "__record_exit_status \${?}" \
@@ -290,8 +289,7 @@ function main ()
 			exit 0
 		fi
 
-		if ! __have_mysql_access \
-			root
+		if ! __have_mysql_access
 		then
 			__print_message \
 				"root@localhost access failed."
