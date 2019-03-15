@@ -997,12 +997,20 @@ function main ()
 				# Set the password if it was supplied pre-hashed.
 				if [[ ${mysql_root_password_hashed} == true ]]
 				then
-					mysql \
-						-e "UPDATE mysql.user \
-							SET authentication_string = '${mysql_root_password}' \
-							WHERE User = 'root' \
-							AND Host = 'localhost'; \
-							FLUSH PRIVILEGES;"
+					if command -v mysqld_safe &> /dev/null
+					then
+						# MySQL version < 5.7
+						mysql \
+							-e "SET PASSWORD = '${mysql_root_password}'"
+					else
+						# MySQL version >= 5.7
+						mysql \
+							-e "UPDATE mysql.user \
+								SET authentication_string = '${mysql_root_password}' \
+								WHERE User = 'root' \
+								AND Host = 'localhost'; \
+								FLUSH PRIVILEGES;"
+					fi
 
 					rm -f \
 						/root/.{my,mylogin}.cnf
