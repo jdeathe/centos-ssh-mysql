@@ -537,6 +537,52 @@ function __have_mysql_access ()
 	return 1
 }
 
+function __init_datadir ()
+{
+	local -r directory="${1:-"$(
+		__get_option \
+			mysqld \
+			datadir \
+			"/var/lib/mysql"
+	)"}"
+
+	if command -v mysqld_safe &> /dev/null \
+		&& command -v mysql_install_db &> /dev/null
+	then
+		mysql_install_db \
+			--force \
+			--skip-name-resolve \
+			--skip-networking \
+			--tmpdir="${directory}"
+	else
+		mysqld \
+			--datadir="${directory}" \
+			--initialize-insecure \
+			--pid-file=/var/run/mysqld/mysqld.pid \
+			--skip-name-resolve \
+			--skip-networking \
+			--tmpdir="${directory}" \
+			--user=mysql
+	fi
+}
+
+function __init_mysql ()
+{
+	local -r init_file="${1:-/tmp/mysql-init}"
+
+	if command -v mysqld_safe &> /dev/null
+	then
+		mysqld_safe \
+			--skip-networking \
+			--init-file="${init_file}"
+	else
+		mysqld \
+			--pid-file=/var/run/mysqld/mysqld.pid \
+			--skip-networking \
+			--init-file="${init_file}"
+	fi
+}
+
 function __is_mysql_datadir_populated ()
 {
 	local -r directory="${1:-"$(
@@ -749,8 +795,8 @@ function __map_mysql_service_user_to_datadir ()
 
 function main ()
 {
+	local -r init_file="/tmp/mysql-init"
 	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
-	local -r mysqld="/usr/sbin/mysqld"
 	local -r redacted_value="********"
 	local -r server_key="${datadir}"/server-key.pem
 	local -r timer_start="$(
@@ -759,7 +805,7 @@ function main ()
 
 	local counter
 	local datadir
-	local mysql_init
+	local init_template
 	local mysql_init_limit
 	local mysql_init_sql
 	local mysql_root_password
@@ -871,26 +917,9 @@ function main ()
 			printf -- \
 				"Initialising MySQL data directory.\n"
 		fi
-
-		if command -v mysql_install_db &> /dev/null
-		then
-			mysql_install_db \
-				--force \
-				--skip-name-resolve \
-				--skip-networking \
-				--tmpdir="${datadir}" \
-				&
-		else
-			${mysqld} \
-				--datadir="${datadir}" \
-				--initialize-insecure \
-				--pid-file=/var/run/mysqld/mysqld.pid \
-				--skip-name-resolve \
-				--skip-networking \
-				--tmpdir="${datadir}" \
-				--user=mysql \
-				&
-		fi
+		__init_datadir \
+			"${datadir}" \
+			&
 		pids[0]="${!}"
 
 		# Adjust the UID/GID values of the service user to match a directory
@@ -912,7 +941,7 @@ function main ()
 		fi
 
 		# Replace compact template placeholders with values
-		mysql_init="$(
+		init_template="$(
 			__get_mysql_init_template \
 				--user="${mysql_user}" \
 				--database="${mysql_user_database}" \
@@ -921,20 +950,20 @@ function main ()
 				--init-sql="${mysql_init_sql}" \
 				--compact
 		)"
-		mysql_init="${mysql_init//'{{MYSQL_USER}}'/${mysql_user}}"
-		mysql_init="${mysql_init//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
-		mysql_init="${mysql_init//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
-		mysql_init="${mysql_init//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
-		mysql_init="${mysql_init//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
+		init_template="${init_template//'{{MYSQL_USER}}'/${mysql_user}}"
+		init_template="${init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
+		init_template="${init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
+		init_template="${init_template//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
+		init_template="${init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
 
 		printf -- \
 			'%s\n' \
-			"${mysql_init}" \
-			> /tmp/mysql-init
+			"${init_template}" \
+			> "${init_file}"
 
 		trap \
 			"rm -rf \"${server_key_path}\"; \
-				rm -f /tmp/mysql-init;" \
+				rm -f "${init_file}";" \
 			INT TERM EXIT
 
 		# Wait to complete system table installation
@@ -948,20 +977,9 @@ function main ()
 			printf -- \
 				"Initialising MySQL.\n"
 		fi
-
-		if command -v mysqld_safe &> /dev/null
-		then
-			mysqld_safe \
-				--skip-networking \
-				--init-file=/tmp/mysql-init \
-				&
-		else
-			${mysqld} \
-				--pid-file=/var/run/mysqld/mysqld.pid \
-				--skip-networking \
-				--init-file=/tmp/mysql-init \
-				&
-		fi
+		__init_mysql \
+			"${init_file}" \
+			&
 
 		__configure_mysql_client_root_password \
 			"${mysql_root_password}"
@@ -979,12 +997,20 @@ function main ()
 				# Set the password if it was supplied pre-hashed.
 				if [[ ${mysql_root_password_hashed} == true ]]
 				then
-					mysql \
-						-e "UPDATE mysql.user \
-							SET authentication_string = '${mysql_root_password}' \
-							WHERE User = 'root' \
-							AND Host = 'localhost'; \
-							FLUSH PRIVILEGES;"
+					if command -v mysqld_safe &> /dev/null
+					then
+						# MySQL version < 5.7
+						mysql \
+							-e "SET PASSWORD = '${mysql_root_password}'"
+					else
+						# MySQL version >= 5.7
+						mysql \
+							-e "UPDATE mysql.user \
+								SET authentication_string = '${mysql_root_password}' \
+								WHERE User = 'root' \
+								AND Host = 'localhost'; \
+								FLUSH PRIVILEGES;"
+					fi
 
 					rm -f \
 						/root/.{my,mylogin}.cnf
@@ -1028,7 +1054,7 @@ function main ()
 			fi
 
 			rm -f \
-				/tmp/mysql-init
+				"${init_file}"
 
 			trap \
 				"rm -rf \"${server_key_path}\";" \

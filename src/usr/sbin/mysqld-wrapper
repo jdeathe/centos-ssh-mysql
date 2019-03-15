@@ -40,7 +40,8 @@ function main ()
 	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
 	local -r nice="/bin/nice"
 	local -r niceness="10"
-	local -r options="--pid-file=/var/run/mysqld/mysqld.pid"
+	local -r pid_path="/var/run/mysqld/mysqld.pid"
+	local -r pid_proxy="/usr/bin/pidproxy"
 
 	if [[ ${autostart_bootstrap} == false ]]
 	then
@@ -59,8 +60,9 @@ function main ()
 
 	exec ${nice} \
 		-n ${niceness} \
-		${bin} \
-		${options}
+		${pid_proxy} \
+		${pid_proxy} \
+		${bin}
 }
 
 main "${@}"
