@@ -24,6 +24,7 @@ CentOS-6 6.10 x86_64 - MySQL 5.1.
 - Adds improved root password configuration.
 - Adds improvement to pull logic in systemd unit install template.
 - Adds `SSH_AUTOSTART_SUPERVISOR_STDOUT` with a value "false", disabling startup of `supervisor_stdout`.
+- Adds improved `healtchcheck`, `sshd-bootstrap` and `sshd-wrapper` scripts.
 - Removes use of `/etc/services-config` paths.
 - Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
 - Removes X-Fleet section from etcd register template unit-file.

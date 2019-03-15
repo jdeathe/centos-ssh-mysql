@@ -1,20 +1,68 @@
 #!/usr/bin/env bash
 
+set -e
+
 source /etc/mysqld-bootstrap.conf
 
-readonly MYSQLD_SAFE=/usr/bin/mysqld_safe
-readonly NICE=/bin/nice
-readonly NICENESS="${MYSQL_NICENESS:-10}"
-readonly PID_PATH=/var/run/mysqld/mysqld.pid
-readonly PID_PROXY=/usr/bin/pidproxy
+function __is_valid_mysql_autostart_mysqld_bootstrap ()
+{
+	local -r boolean_value='^(true|false)$'
+	local -r value="${1}"
 
-while true; do
-	sleep 0.1
-	[[ -e /var/lock/subsys/mysqld-bootstrap ]] || break
-done
+	if [[ ${value} =~ ${boolean_value} ]]
+	then
+		return 0
+	fi
 
-exec ${NICE} \
-	-n ${NICENESS} \
-	${PID_PROXY} \
-	${PID_PATH} \
-	${MYSQLD_SAFE}
+	return 1
+}
+
+function __get_mysql_autostart_mysqld_bootstrap ()
+{
+	local -r default_value="${1:-true}"
+
+	local value="${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP}"
+
+	if ! __is_valid_mysql_autostart_mysqld_bootstrap "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function main ()
+{
+	local -r autostart_bootstrap="$(
+		__get_mysql_autostart_mysqld_bootstrap
+	)"
+	local -r bin="/usr/bin/mysqld_safe"
+	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
+	local -r nice="/bin/nice"
+	local -r niceness="10"
+	local -r pid_path="/var/run/mysqld/mysqld.pid"
+	local -r pid_proxy="/usr/bin/pidproxy"
+
+	if [[ ${autostart_bootstrap} == false ]]
+	then
+		# block.
+		sleep infinity
+	fi
+
+	while true
+	do
+		sleep 0.1
+		if [[ ! -e ${lock_file} ]]
+		then
+			break
+		fi
+	done
+
+	exec ${nice} \
+		-n ${niceness} \
+		${pid_proxy} \
+		${pid_path} \
+		${bin}
+}
+
+main "${@}"
