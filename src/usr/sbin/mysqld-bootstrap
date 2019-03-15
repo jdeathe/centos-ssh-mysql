@@ -118,6 +118,34 @@ function __configure_mysql_client_root_password ()
 		INT TERM EXIT
 }
 
+function __get_mysql_init_limit ()
+{
+	local -r default_value="${1:-60}"
+
+	local value="${MYSQL_INIT_LIMIT}"
+
+	if ! __is_valid_mysql_init_limit "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_init_sql ()
+{
+	local -r default_value="${1:-"-- Custom Initialisation SQL"}"
+
+	local value="${MYSQL_INIT_SQL}"
+
+	if ! __is_valid_mysql_init_sql "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
 function __get_mysql_init_template ()
 {
 	local compact="false"
@@ -318,9 +346,88 @@ function __get_mysql_init_template ()
 		INT TERM EXIT
 }
 
+function __get_mysql_root_password ()
+{
+	local -r default_value="${1:-"$(
+		__get_password
+	)"}"
+
+	local value="${MYSQL_ROOT_PASSWORD}"
+
+	if [[ -f ${value} ]]
+	then
+		value="$(< "${value}")"
+	fi
+
+	if ! __is_valid_mysql_root_password "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_root_password_hashed ()
+{
+	local -r default_value="${1:-false}"
+
+	local value="${MYSQL_ROOT_PASSWORD_HASHED}"
+
+	if ! __is_valid_mysql_root_password_hashed "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_subnet ()
+{
+	local -r default_value="${1:-127.0.0.1}"
+
+	local value="${MYSQL_SUBNET}"
+
+	if ! __is_valid_mysql_subnet "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_user ()
+{
+	local -r default_value="${1}"
+
+	local value="${MYSQL_USER}"
+
+	if ! __is_valid_mysql_user "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_user_database ()
+{
+	local -r default_value="${1}"
+
+	local value="${MYSQL_USER_DATABASE}"
+
+	if ! __is_valid_mysql_user_database "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
 function __get_mysql_user_host ()
 {
-	local -r client_subnet="${1:-127.0.0.1}"
+	local -r client_subnet="${1:-"$(
+		__get_mysql_subnet
+	)"}"
 
 	local value
 
@@ -338,6 +445,41 @@ function __get_mysql_user_host ()
 			value="${client_subnet}"
 			;;
 	esac
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_user_password ()
+{
+	local -r default_value="${1:-"$(
+		__get_password
+	)"}"
+
+	local value="${MYSQL_USER_PASSWORD}"
+
+	if [[ -f ${value} ]]
+	then
+		value="$(< "${value}")"
+	fi
+
+	if ! __is_valid_mysql_user_password "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
+function __get_mysql_user_password_hashed ()
+{
+	local -r default_value="${1:-false}"
+
+	local value="${MYSQL_USER_PASSWORD_HASHED}"
+
+	if ! __is_valid_mysql_user_password_hashed "${value}"
+	then
+		value="${default_value}"
+	fi
 
 	printf -- '%s' "${value}"
 }
@@ -407,6 +549,120 @@ function __is_mysql_datadir_populated ()
 
 	# Test for the InnoDB shared tablespace
 	if [[ -f ${directory}/ibdata1 ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_init_limit ()
+{
+	local -r non_zero_integer='^[1-9][0-9]*$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${non_zero_integer} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_init_sql ()
+{
+	local -r value="${1}"
+
+	if ! [[ -z ${value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_root_password ()
+{
+	local -r value="${1}"
+
+	if ! [[ -z ${value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_root_password_hashed ()
+{
+	local -r boolean_value='^(true|false)$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${boolean_value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_subnet ()
+{
+	local -r subnet_value='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})?$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${subnet_value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_user ()
+{
+	local -r user_value='^.{1,32}$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${user_value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_user_database ()
+{
+	local -r database_value='^[^\./\\]{0,63}[^\./\\ ]$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${database_value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_user_password ()
+{
+	local -r value="${1}"
+
+	if ! [[ -z ${value} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function __is_valid_mysql_user_password_hashed ()
+{
+	local -r boolean_value='^(true|false)$'
+	local -r value="${1}"
+
+	if [[ ${value} =~ ${boolean_value} ]]
 	then
 		return 0
 	fi
@@ -564,33 +820,33 @@ function main ()
 			pids[2]="${!}"
 		fi
 
-		# Get passwords from file if applicable
-		if [[ -s ${MYSQL_ROOT_PASSWORD} ]]
-		then
-			MYSQL_ROOT_PASSWORD="$(< "${MYSQL_ROOT_PASSWORD}")"
-		fi
-
-		if [[ -s ${MYSQL_USER_PASSWORD} ]]
-		then
-			MYSQL_USER_PASSWORD="$(< "${MYSQL_USER_PASSWORD}")"
-		fi
-
-		mysql_init_limit="${MYSQL_INIT_LIMIT:-60}"
-		mysql_init_sql="${CUSTOM_MYSQL_INIT_SQL:-"-- Custom Initialisation SQL"}"
-		mysql_root_password="${MYSQL_ROOT_PASSWORD:-"$(
-			__get_password
-		)"}"
-		mysql_root_password_hashed="${MYSQL_ROOT_PASSWORD_HASHED:-false}"
-		mysql_user="${MYSQL_USER:-}"
-		mysql_user_database="${MYSQL_USER_DATABASE:-}"
-		mysql_user_host="$(
-			__get_mysql_user_host \
-			"${MYSQL_SUBNET:-127.0.0.1}"
+		mysql_init_limit="$(
+			__get_mysql_init_limit
 		)"
-		mysql_user_password="${MYSQL_USER_PASSWORD:-"$(
-			__get_password
-		)"}"
-		mysql_user_password_hashed="${MYSQL_USER_PASSWORD_HASHED:-false}"
+		mysql_init_sql="$(
+			__get_mysql_init_sql
+		)"
+		mysql_root_password="$(
+			__get_mysql_root_password
+		)"
+		mysql_root_password_hashed="$(
+			__get_mysql_root_password_hashed
+		)"
+		mysql_user="$(
+			__get_mysql_user
+		)"
+		mysql_user_database="$(
+			__get_mysql_user_database
+		)"
+		mysql_user_host="$(
+			__get_mysql_user_host
+		)"
+		mysql_user_password="$(
+			__get_mysql_user_password
+		)"
+		mysql_user_password_hashed="$(
+			__get_mysql_user_password_hashed
+		)"
 
 		printf -- \
 			"Initialising MySQL data directory.\n"
