@@ -61,7 +61,7 @@ function main ()
 	exec ${nice} \
 		-n ${niceness} \
 		${pid_proxy} \
-		${pid_proxy} \
+		${pid_path} \
 		${bin}
 }
 
