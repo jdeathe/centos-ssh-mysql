@@ -29,7 +29,7 @@ function __configure_mysql_client_root_password ()
 			>&2 printf -- \
 				'%s %s %s\n' \
 				"ERROR: Failed to create directory" \
-				"${fifo_path}"
+				"${fifo_path}" \
 				"- aborting."
 			exit 1
 		fi
@@ -214,7 +214,7 @@ function __get_mysql_init_template ()
 		>&2 printf -- \
 			'%s %s %s\n' \
 			"ERROR: Failed to create directory" \
-			"${fifo_path}"
+			"${fifo_path}" \
 			"- aborting."
 		exit 1
 	fi
@@ -773,10 +773,22 @@ function main ()
 	local -a pids
 	local server_key_path
 	local user_details
+	local verbose="false"
 
 	# Create lock
 	touch \
 		"${lock_file}"
+
+	# Parse options
+	while [[ "${#}" -gt 0 ]]
+	do
+		case "${1}" in
+			-v|--verbose)
+				verbose="true"
+				shift 1
+				;;
+		esac
+	done
 
 	datadir="$(
 		__get_option \
@@ -792,8 +804,11 @@ function main ()
 		if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
 			&& [[ ! -e ${server_key} ]]
 		then
-			printf -- \
-				"Generating MySQL certificates.\n"
+			if [[ ${verbose} == true ]]
+			then
+				printf -- \
+					"Generating MySQL certificates.\n"
+			fi
 			server_key_path="$(
 				mktemp -d
 			)"
@@ -803,7 +818,7 @@ function main ()
 				>&2 printf -- \
 					'%s %s %s\n' \
 					"ERROR: Failed to create directory" \
-					"${server_key_path}"
+					"${server_key_path}" \
 					"- aborting."
 				exit 1
 			fi
@@ -838,18 +853,25 @@ function main ()
 		mysql_user_database="$(
 			__get_mysql_user_database
 		)"
-		mysql_user_host="$(
-			__get_mysql_user_host
-		)"
-		mysql_user_password="$(
-			__get_mysql_user_password
-		)"
-		mysql_user_password_hashed="$(
-			__get_mysql_user_password_hashed
-		)"
+		# User dependent
+		if [[ -n ${mysql_user} ]]
+		then
+			mysql_user_host="$(
+				__get_mysql_user_host
+			)"
+			mysql_user_password="$(
+				__get_mysql_user_password
+			)"
+			mysql_user_password_hashed="$(
+				__get_mysql_user_password_hashed
+			)"
+		fi
 
-		printf -- \
-			"Initialising MySQL data directory.\n"
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				"Initialising MySQL data directory.\n"
+		fi
 		${mysqld} \
 			--datadir="${datadir}" \
 			--initialize-insecure \
@@ -869,12 +891,15 @@ function main ()
 		pids[1]="${!}"
 
 		# Initialisation template output
-		__get_mysql_init_template \
-			--user="${mysql_user}" \
-			--database="${mysql_user_database}" \
-			--host="${mysql_user_host}" \
-			--password-hashed="${mysql_user_password_hashed}" \
-			--init-sql="${mysql_init_sql}"
+		if [[ ${verbose} == true ]]
+		then
+			__get_mysql_init_template \
+				--user="${mysql_user}" \
+				--database="${mysql_user_database}" \
+				--host="${mysql_user_host}" \
+				--password-hashed="${mysql_user_password_hashed}" \
+				--init-sql="${mysql_init_sql}"
+		fi
 
 		# Replace compact template placeholders with values
 		mysql_init="$(
@@ -908,8 +933,11 @@ function main ()
 			wait ${pids[0]}
 		fi
 
-		printf -- \
-			"Initialising MySQL.\n"
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				"Initialising MySQL.\n"
+		fi
 		${mysqld} \
 			--pid-file=/var/run/mysqld/mysqld.pid \
 			--skip-networking \
@@ -961,8 +989,11 @@ function main ()
 
 			exit 1
 		else
-			printf -- \
-				"Stopping MySQL.\n"
+			if [[ ${verbose} == true ]]
+			then
+				printf -- \
+					"Stopping MySQL.\n"
+			fi
 
 			# Prefer mysqladmin shutdown method if password is known
 			if [[ ${mysql_root_password_hashed} == true ]]
@@ -986,15 +1017,17 @@ function main ()
 		fi
 
 		# Local root user details
-		printf \
-			-v user_details \
-			-- "user : %s@%s, password : %s" \
-			root \
-			localhost \
-			"${redacted_value}"
+		if [[ ${verbose} == true ]]
+		then
+			printf \
+				-v user_details \
+				-- "user : %s@%s, password : %s" \
+				root \
+				localhost \
+				"${redacted_value}"
+		fi
 
-		if [[ -n ${mysql_user} ]] \
-			&& [[ -n ${mysql_user_password} ]]
+		if [[ -n ${mysql_user} ]]
 		then
 			# Redact operator supplied password
 			if [[ -n ${MYSQL_USER_PASSWORD} ]]
@@ -1002,13 +1035,23 @@ function main ()
 				mysql_user_password="${redacted_value}"
 			fi
 
-			printf \
-				-v user_details \
-				-- "%s\nuser : %s@%s, password : %s" \
-				"${user_details}" \
-				"${mysql_user}" \
-				"${mysql_user_host}" \
-				"${mysql_user_password}"
+			if [[ ${verbose} == true ]]
+			then
+				printf \
+					-v user_details \
+					-- "%s\nuser : %s@%s, password : %s" \
+					"${user_details}" \
+					"${mysql_user}" \
+					"${mysql_user_host}" \
+					"${mysql_user_password}"
+			else
+				printf \
+					-v user_details \
+					-- "user : %s@%s, password : %s" \
+					"${mysql_user}" \
+					"${mysql_user_host}" \
+					"${mysql_user_password}"
+			fi
 		fi
 
 		# Wait for the service user modifications to complete
@@ -1036,31 +1079,48 @@ function main ()
 				INT TERM EXIT
 		fi
 
-		timer_total="$(
-			awk \
-				-v timer_end="$(
-					date +%s.%N
-				)" \
-				-v timer_start="${timer_start}" \
-				'BEGIN { print \
-					timer_end - timer_start;
-				}'
-		)"
+		if [[ ${verbose} == true ]]
+		then
+			timer_total="$(
+				awk \
+					-v timer_end="$(
+						date +%s.%N
+					)" \
+					-v timer_start="${timer_start}" \
+					'BEGIN { print \
+						timer_end - timer_start;
+					}'
+			)"
 
-		# Send to log file until user password can be stored in configuration
-		# file.
-		tee /var/log/mysqld.log \
-			<<-EOT
+			# Send to log file until user password can be stored in
+			# configuration file.
+			tee /var/log/mysqld.log \
+				<<-EOT
 
-			================================================================================
-			MySQL Details
-			--------------------------------------------------------------------------------
-			database : ${mysql_user_database:-N/A}
-			${user_details}
-			--------------------------------------------------------------------------------
-			${timer_total}
+				================================================================================
+				MySQL Details
+				--------------------------------------------------------------------------------
+				database : ${mysql_user_database:-N/A}
+				${user_details}
+				--------------------------------------------------------------------------------
+				${timer_total}
 
-		EOT
+			EOT
+		elif [[ -n ${mysql_user} ]] \
+			&& [[ ${mysql_user_password} != "${redacted_value}" ]]
+		then
+			# Mininal ouput when required
+			tee /var/log/mysqld.log \
+				<<-EOT
+
+				================================================================================
+				MySQL Details
+				--------------------------------------------------------------------------------
+				${user_details}
+				--------------------------------------------------------------------------------
+
+			EOT
+		fi
 	fi
 
 	# Release lock
