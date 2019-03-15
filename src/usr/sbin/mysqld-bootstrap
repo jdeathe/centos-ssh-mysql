@@ -760,9 +760,9 @@ function main ()
 
 	local counter
 	local datadir
+	local mysql_init
 	local mysql_init_limit
 	local mysql_init_sql
-	local mysql_init_template
 	local mysql_root_password
 	local mysql_root_password_hashed
 	local mysql_user
@@ -877,7 +877,7 @@ function main ()
 			--init-sql="${mysql_init_sql}"
 
 		# Replace compact template placeholders with values
-		mysql_init_template="$(
+		mysql_init="$(
 			__get_mysql_init_template \
 				--user="${mysql_user}" \
 				--database="${mysql_user_database}" \
@@ -886,15 +886,15 @@ function main ()
 				--init-sql="${mysql_init_sql}" \
 				--compact
 		)"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER}}'/${mysql_user}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
-		mysql_init_template="${mysql_init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
+		mysql_init="${mysql_init//'{{MYSQL_USER}}'/${mysql_user}}"
+		mysql_init="${mysql_init//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
+		mysql_init="${mysql_init//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
+		mysql_init="${mysql_init//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
+		mysql_init="${mysql_init//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
 
 		printf -- \
 			'%s\n' \
-			"${mysql_init_template}" \
+			"${mysql_init}" \
 			> /tmp/mysql-init
 
 		trap \
@@ -933,7 +933,11 @@ function main ()
 				if [[ ${mysql_root_password_hashed} == true ]]
 				then
 					mysql \
-						-e "UPDATE mysql.user SET authentication_string = '${mysql_root_password}' WHERE User = 'root' AND Host = 'localhost'; FLUSH PRIVILEGES;"
+						-e "UPDATE mysql.user \
+							SET authentication_string = '${mysql_root_password}' \
+							WHERE User = 'root' \
+							AND Host = 'localhost'; \
+							FLUSH PRIVILEGES;"
 
 					rm -f \
 						/root/.{my,mylogin}.cnf
@@ -1043,7 +1047,8 @@ function main ()
 				}'
 		)"
 
-		# Send to log file until user password can be stored in configuration file.
+		# Send to log file until user password can be stored in configuration
+		# file.
 		tee /var/log/mysqld.log \
 			<<-EOT
 
