@@ -1092,9 +1092,7 @@ function main ()
 					}'
 			)"
 
-			# Send to log file until user password can be stored in
-			# configuration file.
-			tee /var/log/mysqld.log \
+			cat \
 				<<-EOT
 
 				================================================================================
@@ -1106,11 +1104,9 @@ function main ()
 				${timer_total}
 
 			EOT
-		elif [[ -n ${mysql_user} ]] \
-			&& [[ ${mysql_user_password} != "${redacted_value}" ]]
+		elif [[ ${mysql_user_password} != "${redacted_value}" ]]
 		then
-			# Mininal ouput when required
-			tee /var/log/mysqld.log \
+			cat \
 				<<-EOT
 
 				================================================================================
