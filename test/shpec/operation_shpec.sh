@@ -11,6 +11,7 @@ function __destroy ()
 	local -r private_network_2="bridge_internal_2"
 	local -r data_volume_1="mysql.2.data-mysql"
 	local -r data_volume_2="mysql.4.data-mysql"
+	local -r data_volume_3="mysql.6.data-mysql"
 
 	# Destroy the bridge networks
 	if [[ -n $(docker network ls -q -f name="${private_network_1}") ]]; then
@@ -35,6 +36,12 @@ function __destroy ()
 	if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
 		docker volume rm \
 			${data_volume_2} \
+		&> /dev/null
+	fi
+
+	if [[ -n $(docker volume ls -q -f name="${data_volume_3}") ]]; then
+		docker volume rm \
+			${data_volume_3} \
 		&> /dev/null
 	fi
 }
@@ -98,10 +105,27 @@ function __reset_data_volume ()
 {
 	local -r data_volume_1="mysql.2.data-mysql"
 	local -r data_volume_2="mysql.4.data-mysql"
+	local -r data_volume_3="mysql.6.data-mysql"
 
 	local group="${1:-1}"
 
 	case "${group}" in
+		3)
+			# Destroy the data volume
+			if [[ -n $(docker volume ls -q -f name="${data_volume_3}") ]]; then
+				docker volume rm \
+					${data_volume_3} \
+				&> /dev/null
+			fi
+
+			# Create the data volume
+			if [[ -z $(docker volume ls -q -f name="${data_volume_3}") ]]; then
+				docker volume create \
+					--driver local \
+					${data_volume_3} \
+				&> /dev/null
+			fi
+			;;
 		2)
 			# Destroy the data volume
 			if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
@@ -143,6 +167,7 @@ function __setup ()
 	local -r private_network_2="bridge_internal_2"
 	local -r data_volume_1="mysql.2.data-mysql"
 	local -r data_volume_2="mysql.4.data-mysql"
+	local -r data_volume_3="mysql.6.data-mysql"
 
 	# Create the bridge networks
 	if [[ -z $(docker network ls -q -f name="${private_network_1}") ]]; then
@@ -176,6 +201,12 @@ function __setup ()
 	if [[ -n $(docker volume ls -q -f name="${data_volume_2}") ]]; then
 		docker volume rm \
 			${data_volume_2} \
+		&> /dev/null
+	fi
+
+	if [[ -n $(docker volume ls -q -f name="${data_volume_3}") ]]; then
+		docker volume rm \
+			${data_volume_3} \
 		&> /dev/null
 	fi
 }
@@ -489,6 +520,7 @@ function test_custom_configuration ()
 {
 	local -r data_volume_1="mysql.2.data-mysql"
 	local -r data_volume_2="mysql.4.data-mysql"
+	local -r data_volume_3="mysql.6.data-mysql"
 	local -r private_network_1="bridge_internal_1"
 	local -r private_network_2="bridge_internal_2"
 	local -r redacted_value="********"
@@ -500,11 +532,14 @@ function test_custom_configuration ()
 	local mysql_user_password_log=""
 	local select_users=""
 	local show_databases=""
+	local show_tables=""
 
 	trap "__terminate_container mysql.2 &> /dev/null; \
 		__terminate_container mysql.3 &> /dev/null; \
 		__terminate_container mysql.4 &> /dev/null; \
 		__terminate_container mysql.5 &> /dev/null; \
+		__terminate_container mysql.6 &> /dev/null; \
+		__terminate_container mysql.7 &> /dev/null; \
 		__destroy; \
 		exit 1" \
 		INT TERM EXIT
@@ -1003,6 +1038,96 @@ function test_custom_configuration ()
 
 			__terminate_container \
 				mysql.5 \
+			&> /dev/null
+		end
+
+		describe "Custom intitialisation"
+			it "Runs a named server container."
+				docker run \
+					--detach \
+					--name mysql.6 \
+					--network-alias mysql.6 \
+					--network ${private_network_1} \
+					--env "MYSQL_INIT_LIMIT=30" \
+					--env "MYSQL_INIT_SQL=CREATE DATABASE IF NOT EXISTS \`{{MYSQL_USER_DATABASE}}-1\`; GRANT ALL PRIVILEGES ON \`{{MYSQL_USER_DATABASE}}-%\`.* TO '{{MYSQL_USER}}'@'{{MYSQL_USER_HOST}}' IDENTIFIED BY '{{MYSQL_USER_PASSWORD}}'; CREATE TABLE \`{{MYSQL_USER_DATABASE}}-1\`.\`user\` (\`id\` int(10) unsigned NOT NULL AUTO_INCREMENT, \`email\` varchar(255), PRIMARY KEY (\`id\`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;" \
+					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
+					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
+					--env "MYSQL_USER=app" \
+					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
+					--env "MYSQL_USER_DATABASE=appdb" \
+					--volume ${data_volume_3}:/var/lib/mysql \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
+
+				assert equal \
+					"${?}" \
+					0
+			end
+
+			it "Runs a named client container."
+				docker run \
+					--detach \
+					--name mysql.7 \
+					--network ${private_network_1} \
+					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					jdeathe/centos-ssh-mysql:latest \
+				&> /dev/null
+
+				assert equal \
+					"${?}" \
+					0
+			end
+
+			if ! __is_container_ready \
+				mysql.6 \
+				${STARTUP_TIME} \
+				"/usr/sbin/mysqld " \
+				"[[ -e /var/lib/mysql/ibdata1 ]] \
+					&& [[ ! -e /var/lock/subsys/mysqld-bootstrap ]] \
+					&& [[ -s /var/run/mysqld/mysqld.pid ]]"
+			then
+				exit 1
+			fi
+
+			describe "Client to server connection"
+				# Set MySQL user password
+				if docker exec mysql.7 bash command -v mysql_config_editor &> /dev/null
+				then
+					docker exec -i mysql.7 sshpass mysql_config_editor set --skip-warn --host=mysql.6 --user=app --password \
+						< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_user_password
+				else
+					docker exec mysql.7 bash -c "printf -- '[client]\nuser=app\nhost=mysql.6\npassword={{MYSQL_USER_PASSWORD}}\n' > /root/.my.cnf"
+					docker exec mysql.7 chown 0:0 /root/.my.cnf
+					docker exec mysql.7 chmod 0600 /root/.my.cnf
+					docker exec -i mysql.7 bash -c "IFS= read -r mysql_user_password; sed -i -e \"s~{{MYSQL_USER_PASSWORD}}~\${mysql_user_password}~g\" /root/.my.cnf;" \
+						< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_user_password
+				fi
+
+				it "Can successfully connect."
+					show_tables="$(
+						docker exec \
+							mysql.7 \
+							mysql \
+								appdb-1 \
+								-N \
+								-B \
+								-e "SHOW TABLES;"
+					)"
+
+					assert equal \
+						"${show_tables}" \
+						"user"
+				end
+			end
+
+			__terminate_container \
+				mysql.6 \
+			&> /dev/null
+
+			__terminate_container \
+				mysql.7 \
 			&> /dev/null
 		end
 
