@@ -6,6 +6,35 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.10 x86_64 - MySQL 5.1.
 
+### 1.10.0 - 2019-03-18
+
+- Updates source image to [1.10.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.10.1).
+- Updates and restructures Dockerfile.
+- Updates container naming conventions and readability of `Makefile`.
+- Updates Dockerfile with combined ADD to reduce layer count in final image.
+- Fixes issue with unexpected published port in run templates when `DOCKER_PORT_MAP_TCP_3306` is set to an empty string or 0.
+- Fixes binary paths in systemd unit files for compatibility with both EL and Ubuntu hosts.
+- Adds placeholder replacement of `RELEASE_VERSION` docker argument to systemd service unit template.
+- Adds consideration for event lag into test cases for unhealthy health_status events.
+- Adds port incrementation to Makefile's run template for container names with an instance suffix.
+- Adds supervisord check to healthcheck script and removes unnecessary source script.
+- Adds images directory `.dockerignore` to reduce size of build context.
+- Adds docker-compose configuration example.
+- Adds improved logging output.
+- Adds improved root password configuration.
+- Adds improvement to pull logic in systemd unit install template.
+- Adds `SSH_AUTOSTART_SUPERVISOR_STDOUT` with a value "false", disabling startup of `supervisor_stdout`.
+- Adds improved `healtchcheck`, `sshd-bootstrap` and `sshd-wrapper` scripts.
+- Adds `MYSQL_INIT_LIMIT` with a default value of "60" seconds.
+- Adds `MYSQL_INIT_SQL` with a default empty value "".
+- Deprecates `CUSTOM_MYSQL_INIT_SQL`, use `MYSQL_INIT_SQL` instead.
+- Removes use of `/etc/services-config` paths.
+- Removes use of `/etc/mysqld-bootstrap.conf`.
+- Removes X-Fleet section from etcd register template unit-file.
+- Removes the unused group element from the default container name.
+- Removes the node element from the default container name.
+- Removes unused environment variables from Makefile and scmi configuration.
+
 ### 1.9.1 - 2018-11-18
 
 - Updates source image to [1.9.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.9.1).

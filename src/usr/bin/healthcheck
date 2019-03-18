@@ -1,37 +1,43 @@
 #!/usr/bin/env bash
 
-source /etc/mysqld-bootstrap.conf
-
 function __have_mysql_access ()
 {
-	local db_name="${3:-mysql}"
-	local db_password="${2:-}"
-	local db_user="${1:-root}"
+	local -r database="${3:-mysql}"
+	local -r password="${2:-}"
+	local -r user="${1:-root}"
 
-	if mysql \
-		--protocol=socket \
-		--user="${db_user}" \
-		--password="${db_password}" \
-		-e "use ${db_name}" \
-		2> /dev/null
+	if [[ ${user} == root ]]
 	then
-		return 0
+		if mysql \
+			--protocol=socket \
+			--user="${user}" \
+			-e "use ${database}" \
+			2> /dev/null
+		then
+			return 0
+		fi
+	else
+		if mysql \
+			--protocol=socket \
+			--user="${user}" \
+			--password="${password}" \
+			-e "use ${database}" \
+			2> /dev/null
+		then
+			return 0
+		fi
 	fi
 
 	return 1
 }
 
+# interval must be between 1 and 60 seconds
 function __is_throttled_interval ()
 {
 	local -i interval="${1:-10}"
-	local pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
 
-	# interval must be between 1 and 60 seconds
-	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]; then
-		interval=10
-	fi
-
-	if (( $(date +%-S)%${interval} == 0 )); then
+	if (( $(date +%-S)%${interval} == 0 ))
+	then
 		return 0
 	else
 		return 1
@@ -47,7 +53,8 @@ function __is_mysql_data_directory_populated ()
 			"/var/lib/mysql"
 	)"
 
-	if [[ -f ${datadir}/ibdata1 ]]; then
+	if [[ -f ${datadir}/ibdata1 ]]
+	then
 		return 0
 	fi
 
@@ -58,7 +65,8 @@ function __last_check_passed ()
 {
 	local -i status=0
 
-	if [[ ! -f ${STATUS_PATH} ]]; then
+	if [[ ! -f ${STATUS_PATH} ]]
+	then
 		return ${status}
 	else
 		read \
@@ -66,7 +74,8 @@ function __last_check_passed ()
 			status \
 		< "${STATUS_PATH}"
 
-		if [[ ${status} =~ ^[01]$ ]]; then
+		if [[ ${status} =~ ^[01]$ ]]
+		then
 			return ${status}
 		else
 			return 1
@@ -90,9 +99,9 @@ function __mysql_get_option ()
 function __print_message ()
 {
 	local -r type="${1:-}"
-	local -r quiet=${QUIET:-false}
+	local -r quiet="${QUIET:-false}"
 	local message="${2:-}"
-	local prefix=""
+	local prefix
 
 	case "${type}" in
 		error)
@@ -132,7 +141,8 @@ function __record_exit_status ()
 		dirname "${STATUS_PATH}"
 	)"
 
-	if [[ ! -d ${status_directory} ]]; then
+	if [[ ! -d ${status_directory} ]]
+	then
 		install \
 			-d \
 			-m 0660 \
@@ -141,7 +151,8 @@ function __record_exit_status ()
 			"${status_directory}"
 	fi
 
-	if [[ ! -f ${STATUS_PATH} ]]; then
+	if [[ ! -f ${STATUS_PATH} ]]
+	then
 		install \
 			-m 0660 \
 			-o root \
@@ -185,19 +196,20 @@ function __usage ()
 
 function main ()
 {
-	local -r REDACTED_VALUE="********"
 	local -r STATUS_PATH="/var/lib/healthcheck/status"
-	local QUITE=false
+	local -r mysqld="/usr/libexec/mysqld"
+	local -r pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
+	local -r redacted_value="********"
 
+	local QUIET="false"
 	local -i interval=10
-	local db_password
-	local pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
 
 	# Trap and record the exit status
 	trap "__record_exit_status \${?}" \
 		EXIT
 
-	while [[ ${#} -gt 0 ]]; do
+	while [[ "${#}" -gt 0 ]]
+	do
 		case "${1}" in
 			-h|--help)
 				__usage
@@ -212,7 +224,7 @@ function main ()
 				shift 1
 				;;
 			-q|--quiet)
-				QUIET=true
+				QUIET="true"
 				shift 1
 				;;
 			*)
@@ -221,15 +233,26 @@ function main ()
 		esac
 	done
 
-	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]; then
+	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]
+	then
 		__print_message \
 			"error" \
 			"Invalid interval."
 		exit 1
 	fi
 
+	if ! ps axo command \
+		| grep -qE '^/usr/bin/python /usr/bin/supervisord'
+	then
+		__print_message \
+			"error" \
+			"supervisord not running."
+		exit 1
+	fi
+
 	# mysqld-bootstrap
-	if [[ ${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP} == true ]]; then
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP} == true ]]
+	then
 		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
 			|| ! __is_mysql_data_directory_populated
 		then
@@ -241,9 +264,10 @@ function main ()
 	fi
 
 	# mysqld-wrapper
-	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]; then
+	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]
+	then
 		if ! ps axo command \
-			| grep -qE '^/usr/libexec/mysqld '
+			| grep -qE "^${mysqld} "
 		then
 			__print_message \
 				"error" \
@@ -252,7 +276,8 @@ function main ()
 		fi
 
 		# Skip connection tests if password is stored hashed
-		if [[ ${MYSQL_ROOT_PASSWORD_HASHED} == true ]]; then
+		if [[ ${MYSQL_ROOT_PASSWORD_HASHED} == true ]]
+		then
 			exit 0
 		fi
 
@@ -264,20 +289,7 @@ function main ()
 			exit 0
 		fi
 
-		if [[ -n ${MYSQL_ROOT_PASSWORD} ]] \
-			&& [[ ${MYSQL_ROOT_PASSWORD} != "${REDACTED_VALUE}" ]]
-		then
-			db_password="${MYSQL_ROOT_PASSWORD}"
-		else
-			db_password="$(
-				grep 'user : root@localhost' /var/log/mysqld.log \
-				| sed -e 's~^.*,.*password : \([a-zA-Z0-9]*\).*$~\1~'
-			)"
-		fi
-
-		if ! __have_mysql_access \
-			root \
-			"${db_password}"
+		if ! __have_mysql_access
 		then
 			__print_message \
 				"root@localhost access failed."
