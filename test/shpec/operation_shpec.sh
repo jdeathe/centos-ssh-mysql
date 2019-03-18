@@ -1127,7 +1127,7 @@ function test_custom_configuration ()
 					docker exec mysql.7 bash -c "printf -- '[client]\nuser=app\nhost=mysql.6\npassword={{MYSQL_USER_PASSWORD}}\n' > /root/.my.cnf"
 					docker exec mysql.7 chown 0:0 /root/.my.cnf
 					docker exec mysql.7 chmod 0600 /root/.my.cnf
-					docker exec -i mysql.7 bash -c "IFS= read -r mysql_root_password; sed -i -e \"s~{{MYSQL_ROOT_PASSWORD}}~\${mysql_root_password}~g\" /root/.my.cnf;" \
+					docker exec -i mysql.7 bash -c "IFS= read -r mysql_user_password; sed -i -e \"s~{{MYSQL_USER_PASSWORD}}~\${mysql_user_password}~g\" /root/.my.cnf;" \
 						< ${PWD}/${TEST_DIRECTORY}/fixture/secrets/mysql_user_password
 				fi
 
