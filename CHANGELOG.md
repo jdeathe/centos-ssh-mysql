@@ -6,7 +6,7 @@ Summary of release changes for Version 1.
 
 CentOS-6 6.10 x86_64 - MySQL 5.1.
 
-### 1.10.0 - Unreleased
+### 1.10.0 - 2019-03-18
 
 - Updates source image to [1.10.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.10.1).
 - Updates and restructures Dockerfile.
