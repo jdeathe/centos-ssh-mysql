@@ -26,8 +26,11 @@ CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 - Adds improvement to pull logic in systemd unit install template.
 - Adds `SSH_AUTOSTART_SUPERVISOR_STDOUT` with a value "false", disabling startup of `supervisor_stdout`.
 - Adds improved `healtchcheck`, `sshd-bootstrap` and `sshd-wrapper` scripts.
+- Adds `MYSQL_INIT_LIMIT` with a default value of "60" seconds.
+- Adds `MYSQL_INIT_SQL` with a default empty value "".
+- Deprecates `CUSTOM_MYSQL_INIT_SQL`, use `MYSQL_INIT_SQL` instead.
 - Removes use of `/etc/services-config` paths.
-- Removes code from configuration file `/etc/mysqld-bootstrap.conf`.
+- Removes use of `/etc/mysqld-bootstrap.conf`.
 - Removes X-Fleet section from etcd register template unit-file.
 - Removes the unused group element from the default container name.
 - Removes the node element from the default container name.
