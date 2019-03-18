@@ -1,6 +1,6 @@
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Constants
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 readonly SERVICE_UNIT_ENVIRONMENT_KEYS="
  DOCKER_CONTAINER_OPTS
  DOCKER_IMAGE_PACKAGE_PATH
@@ -8,6 +8,8 @@ readonly SERVICE_UNIT_ENVIRONMENT_KEYS="
  DOCKER_PORT_MAP_TCP_3306
  MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP
  MYSQL_AUTOSTART_MYSQLD_WRAPPER
+ MYSQL_INIT_LIMIT
+ MYSQL_INIT_SQL
  MYSQL_ROOT_PASSWORD
  MYSQL_ROOT_PASSWORD_HASHED
  MYSQL_SUBNET
@@ -22,7 +24,7 @@ readonly SERVICE_UNIT_REGISTER_ENVIRONMENT_KEYS="
  REGISTER_UPDATE_INTERVAL
 "
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Variables
-# -----------------------------------------------------------------------------
-SERVICE_UNIT_INSTALL_TIMEOUT=${SERVICE_UNIT_INSTALL_TIMEOUT:-13}
+# ------------------------------------------------------------------------------
+SERVICE_UNIT_INSTALL_TIMEOUT="${SERVICE_UNIT_INSTALL_TIMEOUT:-13}"
