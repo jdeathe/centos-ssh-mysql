@@ -54,9 +54,7 @@ $ docker logs mysql.1
 
 On the first run, there will be additional output showing the initialisation SQL template and, before mysqld-bootstrap completes, the MySQL Details which shows the configured database, if applicable, and any associated user credentials.
 
-![Docker Logs - MySQL Initialisation SQL Template](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap-initialisation-sql.png)
-
-![Docker Logs - MySQL Details](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap-details.png)
+![Docker Logs - MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap.png)
 
 The MySQL table data is persistent across container restarts by setting the MySQL data directory `/var/lib/mysql` as a data volume. We didn't specify a name or docker_host path so Docker will give it a unique name and store it in `/var/lib/docker/volumes/`; to find out where the data is stored on the Docker host you can use `docker inspect`.
 
@@ -286,6 +284,34 @@ It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld
 ...
   --env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
   --env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+...
+```
+
+##### MYSQL_INIT_LIMIT
+
+The default timeout for MySQL initialisation is 60 seconds. Use `MYSQL_INIT_LIMIT` to change this value when necessary.
+
+```
+...
+  --env "MYSQL_INIT_LIMIT=120" \
+...
+```
+
+##### MYSQL_INIT_SQL
+
+To add custom SQL to the MySQL intitialisation use `MYSQL_INIT_SQL` where the following placeholders are will get replaced with the appropriate values:
+
+- `{{MYSQL_ROOT_PASSWORD}}`
+- `{{MYSQL_USER}}`
+- `{{MYSQL_USER_DATABASE}}`
+- `{{MYSQL_USER_HOST}}`
+- `{{MYSQL_USER_PASSWORD}}`
+
+*Note:* The backtick "\`" character will need escaping as show in the example.
+
+```
+...
+  --env "MYSQL_INIT=CREATE DATABASE \`{{MYSQL_USER_DATABASE}}-1\`; GRANT ALL PRIVILEGES ON \`{{MYSQL_USER_DATABASE}}-%\`.* TO '{{MYSQL_USER}}'@'{{MYSQL_USER_HOST}}';" \
 ...
 ```
 

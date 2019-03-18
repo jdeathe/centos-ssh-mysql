@@ -34,6 +34,8 @@ STARTUP_TIME ?= 10
 # ------------------------------------------------------------------------------
 MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP ?= true
 MYSQL_AUTOSTART_MYSQLD_WRAPPER ?= true
+MYSQL_INIT_LIMIT ?= 60
+MYSQL_INIT_SQL ?=
 MYSQL_ROOT_PASSWORD ?=
 MYSQL_ROOT_PASSWORD_HASHED ?= false
 MYSQL_SUBNET ?= 127.0.0.1

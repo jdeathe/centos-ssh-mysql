@@ -2,8 +2,6 @@
 
 set -e
 
-source /etc/mysqld-bootstrap.conf
-
 function __is_valid_mysql_autostart_mysqld_bootstrap ()
 {
 	local -r boolean_value='^(true|false)$'
