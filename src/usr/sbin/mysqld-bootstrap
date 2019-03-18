@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source /etc/mysqld-bootstrap.conf
-
 # Set MySQL client root user password
 # - Prefer to store encrypted via mysql_config_editor.
 # - Fallback to store as plaintext in secured file.
@@ -136,7 +134,8 @@ function __get_mysql_init_sql ()
 {
 	local -r default_value="${1:-"-- Custom Initialisation SQL"}"
 
-	local value="${MYSQL_INIT_SQL}"
+	# CUSTOM_MYSQL_INIT_SQL is deprecated, use MYSQL_INIT_SQL
+	local value="${MYSQL_INIT_SQL:-"${CUSTOM_MYSQL_INIT_SQL}"}"
 
 	if ! __is_valid_mysql_init_sql "${value}"
 	then
@@ -246,7 +245,7 @@ function __get_mysql_init_template ()
 
 		printf \
 			-v template_user \
-			-- "%s\nCREATE USER '%s'@'%s' \n%s '%s';" \
+			-- "%s\nCREATE USER '%s'@'%s'\n%s '%s';" \
 			"${template_user}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}" \
@@ -260,13 +259,19 @@ function __get_mysql_init_template ()
 	then
 		printf \
 			-v template_privileges \
-			-- "%s\nGRANT %s \nON \`%s\`.* \nTO '%s'@'%s';" \
+			-- "%s\nGRANT %s\nON \`%s\`.*\nTO '%s'@'%s';" \
 			"${template_privileges}" \
 			"ALL PRIVILEGES" \
 			"{{MYSQL_USER_DATABASE}}" \
 			"{{MYSQL_USER}}" \
 			"{{MYSQL_USER_HOST}}"
 	fi
+
+	# Each statement must be on a single line and should not include comments.
+	# Append a newline character to SQL line ending characters ";".
+	init_sql="${init_sql//; /;}"
+	init_sql="${init_sql//;/;$'\n'}"
+	init_sql="${init_sql/%$'\n'}"
 
 	# Listen for the template and output as required
 	if [[ ${compact} == false ]]
@@ -312,8 +317,8 @@ function __get_mysql_init_template ()
 		-- Custom Initialisation SQL end
 		-- -----------------------------------------------------------------------------
 		${template_privileges}
-		GRANT ALL PRIVILEGES 
-		ON *.* 
+		GRANT ALL PRIVILEGES
+		ON *.*
 		TO 'root'@'localhost' IDENTIFIED BY '{{MYSQL_ROOT_PASSWORD}}' WITH GRANT OPTION;
 		FLUSH PRIVILEGES;
 		-- -----------------------------------------------------------------------------

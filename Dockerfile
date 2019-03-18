@@ -31,7 +31,7 @@ RUN sed -i \
 		-e "s~{{RELEASE_VERSION}}~${RELEASE_VERSION}~g" \
 		/etc/systemd/system/centos-ssh-mysql@.service \
 	&& chmod 600 \
-		/etc/{my.cnf,mysqld-bootstrap.conf} \
+		/etc/my.cnf \
 	&& chmod 644 \
 		/etc/supervisord.d/mysqld-{bootstrap,wrapper}.conf \
 	&& chmod 700 \
@@ -44,6 +44,8 @@ EXPOSE 3306
 # ------------------------------------------------------------------------------
 ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP="true" \
 	MYSQL_AUTOSTART_MYSQLD_WRAPPER="true" \
+	MYSQL_INIT_LIMIT="60" \
+	MYSQL_INIT_SQL="" \
 	MYSQL_ROOT_PASSWORD="" \
 	MYSQL_ROOT_PASSWORD_HASHED="false" \
 	MYSQL_SUBNET="127.0.0.1" \
