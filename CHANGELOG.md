@@ -6,7 +6,7 @@ Summary of release changes for Version 2.
 
 CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
 
-### 2.2.0 - Unreleased
+### 2.2.0 - 2019-03-18
 
 - Updates source image to [2.5.1](https://github.com/jdeathe/centos-ssh/releases/tag/2.5.1).
 - Updates and restructures Dockerfile.
