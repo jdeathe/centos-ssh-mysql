@@ -88,7 +88,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.10 x86_64 - MySQL 5.1."
+	org.deathe.description="MySQL 5.1 - CentOS-6 6.10 x86_64."
 
 HEALTHCHECK \
 	--interval=1s \
