@@ -1,10 +1,15 @@
 # Change Log
 
-## centos-7-mysql57-community
+## 2 - centos-7-mysql57-community
 
-Summary of release changes for Version 2.
+Summary of release changes.
 
-CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
+### 2.3.0 - Unreleased
+
+- Updates CHANGELOG.md to simplify maintenance.
+- Updates README.md to simplify contents and improve readability.
+- Updates README-short.txt to apply to all image variants.
+- Updates Dockerfile `org.deathe.description` metadata LABEL for consistency.
 
 ### 2.2.0 - 2019-03-18
 

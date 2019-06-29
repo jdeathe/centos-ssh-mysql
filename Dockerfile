@@ -103,7 +103,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server."
+	org.deathe.description="MySQL Community Server 5.7 - CentOS-7 7.5.1804 x86_64."
 
 HEALTHCHECK \
 	--interval=1s \
