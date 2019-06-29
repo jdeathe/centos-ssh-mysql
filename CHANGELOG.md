@@ -1,10 +1,15 @@
 # Change Log
 
-## centos-6
+## 1 - centos-6
 
-Summary of release changes for Version 1.
+Summary of release changes.
 
-CentOS-6 6.10 x86_64 - MySQL 5.1.
+### 1.11.0 - Unreleased
+
+- Updates CHANGELOG.md to simplify maintenance.
+- Updates README.md to simplify contents and improve readability.
+- Updates README-short.txt to apply to all image variants.
+- Updates Dockerfile `org.deathe.description` metadata LABEL for consistency.
 
 ### 1.10.0 - 2019-03-18
 
