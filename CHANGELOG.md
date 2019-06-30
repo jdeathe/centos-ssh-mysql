@@ -10,6 +10,7 @@ Summary of release changes.
 - Updates README.md to simplify contents and improve readability.
 - Updates README-short.txt to apply to all image variants.
 - Updates Dockerfile `org.deathe.description` metadata LABEL for consistency.
+- Updates order of supervisord configuration directives for consistency.
 
 ### 1.10.0 - 2019-03-18
 
