@@ -19,10 +19,10 @@ RUN { printf -- \
 	&& yum -y install \
 		--setopt=tsflags=nodocs \
 		--disableplugin=fastestmirror \
-		mysql-community-client-5.7.25-1.el7 \
-		mysql-community-common-5.7.25-1.el7 \
-		mysql-community-libs-5.7.25-1.el7 \
-		mysql-community-server-5.7.25-1.el7 \
+		mysql-community-client-5.7.26-1.el7 \
+		mysql-community-common-5.7.26-1.el7 \
+		mysql-community-libs-5.7.26-1.el7 \
+		mysql-community-server-5.7.26-1.el7 \
 		psmisc-22.20-15.el7 \
 		sshpass-1.06-2.el7 \
 	&& yum versionlock add \

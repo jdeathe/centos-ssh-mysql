@@ -6,6 +6,7 @@ Summary of release changes.
 
 ### 2.3.0 - Unreleased
 
+- Updates `mysql-community-server` package to 5.7.26-1.
 - Updates CHANGELOG.md to simplify maintenance.
 - Updates README.md to simplify contents and improve readability.
 - Updates README-short.txt to apply to all image variants.
