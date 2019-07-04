@@ -625,7 +625,8 @@ function __init_datadir ()
 			--force \
 			--skip-name-resolve \
 			--skip-networking \
-			--tmpdir="${directory}"
+			--tmpdir="${directory}" \
+			2> /dev/null
 	else
 		mysqld \
 			--datadir="${directory}" \
@@ -634,7 +635,8 @@ function __init_datadir ()
 			--skip-name-resolve \
 			--skip-networking \
 			--tmpdir="${directory}" \
-			--user=mysql
+			--user=mysql \
+			2> /dev/null
 	fi
 }
 
@@ -646,12 +648,14 @@ function __init_mysql ()
 	then
 		mysqld_safe \
 			--init-file="${init_file}" \
-			--skip-networking
+			--skip-networking \
+			2> /dev/null
 	else
 		mysqld \
 			--init-file="${init_file}" \
 			--pid-file=/var/run/mysqld/mysqld.pid \
-			--skip-networking
+			--skip-networking \
+			2> /dev/null
 	fi
 }
 
@@ -888,7 +892,6 @@ function main ()
 	local mysql_user_password
 	local mysql_user_password_hashed
 	local -a pids
-	local server_key
 	local server_key_path
 	local user_details
 	local verbose="false"
@@ -932,14 +935,13 @@ function main ()
 			datadir \
 			"/var/lib/mysql"
 	)"
-	server_key="${datadir}"/server-key.pem
 
 	# Initialisation is a one-shot process.
 	if ! __is_mysql_datadir_populated "${datadir}"
 	then
 		# Certificate generation
 		if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
-			&& [[ ! -e ${server_key} ]]
+			&& [[ ! -e ${datadir}/server-key.pem ]]
 		then
 			if [[ ${verbose} == true ]]
 			then
@@ -1223,14 +1225,9 @@ function main ()
 		# Finalise certificate setup
 		if [[ -f ${server_key_path}/server-key.pem ]]
 		then
-			mv \
-				"${server_key_path}"/server-key.pem \
-				"${server_key}"
-			rm -rf \
-				"${server_key_path}"
-
-			trap "__cleanup" \
-				EXIT INT TERM
+			mv -f \
+				"${server_key_path}"/*.pem \
+				"${datadir}"/
 		fi
 
 		if [[ ${verbose} == true ]]

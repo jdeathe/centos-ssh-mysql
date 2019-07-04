@@ -22,10 +22,12 @@ Summary of release changes.
 - Adds `SYSTEM_TIMEZONE` handling to Makefile, scmi, systemd unit and docker-compose templates.
 - Adds system time zone validation to healthcheck.
 - Adds lock/state file to bootstrap/wrapper scripts.
+- Adds all necessary auto-generated TLS/SSL pem files to data directory during bootstrap.
 - Removes `MYSQL_AUTOSTART_MYSQL_BOOTSTRAP`, replaced with `ENABLE_MYSQL_BOOTSTRAP`.
 - Removes `MYSQL_AUTOSTART_MYSQL_WRAPPER`, replaced with `ENABLE_MYSQL_WRAPPER`.
 - Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
 - Removes unnecessary use of `FLUSH PRIVILEGES` in intitialisation SQL.
+- Removes `log-error=/var/log/mysqld.log` from default configuration; log to stderr.
 
 ### 2.2.0 - 2019-03-18
 
