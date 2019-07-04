@@ -56,8 +56,8 @@ Environment="DOCKER_IMAGE_PACKAGE_PATH=/var/opt/scmi/packages"
 Environment="DOCKER_IMAGE_TAG={{RELEASE_VERSION}}"
 Environment="DOCKER_PORT_MAP_TCP_3306=3306"
 Environment="DOCKER_USER=jdeathe"
-Environment="MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=true"
-Environment="MYSQL_AUTOSTART_MYSQLD_WRAPPER=true"
+Environment="ENABLE_MYSQLD_BOOTSTRAP=true"
+Environment="ENABLE_MYSQLD_WRAPPER=true"
 Environment="MYSQL_INIT_LIMIT="
 Environment="MYSQL_INIT_SQL="
 Environment="MYSQL_ROOT_PASSWORD="
@@ -67,6 +67,7 @@ Environment="MYSQL_USER="
 Environment="MYSQL_USER_DATABASE="
 Environment="MYSQL_USER_PASSWORD="
 Environment="MYSQL_USER_PASSWORD_HASHED=false"
+Environment="SYSTEM_TIMEZONE=UTC"
 
 # Initialisation: Load image from local storage if available, otherwise pull.
 ExecStartPre=/bin/bash -c \
@@ -123,8 +124,8 @@ ExecStartPre=-/bin/bash -c \
 ExecStart=/bin/bash -c \
   "exec /usr/bin/docker run \
     --name %p.%i \
-    --env \"MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP}\" \
-    --env \"MYSQL_AUTOSTART_MYSQLD_WRAPPER=${MYSQL_AUTOSTART_MYSQLD_WRAPPER}\" \
+    --env \"ENABLE_MYSQLD_BOOTSTRAP=${ENABLE_MYSQLD_BOOTSTRAP}\" \
+    --env \"ENABLE_MYSQLD_WRAPPER=${ENABLE_MYSQLD_WRAPPER}\" \
     --env \"MYSQL_INIT_LIMIT=${MYSQL_INIT_LIMIT}\" \
     --env \"MYSQL_INIT_SQL=${MYSQL_INIT_SQL}\" \
     --env \"MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}\" \
@@ -134,6 +135,7 @@ ExecStart=/bin/bash -c \
     --env \"MYSQL_USER_DATABASE=${MYSQL_USER_DATABASE}\" \
     --env \"MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}\" \
     --env \"MYSQL_USER_PASSWORD_HASHED=${MYSQL_USER_PASSWORD_HASHED}\" \
+    --env \"SYSTEM_TIMEZONE=${SYSTEM_TIMEZONE}\" \
     $(if [[ ${DOCKER_PORT_MAP_TCP_3306} != NULL ]]; \
     then \
       if /bin/grep -qE \

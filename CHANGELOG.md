@@ -6,12 +6,25 @@ Summary of release changes.
 
 ### 2.3.0 - Unreleased
 
+- Updates source image to [2.6.0](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.0).
 - Updates `mysql-community-server` package to 5.7.26-1.
 - Updates CHANGELOG.md to simplify maintenance.
 - Updates README.md to simplify contents and improve readability.
 - Updates README-short.txt to apply to all image variants.
 - Updates Dockerfile `org.deathe.description` metadata LABEL for consistency.
 - Updates order of supervisord configuration directives for consistency.
+- Updates supervisord configuration to send error log output to stderr.
+- Updates bootstrap supervisord configuration file/priority to `20-mysqld-bootstrap.conf`/`20`.
+- Updates wrapper supervisord configuration file/priority to `50-mysqld-wrapper.conf`/`50`.
+- Fixes docker host connection status check in Makefile.
+- Adds `inspect`, `reload` and `top` Makefile targets.
+- Adds improved `clean` Makefile target; includes exited containers and dangling images.
+- Adds `SYSTEM_TIMEZONE` handling to Makefile, scmi, systemd unit and docker-compose templates.
+- Adds system time zone validation to healthcheck.
+- Adds lock/state file to bootstrap/wrapper scripts.
+- Removes `MYSQL_AUTOSTART_MYSQL_BOOTSTRAP`, replaced with `ENABLE_MYSQL_BOOTSTRAP`.
+- Removes `MYSQL_AUTOSTART_MYSQL_WRAPPER`, replaced with `ENABLE_MYSQL_WRAPPER`.
+- Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
 
 ### 2.2.0 - 2019-03-18
 

@@ -589,8 +589,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.3 \
 					--network ${private_network_1} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -955,8 +955,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.5 \
 					--network ${private_network_2} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -1096,8 +1096,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.7 \
 					--network ${private_network_1} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -1165,7 +1165,7 @@ function test_custom_configuration ()
 			docker run \
 				--detach \
 				--name mysql.1 \
-				--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+				--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
@@ -1193,7 +1193,7 @@ function test_custom_configuration ()
 			docker run \
 				--detach \
 				--name mysql.1 \
-				--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+				--env "ENABLE_MYSQLD_WRAPPER=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 

@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
 
+set -e
+
+function __cleanup ()
+{
+	local -r exit_code="${?}"
+
+	__delete_lock
+
+	if [[ ${exit_code} -eq 0 ]]
+	then
+		__create_state
+	fi
+}
+
 # Set MySQL client root user password
 # - Prefer to store encrypted via mysql_config_editor.
 # - Fallback to store as plaintext in secured file.
 function __configure_mysql_client_root_password ()
 {
-	local -r password="${1:-}"
+	local -r password="${1}"
 
 	local config
 	local -a pids
@@ -33,8 +47,9 @@ function __configure_mysql_client_root_password ()
 		fi
 
 		trap \
-			"rm -rf \"${fifo_path}\";" \
-			INT TERM EXIT
+			"rm -rf \"${fifo_path}\"; \
+				__cleanup;" \
+			EXIT INT TERM
 
 		mkfifo \
 			-m 0600 \
@@ -44,8 +59,9 @@ function __configure_mysql_client_root_password ()
 			{mypasswd_fd}<>"${fifo_path}/mypasswd"
 
 		trap \
-			"exec {mypasswd_fd}>&- ;" \
-			INT TERM EXIT
+			"exec {mypasswd_fd}>&- ; \
+				__cleanup;" \
+			EXIT INT TERM
 
 		rm -rf \
 			"${fifo_path}"
@@ -62,8 +78,9 @@ function __configure_mysql_client_root_password ()
 
 		trap \
 			"exec {mypasswd_fd}>&- ; \
-				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]};" \
-			INT TERM EXIT
+				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
+				__cleanup" \
+			EXIT INT TERM
 
 		printf -- \
 			'%s\n' \
@@ -75,8 +92,9 @@ function __configure_mysql_client_root_password ()
 		trap \
 			"exec {mypasswd_fd}>&- ; \
 				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
-				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
-			INT TERM EXIT
+				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]}; \
+				__cleanup;" \
+			EXIT INT TERM
 
 		if [[ ${pids[1]} -gt 0 ]]
 		then
@@ -90,8 +108,10 @@ function __configure_mysql_client_root_password ()
 			exit 1
 		fi
 
-		exec \
-			{mypasswd_fd}>&-
+		trap - \
+			EXIT INT TERM
+
+		exec {mypasswd_fd}>&-
 	else
 		tee /root/.my.cnf &> /dev/null \
 			<<-EOT
@@ -111,9 +131,30 @@ function __configure_mysql_client_root_password ()
 			"${config//'{{MYSQL_ROOT_PASSWORD}}'/${password}}" \
 			> /root/.my.cnf
 	fi
+}
 
-	trap - \
-		INT TERM EXIT
+function __create_lock ()
+{
+	if [[ -n ${lock_file} ]]
+	then
+		touch "${lock_file}"
+	fi
+}
+
+function __create_state ()
+{
+	if [[ -n ${state_file} ]]
+	then
+		touch "${state_file}"
+	fi
+}
+
+function __delete_lock ()
+{
+	if [[ -f ${lock_file} ]]
+	then
+		rm -f "${lock_file}"
+	fi
 }
 
 function __get_mysql_init_limit ()
@@ -159,7 +200,6 @@ function __get_mysql_init_template ()
 	local template_user="-- Create user"
 	local user
 
-	# Parse options
 	while [[ "${#}" -gt 0 ]]
 	do
 		case "${1}" in
@@ -219,8 +259,9 @@ function __get_mysql_init_template ()
 	fi
 
 	trap \
-		"rm -rf \"${fifo_path}\";" \
-		INT TERM EXIT
+		"rm -rf \"${fifo_path}\"; \
+			__cleanup;" \
+		EXIT INT TERM
 
 	mkfifo \
 		-m 0600 \
@@ -278,7 +319,7 @@ function __get_mysql_init_template ()
 	then
 		cat <<-EOF &
 			$(<"${fifo_path}"/mysql-init-template)
-
+		
 		EOF
 	else
 		cat -s \
@@ -292,6 +333,7 @@ function __get_mysql_init_template ()
 					'{ ORS=( /;$/ ? RS:FS ) } 1' \
 				&
 			$(<"${fifo_path}"/mysql-init-template)
+		
 		EOF
 	fi
 	pids[1]="${!}"
@@ -299,7 +341,7 @@ function __get_mysql_init_template ()
 	# Generate the initialisation SQL template
 	cat \
 		<<-EOT > "${fifo_path}"/mysql-init-template &
-
+		
 		-- =============================================================================
 		-- Initialisation SQL
 		-- -----------------------------------------------------------------------------
@@ -328,8 +370,9 @@ function __get_mysql_init_template ()
 	trap \
 		"rm -rf \"${fifo_path}\"; \
 			[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
-			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
-		INT TERM EXIT
+			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]}; \
+			__cleanup;" \
+		EXIT INT TERM
 
 	if [[ ${pids[1]} -gt 0 ]]
 	then
@@ -347,7 +390,7 @@ function __get_mysql_init_template ()
 		"${fifo_path}"
 
 	trap - \
-		INT TERM EXIT
+		EXIT INT TERM
 }
 
 function __get_mysql_root_password ()
@@ -511,10 +554,35 @@ function __get_password ()
 	printf -- '%s' "${password}"
 }
 
+function __get_timer_total ()
+{
+	local -r timer_end="$(
+		date -u +%s.%N
+	)"
+	local -r timer_start="${1}"
+
+	if [[ -z ${timer_start} ]] \
+		|| [[ ${timer_start//.} -gt ${timer_end//.} ]]
+	then
+		>&2 printf -- \
+			'ERROR: invalid timer start: %s\n' \
+			"${timer_start}"
+		printf -- \
+			'0.000000'
+	else
+		awk \
+			-v timer_end="${timer_end}" \
+			-v timer_start="${timer_start}" \
+			'BEGIN { print \
+				timer_end - timer_start;
+			}'
+	fi
+}
+
 function __have_mysql_access ()
 {
 	local -r database="${3:-mysql}"
-	local -r password="${2:-}"
+	local -r password="${2}"
 	local -r user="${1:-root}"
 
 	if [[ ${user} == root ]]
@@ -578,13 +646,13 @@ function __init_mysql ()
 	if command -v mysqld_safe &> /dev/null
 	then
 		mysqld_safe \
-			--skip-networking \
-			--init-file="${init_file}"
+			--init-file="${init_file}" \
+			--skip-networking
 	else
 		mysqld \
+			--init-file="${init_file}" \
 			--pid-file=/var/run/mysqld/mysqld.pid \
-			--skip-networking \
-			--init-file="${init_file}"
+			--skip-networking
 	fi
 }
 
@@ -803,9 +871,9 @@ function main ()
 	local -r init_file="/tmp/mysql-init"
 	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
 	local -r redacted_value="********"
-	local -r server_key="${datadir}"/server-key.pem
+	local -r state_file="/var/lib/misc/mysqld-bootstrap"
 	local -r timer_start="$(
-		date +%s.%N
+		date -u +%s.%N
 	)"
 
 	local counter
@@ -821,15 +889,11 @@ function main ()
 	local mysql_user_password
 	local mysql_user_password_hashed
 	local -a pids
+	local server_key
 	local server_key_path
 	local user_details
 	local verbose="false"
 
-	# Create lock
-	touch \
-		"${lock_file}"
-
-	# Parse options
 	while [[ "${#}" -gt 0 ]]
 	do
 		case "${1}" in
@@ -840,12 +904,36 @@ function main ()
 		esac
 	done
 
+	if [[ -f ${state_file} ]]
+	then
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				'INFO: %s finished - skipping.\n' \
+				"${0##*/}"
+		fi
+		exit 0
+	fi
+
+	if [[ -f ${lock_file} ]]
+	then
+		>&2 printf -- \
+			'ERROR: %s lock detected - aborting.\n' \
+			"${0##*/}"
+		exit 1
+	fi
+
+	trap "__cleanup" \
+		EXIT INT TERM
+	__create_lock
+
 	datadir="$(
 		__get_option \
 			mysqld \
 			datadir \
 			"/var/lib/mysql"
 	)"
+	server_key="${datadir}"/server-key.pem
 
 	# Initialisation is a one-shot process.
 	if ! __is_mysql_datadir_populated "${datadir}"
@@ -874,14 +962,15 @@ function main ()
 			fi
 
 			trap \
-				"rm -rf \"${server_key_path}\";" \
-				INT TERM EXIT
+				"rm -rf \"${server_key_path}\"; \
+					__cleanup;" \
+				EXIT INT TERM
 
 			/usr/bin/mysql_ssl_rsa_setup \
 				--datadir="${server_key_path}" \
 				--uid=mysql \
-			&> /dev/null \
-			&
+				2> /dev/null \
+				&
 			pids[2]="${!}"
 		fi
 
@@ -934,17 +1023,6 @@ function main ()
 			&
 		pids[1]="${!}"
 
-		# Initialisation template output
-		if [[ ${verbose} == true ]]
-		then
-			__get_mysql_init_template \
-				--user="${mysql_user}" \
-				--database="${mysql_user_database}" \
-				--host="${mysql_user_host}" \
-				--password-hashed="${mysql_user_password_hashed}" \
-				--init-sql="${mysql_init_sql}"
-		fi
-
 		# Replace compact template placeholders with values
 		init_template="$(
 			__get_mysql_init_template \
@@ -955,6 +1033,12 @@ function main ()
 				--init-sql="${mysql_init_sql}" \
 				--compact
 		)"
+
+		trap \
+			"rm -rf \"${server_key_path}\"; \
+				__cleanup;" \
+			EXIT INT TERM
+
 		init_template="${init_template//'{{MYSQL_USER}}'/${mysql_user}}"
 		init_template="${init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
 		init_template="${init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
@@ -968,8 +1052,9 @@ function main ()
 
 		trap \
 			"rm -rf \"${server_key_path}\"; \
-				rm -f "${init_file}";" \
-			INT TERM EXIT
+				rm -f \"${init_file}\"; \
+				__cleanup;" \
+			EXIT INT TERM
 
 		# Wait to complete system table installation
 		if [[ ${pids[0]} -gt 0 ]]
@@ -981,6 +1066,20 @@ function main ()
 		then
 			printf -- \
 				"Initialising MySQL.\n"
+
+			# Initialisation template output
+			__get_mysql_init_template \
+				--user="${mysql_user}" \
+				--database="${mysql_user_database}" \
+				--host="${mysql_user_host}" \
+				--password-hashed="${mysql_user_password_hashed}" \
+				--init-sql="${mysql_init_sql}"
+
+			trap \
+				"rm -rf \"${server_key_path}\"; \
+					rm -f \"${init_file}\"; \
+					__cleanup;" \
+				EXIT INT TERM
 		fi
 		__init_mysql \
 			"${init_file}" \
@@ -988,6 +1087,12 @@ function main ()
 
 		__configure_mysql_client_root_password \
 			"${mysql_root_password}"
+
+		trap \
+			"rm -rf \"${server_key_path}\"; \
+				rm -f \"${init_file}\"; \
+				__cleanup;" \
+			EXIT INT TERM
 
 		# Wait for initialisation to complete (poll for access) or timeout
 		counter="$((
@@ -1062,8 +1167,9 @@ function main ()
 				"${init_file}"
 
 			trap \
-				"rm -rf \"${server_key_path}\";" \
-				INT TERM EXIT
+				"rm -rf \"${server_key_path}\"; \
+					__cleanup;" \
+				EXIT INT TERM
 		fi
 
 		# Local root user details
@@ -1125,21 +1231,15 @@ function main ()
 			rm -rf \
 				"${server_key_path}"
 
-			trap - \
-				INT TERM EXIT
+			trap "__cleanup" \
+				EXIT INT TERM
 		fi
 
 		if [[ ${verbose} == true ]]
 		then
 			timer_total="$(
-				awk \
-					-v timer_end="$(
-						date +%s.%N
-					)" \
-					-v timer_start="${timer_start}" \
-					'BEGIN { print \
-						timer_end - timer_start;
-					}'
+				__get_timer_total \
+					"${timer_start}"
 			)"
 
 			cat \
@@ -1169,9 +1269,8 @@ function main ()
 		fi
 	fi
 
-	# Release lock
-	rm -f \
-		"${lock_file}"
+	# Trigger cleanup trap.
+	exit 0
 }
 
 main "${@}"

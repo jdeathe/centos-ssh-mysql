@@ -36,6 +36,7 @@ services:
       MYSQL_USER_DATABASE: "${MYSQL_USER_DATABASE}"
       MYSQL_USER_PASSWORD: "${MYSQL_USER_PASSWORD}"
       MYSQL_USER_PASSWORD_HASHED: "${MYSQL_USER_PASSWORD_HASHED}"
+      SYSTEM_TIMEZONE: "${SYSTEM_TIMEZONE}"
     image: "jdeathe/centos-ssh-mysql:latest"
     ports:
       - "3306:3306"
