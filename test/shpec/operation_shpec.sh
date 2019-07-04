@@ -379,6 +379,7 @@ function test_basic_operations ()
 				it "Shows N/A in MySQL Details."
 					docker logs \
 						mysql.1 \
+						2> /dev/null \
 					| grep -q 'database : N/A' \
 					&> /dev/null
 
@@ -430,6 +431,7 @@ function test_basic_operations ()
 			it "Has database name in MySQL Details."
 				docker logs \
 					mysql.1 \
+					2> /dev/null \
 				| grep -q 'database : my-db' \
 				&> /dev/null
 
@@ -493,6 +495,7 @@ function test_basic_operations ()
 			it "Has user in MySQL Details."
 				docker logs \
 					mysql.1 \
+					2> /dev/null \
 				| grep -q 'user : my-user@localhost' \
 				&> /dev/null
 
@@ -615,6 +618,7 @@ function test_custom_configuration ()
 				it "Has the database name."
 					docker logs \
 						mysql.2 \
+						2> /dev/null \
 					| grep -q 'database : app-db' \
 					&> /dev/null
 
@@ -1181,8 +1185,10 @@ function test_custom_configuration ()
 			fi
 
 			it "Can disable mysqld-bootstrap."
-				docker logs mysql.1 \
-					| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
+				docker logs \
+					mysql.1 \
+					2> /dev/null \
+				| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
 
 				assert equal \
 					"${?}" \
