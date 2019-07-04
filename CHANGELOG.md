@@ -25,6 +25,7 @@ Summary of release changes.
 - Removes `MYSQL_AUTOSTART_MYSQL_BOOTSTRAP`, replaced with `ENABLE_MYSQL_BOOTSTRAP`.
 - Removes `MYSQL_AUTOSTART_MYSQL_WRAPPER`, replaced with `ENABLE_MYSQL_WRAPPER`.
 - Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
+- Removes unnecessary use of `FLUSH PRIVILEGES` in intitialisation SQL.
 
 ### 2.2.0 - 2019-03-18
 
