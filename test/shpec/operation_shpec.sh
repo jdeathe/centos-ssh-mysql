@@ -316,6 +316,7 @@ function test_basic_operations ()
 					mysql_root_password="$(
 						docker logs \
 							mysql.1 \
+							2> /dev/null \
 						| grep 'user : root@localhost' \
 						| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 					)"
@@ -627,6 +628,7 @@ function test_custom_configuration ()
 						mysql_root_password_log="$(
 							docker logs \
 								mysql.2 \
+								2> /dev/null \
 							| grep 'user : root@localhost' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
@@ -640,6 +642,7 @@ function test_custom_configuration ()
 						mysql_user_password_log="$(
 							docker logs \
 								mysql.2 \
+								2> /dev/null \
 							| grep 'user : app-user@172.172.40.0/255.255.255.0' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
