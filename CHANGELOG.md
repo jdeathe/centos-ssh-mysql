@@ -16,7 +16,6 @@ Summary of release changes.
 - Updates supervisord configuration to send error log output to stderr.
 - Updates bootstrap supervisord configuration file/priority to `20-mysqld-bootstrap.conf`/`20`.
 - Updates wrapper supervisord configuration file/priority to `50-mysqld-wrapper.conf`/`50`.
-- Updates bootstrap with better handling of previously initialised `datadir`.
 - Fixes docker host connection status check in Makefile.
 - Adds `inspect`, `reload` and `top` Makefile targets.
 - Adds improved `clean` Makefile target; includes exited containers and dangling images.
@@ -24,6 +23,8 @@ Summary of release changes.
 - Adds system time zone validation to healthcheck.
 - Adds lock/state file to bootstrap/wrapper scripts.
 - Adds all necessary auto-generated TLS/SSL pem files to data directory during bootstrap.
+- Adds improved bootstrap handling of previously initialised datadir.
+- Adds a note in example docker-compose.yml that `MYSQL_ROOT_PASSWORD` is required when using a data volume.
 - Removes `MYSQL_AUTOSTART_MYSQL_BOOTSTRAP`, replaced with `ENABLE_MYSQL_BOOTSTRAP`.
 - Removes `MYSQL_AUTOSTART_MYSQL_WRAPPER`, replaced with `ENABLE_MYSQL_WRAPPER`.
 - Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
