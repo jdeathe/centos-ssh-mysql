@@ -16,6 +16,7 @@ Summary of release changes.
 - Updates supervisord configuration to send error log output to stderr.
 - Updates bootstrap supervisord configuration file/priority to `20-mysqld-bootstrap.conf`/`20`.
 - Updates wrapper supervisord configuration file/priority to `50-mysqld-wrapper.conf`/`50`.
+- Updates bootstrap with better handling of previously initialised `datadir`.
 - Fixes docker host connection status check in Makefile.
 - Adds `inspect`, `reload` and `top` Makefile targets.
 - Adds improved `clean` Makefile target; includes exited containers and dangling images.

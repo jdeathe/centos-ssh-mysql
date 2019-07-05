@@ -39,10 +39,9 @@ function __configure_mysql_client_root_password ()
 		if [[ ${?} -ne 0 ]]
 		then
 			>&2 printf -- \
-				'%s %s %s\n' \
-				"ERROR: Failed to create directory" \
-				"${fifo_path}" \
-				"- aborting."
+				'ERROR: %s failed to create directory %s - aborting\n' \
+				"${0##*/}" \
+				"${fifo_path}"
 			exit 1
 		fi
 
@@ -104,7 +103,8 @@ function __configure_mysql_client_root_password ()
 		if [[ ${?} -ne 0 ]]
 		then
 			>&2 printf -- \
-				"ERROR: Unable to set MySQL root password - aborting.\n"
+				'ERROR: %s failed to set client root password - aborting\n' \
+				"${0##*/}"
 			exit 1
 		fi
 
@@ -236,10 +236,7 @@ function __get_mysql_init_template ()
 				shift 1
 				;;
 			*)
-				>&2 printf -- \
-					'ERROR: Unknown option %s\n' \
-					"${1}"
-				return 1
+				shift 1
 				;;
 		esac
 	done
@@ -251,10 +248,9 @@ function __get_mysql_init_template ()
 	if [[ ${?} -ne 0 ]]
 	then
 		>&2 printf -- \
-			'%s %s %s\n' \
-			"ERROR: Failed to create directory" \
-			"${fifo_path}" \
-			"- aborting."
+			'ERROR: %s failed to create directory %s - aborting\n' \
+			"${0##*/}"
+			"${fifo_path}"
 		exit 1
 	fi
 
@@ -381,7 +377,8 @@ function __get_mysql_init_template ()
 	if [[ ${?} -ne 0 ]]
 	then
 		>&2 printf -- \
-			"ERROR: Unable to gererate MySQL init template - aborting.\n"
+			'ERROR: %s failed to generate mysql-init-template - aborting\n' \
+			"${0##*/}"
 		exit 1
 	fi
 
@@ -564,7 +561,8 @@ function __get_timer_total ()
 		|| [[ ${timer_start//.} -gt ${timer_end//.} ]]
 	then
 		>&2 printf -- \
-			'ERROR: invalid timer start: %s\n' \
+			'ERROR: %s invalid timer start: %s\n' \
+			"${0##*/}"
 			"${timer_start}"
 		printf -- \
 			'0.000000'
@@ -911,7 +909,7 @@ function main ()
 		if [[ ${verbose} == true ]]
 		then
 			printf -- \
-				'INFO: %s finished - skipping.\n' \
+				'INFO: %s finished - skipping\n' \
 				"${0##*/}"
 		fi
 		exit 0
@@ -920,7 +918,7 @@ function main ()
 	if [[ -f ${lock_file} ]]
 	then
 		>&2 printf -- \
-			'ERROR: %s lock detected - aborting.\n' \
+			'ERROR: %s lock detected - aborting\n' \
 			"${0##*/}"
 		exit 1
 	fi
@@ -935,82 +933,114 @@ function main ()
 			datadir \
 			"/var/lib/mysql"
 	)"
+	mysql_init_limit="$(
+		__get_mysql_init_limit
+	)"
+	mysql_init_sql="$(
+		__get_mysql_init_sql
+	)"
+	mysql_root_password="$(
+		__get_mysql_root_password
+	)"
+	mysql_root_password_hashed="$(
+		__get_mysql_root_password_hashed
+	)"
+	mysql_user="$(
+		__get_mysql_user
+	)"
+	mysql_user_database="$(
+		__get_mysql_user_database
+	)"
+
+	# User dependent
+	if [[ -n ${mysql_user} ]]
+	then
+		mysql_user_host="$(
+			__get_mysql_user_host
+		)"
+		mysql_user_password="$(
+			__get_mysql_user_password
+		)"
+		mysql_user_password_hashed="$(
+			__get_mysql_user_password_hashed
+		)"
+	fi
+
+	# Certificate generation
+	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
+		&& [[ ! -e ${datadir}/server-key.pem ]]
+	then
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				'INFO: %s generating certificates\n' \
+				"${0##*/}"
+		fi
+		server_key_path="$(
+			mktemp -d
+		)"
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				'ERROR: %s failed to create directory %s - aborting\n' \
+				"${0##*/}" \
+				"${server_key_path}"
+			exit 1
+		fi
+
+		trap \
+			"rm -rf \"${server_key_path}\"; \
+				__cleanup;" \
+			EXIT INT TERM
+
+		/usr/bin/mysql_ssl_rsa_setup \
+			--datadir="${server_key_path}" \
+			--uid=mysql \
+			2> /dev/null \
+			&
+		pids[2]="${!}"
+	fi
 
 	# Initialisation is a one-shot process.
-	if ! __is_mysql_datadir_populated "${datadir}"
+	if __is_mysql_datadir_populated "${datadir}"
 	then
-		# Certificate generation
-		if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
-			&& [[ ! -e ${datadir}/server-key.pem ]]
+		if [[ ${verbose} == true ]]
 		then
-			if [[ ${verbose} == true ]]
-			then
-				printf -- \
-					"Generating MySQL certificates.\n"
-			fi
-			server_key_path="$(
-				mktemp -d
-			)"
+			printf -- \
+				'INFO: %s skipping data directory initialisation\n' \
+				"${0##*/}"
+		fi
 
-			if [[ ${?} -ne 0 ]]
-			then
-				>&2 printf -- \
-					'%s %s %s\n' \
-					"ERROR: Failed to create directory" \
-					"${server_key_path}" \
-					"- aborting."
-				exit 1
-			fi
+		if [[ ${mysql_root_password_hashed} != true ]]
+		then
+			__configure_mysql_client_root_password \
+				"${mysql_root_password}"
+		fi
 
+		# Restore appropriate trap
+		if [[ -d ${server_key_path} ]]
+		then
 			trap \
 				"rm -rf \"${server_key_path}\"; \
 					__cleanup;" \
 				EXIT INT TERM
-
-			/usr/bin/mysql_ssl_rsa_setup \
-				--datadir="${server_key_path}" \
-				--uid=mysql \
-				2> /dev/null \
-				&
-			pids[2]="${!}"
+		else
+			trap "__cleanup;" \
+				EXIT INT TERM
 		fi
 
-		mysql_init_limit="$(
-			__get_mysql_init_limit
-		)"
-		mysql_init_sql="$(
-			__get_mysql_init_sql
-		)"
-		mysql_root_password="$(
-			__get_mysql_root_password
-		)"
-		mysql_root_password_hashed="$(
-			__get_mysql_root_password_hashed
-		)"
-		mysql_user="$(
-			__get_mysql_user
-		)"
-		mysql_user_database="$(
-			__get_mysql_user_database
-		)"
-		# User dependent
-		if [[ -n ${mysql_user} ]]
+		# Wait to complete certificate generation
+		if [[ ${pids[2]} -gt 0 ]]
 		then
-			mysql_user_host="$(
-				__get_mysql_user_host
-			)"
-			mysql_user_password="$(
-				__get_mysql_user_password
-			)"
-			mysql_user_password_hashed="$(
-				__get_mysql_user_password_hashed
-			)"
+			wait ${pids[2]}
 		fi
-
+	else
 		if [[ ${verbose} == true ]]
 		then
 			printf -- \
-				"Initialising MySQL data directory.\n"
+				'INFO: %s initialising data directory\n' \
+				"${0##*/}"
 		fi
 		__init_datadir \
 			"${datadir}" \
@@ -1066,7 +1096,8 @@ function main ()
 		if [[ ${verbose} == true ]]
 		then
 			printf -- \
-				"Initialising MySQL.\n"
+				'INFO: %s initialising\n' \
+				"${0##*/}"
 
 			# Initialisation template output
 			__get_mysql_init_template \
@@ -1134,9 +1165,9 @@ function main ()
 
 		if [[ ${counter} -eq 0 ]]
 		then
-			>&2 printf \
-				-- "MySQL initilisation failed after %s seconds.\n" \
-				"${mysql_init_limit}"
+			>&2 printf -- \
+				'ERROR: %s initilisation timed out - aborting\n' \
+				"${0##*/}"
 
 			killall \
 				-15 \
@@ -1147,7 +1178,8 @@ function main ()
 			if [[ ${verbose} == true ]]
 			then
 				printf -- \
-					"Stopping MySQL.\n"
+					'INFO: %s stopping mysqld\n' \
+					"${0##*/}"
 			fi
 
 			# Prefer mysqladmin shutdown method if password is known
@@ -1222,14 +1254,6 @@ function main ()
 			wait ${pids[2]}
 		fi
 
-		# Finalise certificate setup
-		if [[ -f ${server_key_path}/server-key.pem ]]
-		then
-			mv -f \
-				"${server_key_path}"/*.pem \
-				"${datadir}"/
-		fi
-
 		if [[ ${verbose} == true ]]
 		then
 			timer_total="$(
@@ -1262,6 +1286,15 @@ function main ()
 
 			EOT
 		fi
+	fi
+
+	# Finalise certificate setup
+	if [[ -d ${server_key_path} ]] \
+		&& [[ -f ${server_key_path}/server-key.pem ]]
+	then
+		mv -f \
+			"${server_key_path}"/*.pem \
+			"${datadir}"/
 	fi
 
 	# Trigger cleanup trap.
