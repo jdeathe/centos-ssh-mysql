@@ -22,6 +22,8 @@ function __configure_mysql_client_root_password ()
 	local -r password="${1}"
 
 	local config
+	local fifo_path
+	local mypasswd_fd
 	local -a pids
 
 	if [[ -z ${password} ]]
@@ -190,6 +192,7 @@ function __get_mysql_init_template ()
 {
 	local compact="false"
 	local database
+	local fifo_path
 	local host
 	local init_sql="-- Custom Initialisation SQL"
 	local password_hashed="false"
