@@ -645,6 +645,15 @@ function __init_mysql ()
 {
 	local -r init_file="${1:-/tmp/mysql-init}"
 
+	if [[ ! -f ${init_file} ]]
+	then
+		>&2 printf -- \
+			'ERROR: %s invalid --init-file: %s\n' \
+			"${0##*/}"
+			"${init_file}"
+		exit 1
+	fi
+
 	if command -v mysqld_safe &> /dev/null
 	then
 		mysqld_safe \
@@ -872,7 +881,6 @@ function __map_mysql_service_user_to_datadir ()
 
 function main ()
 {
-	local -r init_file="/tmp/mysql-init"
 	local -r lock_file="/var/lock/subsys/mysqld-bootstrap"
 	local -r redacted_value="********"
 	local -r state_file="/var/lib/misc/mysqld-bootstrap"
@@ -882,6 +890,8 @@ function main ()
 
 	local counter
 	local datadir
+	local init_file
+	local init_path
 	local init_template
 	local mysql_init_limit
 	local mysql_init_sql
@@ -1079,16 +1089,36 @@ function main ()
 		init_template="${init_template//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
 		init_template="${init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
 
+		init_path="$(
+			mktemp -d
+		)"
+
+		if [[ ${?} -ne 0 ]]
+		then
+			>&2 printf -- \
+				'ERROR: %s failed to create directory %s - aborting\n' \
+				"${0##*/}" \
+				"${init_path}"
+			exit 1
+		fi
+
+		trap \
+			"rm -rf \"${server_key_path}\"; \
+				rm -rf \"${init_path}\"; \
+				__cleanup;" \
+			EXIT INT TERM
+
+		chmod 750 \
+			"${init_path}"
+		chown root:mysql \
+			"${init_path}"
+
+		init_file="${init_path}/mysql-init"
+
 		printf -- \
 			'%s\n' \
 			"${init_template}" \
 			> "${init_file}"
-
-		trap \
-			"rm -rf \"${server_key_path}\"; \
-				rm -f \"${init_file}\"; \
-				__cleanup;" \
-			EXIT INT TERM
 
 		# Wait to complete system table installation
 		if [[ ${pids[0]} -gt 0 ]]
@@ -1112,10 +1142,11 @@ function main ()
 
 			trap \
 				"rm -rf \"${server_key_path}\"; \
-					rm -f \"${init_file}\"; \
+					rm -rf \"${init_path}\"; \
 					__cleanup;" \
 				EXIT INT TERM
 		fi
+
 		__init_mysql \
 			"${init_file}" \
 			&
@@ -1125,7 +1156,7 @@ function main ()
 
 		trap \
 			"rm -rf \"${server_key_path}\"; \
-				rm -f \"${init_file}\"; \
+				rm -rf \"${init_path}\"; \
 				__cleanup;" \
 			EXIT INT TERM
 
@@ -1198,8 +1229,8 @@ function main ()
 					shutdown
 			fi
 
-			rm -f \
-				"${init_file}"
+			rm -rf \
+				"${init_path}"
 
 			trap \
 				"rm -rf \"${server_key_path}\"; \
