@@ -47,9 +47,8 @@ function __configure_mysql_client_root_password ()
 			exit 1
 		fi
 
-		trap \
-			"rm -rf \"${fifo_path}\"; \
-				__cleanup;" \
+		trap "__cleanup; \
+				rm -rf \"${fifo_path}\";" \
 			EXIT INT TERM
 
 		mkfifo \
@@ -59,9 +58,8 @@ function __configure_mysql_client_root_password ()
 		exec \
 			{mypasswd_fd}<>"${fifo_path}/mypasswd"
 
-		trap \
-			"exec {mypasswd_fd}>&- ; \
-				__cleanup;" \
+		trap "__cleanup; \
+				exec {mypasswd_fd}>&- ;" \
 			EXIT INT TERM
 
 		rm -rf \
@@ -77,10 +75,9 @@ function __configure_mysql_client_root_password ()
 				&
 		pids[1]="${!}"
 
-		trap \
-			"exec {mypasswd_fd}>&- ; \
-				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
-				__cleanup" \
+		trap "__cleanup; \
+				exec {mypasswd_fd}>&- ; \
+				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]};" \
 			EXIT INT TERM
 
 		printf -- \
@@ -90,11 +87,10 @@ function __configure_mysql_client_root_password ()
 			&
 		pids[2]="${!}"
 
-		trap \
-			"exec {mypasswd_fd}>&- ; \
+		trap "__cleanup; \
+				exec {mypasswd_fd}>&- ; \
 				[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
-				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]}; \
-				__cleanup;" \
+				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 			EXIT INT TERM
 
 		if [[ ${pids[1]} -gt 0 ]]
@@ -257,9 +253,8 @@ function __get_mysql_init_template ()
 		exit 1
 	fi
 
-	trap \
-		"rm -rf \"${fifo_path}\"; \
-			__cleanup;" \
+	trap "__cleanup; \
+			rm -rf \"${fifo_path}\";" \
 		EXIT INT TERM
 
 	mkfifo \
@@ -365,11 +360,10 @@ function __get_mysql_init_template ()
 	EOT
 	pids[2]="${!}"
 
-	trap \
-		"rm -rf \"${fifo_path}\"; \
+	trap "__cleanup; \
+			rm -rf \"${fifo_path}\"; \
 			[[ ${pids[1]} -gt 0 ]] && kill -9 ${pids[1]}; \
-			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]}; \
-			__cleanup;" \
+			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 		EXIT INT TERM
 
 	if [[ ${pids[1]} -gt 0 ]]
@@ -1002,9 +996,8 @@ function main ()
 			exit 1
 		fi
 
-		trap \
-			"rm -rf \"${server_key_path}\"; \
-				__cleanup;" \
+		trap "__cleanup; \
+				rm -rf \"${server_key_path}\";" \
 			EXIT INT TERM
 
 		/usr/bin/mysql_ssl_rsa_setup \
@@ -1029,18 +1022,6 @@ function main ()
 		then
 			__configure_mysql_client_root_password \
 				"${mysql_root_password}"
-		fi
-
-		# Restore appropriate trap
-		if [[ -d ${server_key_path} ]]
-		then
-			trap \
-				"rm -rf \"${server_key_path}\"; \
-					__cleanup;" \
-				EXIT INT TERM
-		else
-			trap "__cleanup;" \
-				EXIT INT TERM
 		fi
 
 		# Wait to complete certificate generation
@@ -1078,11 +1059,6 @@ function main ()
 				--compact
 		)"
 
-		trap \
-			"rm -rf \"${server_key_path}\"; \
-				__cleanup;" \
-			EXIT INT TERM
-
 		init_template="${init_template//'{{MYSQL_USER}}'/${mysql_user}}"
 		init_template="${init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
 		init_template="${init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
@@ -1102,10 +1078,9 @@ function main ()
 			exit 1
 		fi
 
-		trap \
-			"rm -rf \"${server_key_path}\"; \
-				rm -rf \"${init_path}\"; \
-				__cleanup;" \
+		trap "__cleanup; \
+				rm -rf \"${server_key_path}\"; \
+				rm -rf \"${init_path}\";" \
 			EXIT INT TERM
 
 		chmod 750 \
@@ -1136,12 +1111,6 @@ function main ()
 				--host="${mysql_user_host}" \
 				--password-hashed="${mysql_user_password_hashed}" \
 				--init-sql="${mysql_init_sql}"
-
-			trap \
-				"rm -rf \"${server_key_path}\"; \
-					rm -rf \"${init_path}\"; \
-					__cleanup;" \
-				EXIT INT TERM
 		fi
 
 		printf -- \
@@ -1161,12 +1130,6 @@ function main ()
 
 		__configure_mysql_client_root_password \
 			"${mysql_root_password}"
-
-		trap \
-			"rm -rf \"${server_key_path}\"; \
-				rm -rf \"${init_path}\"; \
-				__cleanup;" \
-			EXIT INT TERM
 
 		# Wait for initialisation to complete (poll for access) or timeout
 		counter="$((
@@ -1240,9 +1203,8 @@ function main ()
 			rm -rf \
 				"${init_path}"
 
-			trap \
-				"rm -rf \"${server_key_path}\"; \
-					__cleanup;" \
+			trap "__cleanup; \
+					rm -rf \"${server_key_path}\";" \
 				EXIT INT TERM
 		fi
 
