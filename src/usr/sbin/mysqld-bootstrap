@@ -1160,6 +1160,7 @@ function main ()
 		counter="$((
 			2 * mysql_init_limit
 		))"
+		set +e
 		until (( counter == 0 ))
 		do
 			sleep 0.5
@@ -1192,6 +1193,7 @@ function main ()
 
 			(( counter -= 1 ))
 		done
+		set -e
 
 		if [[ ${counter} -eq 0 ]]
 		then
