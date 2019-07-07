@@ -1024,6 +1024,17 @@ function main ()
 				"${mysql_root_password}"
 		fi
 
+		# Restore appropriate trap
+		if [[ -d ${server_key_path} ]]
+		then
+			trap "__cleanup; \
+					rm -rf \"${server_key_path}\";" \
+				EXIT INT TERM
+		else
+			trap "__cleanup;" \
+				EXIT INT TERM
+		fi
+
 		# Wait to complete certificate generation
 		if [[ ${pids[2]} -gt 0 ]]
 		then
@@ -1058,6 +1069,10 @@ function main ()
 				--init-sql="${mysql_init_sql}" \
 				--compact
 		)"
+
+		trap "__cleanup; \
+				rm -rf \"${server_key_path}\";" \
+			EXIT INT TERM
 
 		init_template="${init_template//'{{MYSQL_USER}}'/${mysql_user}}"
 		init_template="${init_template//'{{MYSQL_USER_DATABASE}}'/${mysql_user_database}}"
@@ -1111,6 +1126,11 @@ function main ()
 				--host="${mysql_user_host}" \
 				--password-hashed="${mysql_user_password_hashed}" \
 				--init-sql="${mysql_init_sql}"
+
+			trap "__cleanup; \
+					rm -rf \"${server_key_path}\"; \
+					rm -rf \"${init_path}\";" \
+				EXIT INT TERM
 		fi
 
 		printf -- \
@@ -1130,6 +1150,11 @@ function main ()
 
 		__configure_mysql_client_root_password \
 			"${mysql_root_password}"
+
+		trap "__cleanup; \
+				rm -rf \"${server_key_path}\"; \
+				rm -rf \"${init_path}\";" \
+			EXIT INT TERM
 
 		# Wait for initialisation to complete (poll for access) or timeout
 		counter="$((
