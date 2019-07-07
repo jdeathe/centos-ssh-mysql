@@ -67,7 +67,7 @@ function main ()
 	local -r bin="/usr/sbin/mysqld"
 	local -r bootstrap_state_file="/var/lib/misc/mysqld-bootstrap"
 	local -r bootstrap_timeout="$((
-		__get_mysql_init_limit + 10
+		$(__get_mysql_init_limit) + 10
 	))"
 	local -r lock_file="/var/lock/subsys/mysqld-wrapper"
 	local -r nice="/bin/nice"
