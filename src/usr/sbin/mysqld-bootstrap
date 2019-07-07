@@ -652,14 +652,14 @@ function __init_mysql ()
 	then
 		mysqld_safe \
 			--init-file="${init_file}" \
-			--skip-networking \
-			2> /dev/null
+			--log-warnings=0 \
+			--skip-networking
 	else
 		mysqld \
 			--init-file="${init_file}" \
+			--log_error_verbosity=1 \
 			--pid-file=/var/run/mysqld/mysqld.pid \
-			--skip-networking \
-			2> /dev/null
+			--skip-networking
 	fi
 }
 
