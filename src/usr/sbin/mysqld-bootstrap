@@ -643,7 +643,7 @@ function __init_datadir ()
 
 function __init_mysql ()
 {
-	local -r init_file="${1:-/tmp/mysql-init}"
+	local -r init_file="${1}"
 
 	if [[ ! -f ${init_file} ]]
 	then
@@ -1113,18 +1113,15 @@ function main ()
 		chown root:mysql \
 			"${init_path}"
 
-		init_file="${init_path}/mysql-init"
+		init_file="$(
+			mktemp \
+				--tmpdir="${init_path}"
+		)"
 
-		printf -- \
-			'%s\n' \
-			"${init_template}" \
-			> "${init_file}"
-
-		# Wait to complete system table installation
-		if [[ ${pids[0]} -gt 0 ]]
-		then
-			wait ${pids[0]}
-		fi
+		chmod 640 \
+			"${init_file}"
+		chown root:mysql \
+			"${init_file}"
 
 		if [[ ${verbose} == true ]]
 		then
@@ -1145,6 +1142,17 @@ function main ()
 					rm -rf \"${init_path}\"; \
 					__cleanup;" \
 				EXIT INT TERM
+		fi
+
+		printf -- \
+			'%s\n' \
+			"${init_template}" \
+			> "${init_file}"
+
+		# Wait to complete system table installation
+		if [[ ${pids[0]} -gt 0 ]]
+		then
+			wait ${pids[0]}
 		fi
 
 		__init_mysql \
