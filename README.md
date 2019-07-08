@@ -41,9 +41,9 @@ Verify successful initialisation of the named container.
 $ docker logs mysql.1
 ```
 
-On the first run, there will be additional output showing the initialisation SQL template and, before mysqld-bootstrap completes, the MySQL Details which shows the configured database, if applicable, and any associated user credentials.
+On first run, MySQL Details are returned. This includes the configured database, if applicable, and any associated user credentials.
 
-![Docker Logs - MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap.png)
+![Docker Logs - MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap-v2.3.0.png)
 
 The MySQL table data is persistent across container restarts by setting the MySQL data directory `/var/lib/mysql` as a data volume. To locate the path where data is stored on the Docker host use `docker inspect`.
 

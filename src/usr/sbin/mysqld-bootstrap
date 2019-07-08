@@ -309,13 +309,8 @@ function __get_mysql_init_template ()
 	init_sql="${init_sql/%$'\n'}"
 
 	# Listen for the template and output as required
-	if [[ ${compact} == false ]]
+	if [[ ${compact} == true ]]
 	then
-		cat <<-EOF &
-			$(<"${fifo_path}"/mysql-init-template)
-		
-		EOF
-	else
 		cat -s \
 			<<-EOF | \
 				sed \
@@ -326,6 +321,11 @@ function __get_mysql_init_template ()
 				awk \
 					'{ ORS=( /;$/ ? RS:FS ) } 1' \
 				&
+			$(<"${fifo_path}"/mysql-init-template)
+		
+		EOF
+	else
+		cat <<-EOF &
 			$(<"${fifo_path}"/mysql-init-template)
 		
 		EOF
@@ -1118,19 +1118,6 @@ function main ()
 			printf -- \
 				'INFO: %s initialising\n' \
 				"${0##*/}"
-
-			# Initialisation template output
-			__get_mysql_init_template \
-				--user="${mysql_user}" \
-				--database="${mysql_user_database}" \
-				--host="${mysql_user_host}" \
-				--password-hashed="${mysql_user_password_hashed}" \
-				--init-sql="${mysql_init_sql}"
-
-			trap "__cleanup; \
-					rm -rf \"${server_key_path}\"; \
-					rm -rf \"${init_path}\";" \
-				EXIT INT TERM
 		fi
 
 		printf -- \

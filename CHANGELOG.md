@@ -33,6 +33,7 @@ Summary of release changes.
 - Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
 - Removes unnecessary use of `FLUSH PRIVILEGES` in intitialisation SQL.
 - Removes `log-error=/var/log/mysqld.log` from default configuration; log to stderr.
+- Removes initialisation template output from logs; `MYSQL_INIT_SQL` is operator defined.
 
 ### 2.2.0 - 2019-03-18
 
