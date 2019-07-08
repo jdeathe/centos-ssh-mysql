@@ -30,6 +30,8 @@ services:
       context: "."
       dockerfile: "Dockerfile"
     environment:
+      MYSQL_INIT_LIMIT: "${MYSQL_INIT_LIMIT}"
+      MYSQL_INIT_SQL: "${MYSQL_INIT_SQL}"
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
       MYSQL_ROOT_PASSWORD_HASHED: "${MYSQL_ROOT_PASSWORD_HASHED}"
       MYSQL_SUBNET: "${MYSQL_SUBNET}"

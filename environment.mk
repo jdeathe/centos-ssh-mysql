@@ -25,7 +25,7 @@ STARTUP_TIME ?= 10
 # ------------------------------------------------------------------------------
 ENABLE_MYSQLD_BOOTSTRAP ?= true
 ENABLE_MYSQLD_WRAPPER ?= true
-MYSQL_INIT_LIMIT ?= 60
+MYSQL_INIT_LIMIT ?= 10
 MYSQL_INIT_SQL ?=
 MYSQL_ROOT_PASSWORD ?=
 MYSQL_ROOT_PASSWORD_HASHED ?= false

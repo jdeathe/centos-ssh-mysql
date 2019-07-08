@@ -144,11 +144,11 @@ It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld
 
 ##### MYSQL_INIT_LIMIT
 
-The default timeout for MySQL initialisation is 60 seconds. Use `MYSQL_INIT_LIMIT` to change this value when necessary.
+The default timeout for MySQL initialisation is 10 seconds. Use `MYSQL_INIT_LIMIT` to change this value when necessary.
 
 ```
 ...
-  --env "MYSQL_INIT_LIMIT=120" \
+  --env "MYSQL_INIT_LIMIT=30" \
 ...
 ```
 
