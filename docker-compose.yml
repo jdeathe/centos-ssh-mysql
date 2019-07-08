@@ -16,6 +16,7 @@
 # Usage:
 # docker-compose exec mysql mysqladmin -p --help
 # docker-compose exec mysql mysql -p
+# docker exec -i $(docker-compose ps -q mysql) mysql < setup.sql
 #
 # Reset - bring down services + delete volume data:
 # docker-compose down -v
