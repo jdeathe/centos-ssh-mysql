@@ -1,10 +1,39 @@
 # Change Log
 
-## centos-7-mysql57-community
+## 2 - centos-7-mysql57-community
 
-Summary of release changes for Version 2.
+Summary of release changes.
 
-CentOS-7 7.5.1804 x86_64 - MySQL 5.7 Community Server.
+### 2.3.0 - 2019-07-09
+
+- Updates source image to [2.6.0](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.0).
+- Updates `mysql-community-server` package to 5.7.26-1.
+- Updates CHANGELOG.md to simplify maintenance.
+- Updates README.md to simplify contents and improve readability.
+- Updates README-short.txt to apply to all image variants.
+- Updates Dockerfile `org.deathe.description` metadata LABEL for consistency.
+- Updates order of supervisord configuration directives for consistency.
+- Updates supervisord configuration to send error log output to stderr.
+- Updates bootstrap supervisord configuration file/priority to `20-mysqld-bootstrap.conf`/`20`.
+- Updates wrapper supervisord configuration file/priority to `50-mysqld-wrapper.conf`/`50`.
+- Updates default value of `MYSQL_INIT_LIMIT` to 10 from 60 seconds.
+- Fixes docker host connection status check in Makefile.
+- Fixes default `MYSQL_INIT_LIMIT` value in systemd unit file template.
+- Adds `inspect`, `reload` and `top` Makefile targets.
+- Adds improved `clean` Makefile target; includes exited containers and dangling images.
+- Adds `SYSTEM_TIMEZONE` handling to Makefile, scmi, systemd unit and docker-compose templates.
+- Adds system time zone validation to healthcheck.
+- Adds lock/state file to bootstrap/wrapper scripts.
+- Adds all necessary auto-generated TLS/SSL pem files to data directory during bootstrap.
+- Adds improved bootstrap handling of previously initialised datadir.
+- Adds a note in example docker-compose.yml that `MYSQL_ROOT_PASSWORD` is required when using a data volume.
+- Adds `MYSQL_INIT_LIMIT` and `MYSQL_INIT_SQL` to docker-compose example.
+- Removes `MYSQL_AUTOSTART_MYSQL_BOOTSTRAP`, replaced with `ENABLE_MYSQL_BOOTSTRAP`.
+- Removes `MYSQL_AUTOSTART_MYSQL_WRAPPER`, replaced with `ENABLE_MYSQL_WRAPPER`.
+- Removes support for long image tags (i.e. centos-7-mysql57-community-2.x.x).
+- Removes unnecessary use of `FLUSH PRIVILEGES` in intitialisation SQL.
+- Removes `log-error=/var/log/mysqld.log` from default configuration; log to stderr.
+- Removes initialisation template output from logs; `MYSQL_INIT_SQL` is operator defined.
 
 ### 2.2.0 - 2019-03-18
 
