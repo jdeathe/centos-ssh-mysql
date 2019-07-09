@@ -1,7 +1,7 @@
 ## Tags and respective `Dockerfile` links
 
-- `centos-7-mysql57-community`, `centos-7-mysql57-community-2.2.0`, [`2.2.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.2.0)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, `centos-6-1.10.0`, [`1.10.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.10.0) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-7-mysql57-community`, [`2.2.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.2.0)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
+- `centos-6`, [`1.10.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.10.0) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 ## Overview
 
@@ -11,7 +11,7 @@ Includes automated password generation and an option for custom initialisation S
 
 ### Image variants
 
-- [MySQL Community Server 5.7 - CentOS-7](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community)
+- [MySQL 5.7 Community Server - CentOS-7](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community)
 - [MySQL 5.1 - CentOS-6](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6)
 
 ## Quick start
@@ -41,9 +41,9 @@ Verify successful initialisation of the named container.
 $ docker logs mysql.1
 ```
 
-On the first run, there will be additional output showing the initialisation SQL template and, before mysqld-bootstrap completes, the MySQL Details which shows the configured database, if applicable, and any associated user credentials.
+On first run, MySQL Details are returned. This includes the configured database, if applicable, and any associated user credentials.
 
-![Docker Logs - MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap.png)
+![Docker Logs - MySQL Bootstrap](https://raw.github.com/jdeathe/centos-ssh-mysql/centos-7-mysql57-community/images/docker-logs-mysqld-bootstrap-v2.3.0.png)
 
 The MySQL table data is persistent across container restarts by setting the MySQL data directory `/var/lib/mysql` as a data volume. To locate the path where data is stored on the Docker host use `docker inspect`.
 
@@ -131,24 +131,24 @@ There are several environmental variables defined at runtime these allow the ope
 
 > *Note:* Most of these settings are only evaluated during the first run of a named container; if the data volume already exists and contains database table data then changing these values will have no effect.
 
-##### MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP & MYSQL_AUTOSTART_MYSQLD_WRAPPER
+##### ENABLE_MYSQLD_BOOTSTRAP & ENABLE_MYSQLD_WRAPPER
 
-It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld-wrapper scripts. For example, when using an image built from this Dockerfile as the source for another Dockerfile you could disable both mysqld-wrapper and mysqld from startup by setting `MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP` and `MYSQL_AUTOSTART_MYSQLD_WRAPPER` to `false`. The benefit of this is to reduce the number of running processes in the final container. Another use for this would be to make use of the packages installed in the image such as `mysql` and `mysqladmin`; effectively making the container a MySQL client.
+It may be desirable to prevent the startup of the mysqld-bootstrap and/or mysqld-wrapper scripts. For example, when using an image built from this Dockerfile as the source for another Dockerfile you could disable both mysqld-wrapper and mysqld from startup by setting `ENABLE_MYSQLD_BOOTSTRAP` and `ENABLE_MYSQLD_WRAPPER` to `false`. The benefit of this is to reduce the number of running processes in the final container. Another use for this would be to make use of the packages installed in the image such as `mysql` and `mysqladmin`; effectively making the container a MySQL client.
 
 ```
 ...
-  --env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-  --env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+  --env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+  --env "ENABLE_MYSQLD_WRAPPER=false" \
 ...
 ```
 
 ##### MYSQL_INIT_LIMIT
 
-The default timeout for MySQL initialisation is 60 seconds. Use `MYSQL_INIT_LIMIT` to change this value when necessary.
+The default timeout for MySQL initialisation is 10 seconds. Use `MYSQL_INIT_LIMIT` to change this value when necessary.
 
 ```
 ...
-  --env "MYSQL_INIT_LIMIT=120" \
+  --env "MYSQL_INIT_LIMIT=30" \
 ...
 ```
 

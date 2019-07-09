@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+function __get_system_timezone ()
+{
+	local -r default_value="${1:-UTC}"
+
+	local value="${SYSTEM_TIMEZONE}"
+
+	if ! __is_valid_system_timezone "${value}"
+	then
+		value="${default_value}"
+	fi
+
+	printf -- '%s' "${value}"
+}
+
 function __have_mysql_access ()
 {
 	local -r database="${3:-mysql}"
@@ -61,6 +75,24 @@ function __is_mysql_data_directory_populated ()
 	return 1
 }
 
+function __is_valid_system_timezone ()
+{
+	__is_valid_zone "${@}"
+}
+
+function __is_valid_zone ()
+{
+	local zone="${1}"
+
+	if [[ -n ${zone} ]] \
+		&& [[ -f /usr/share/zoneinfo/${zone} ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
 function __last_check_passed ()
 {
 	local -i status=0
@@ -105,10 +137,10 @@ function __print_message ()
 
 	case "${type}" in
 		error)
-			prefix="[ERROR] "
+			prefix="ERROR: "
 			;;
 		info)
-			prefix="[INFO] "
+			prefix="INFO: "
 			;;
 		*)
 			message="${type}"
@@ -200,6 +232,12 @@ function main ()
 	local -r mysqld="/usr/libexec/mysqld"
 	local -r pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
 	local -r redacted_value="********"
+	local -r system_timezone="$(
+		__get_system_timezone
+	)"
+	local -r zone="$(
+		system-timezone -qq
+	)"
 
 	local QUIET="false"
 	local -i interval=10
@@ -250,8 +288,16 @@ function main ()
 		exit 1
 	fi
 
+	if [[ ${system_timezone} != "${zone}" ]]
+	then
+		__print_message \
+			"error" \
+			"system-timezone zone mismatch."
+		exit 1
+	fi
+
 	# mysqld-bootstrap
-	if [[ ${MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP} == true ]]
+	if [[ ${ENABLE_MYSQLD_BOOTSTRAP} == true ]]
 	then
 		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
 			|| ! __is_mysql_data_directory_populated
@@ -264,7 +310,7 @@ function main ()
 	fi
 
 	# mysqld-wrapper
-	if [[ ${MYSQL_AUTOSTART_MYSQLD_WRAPPER} == true ]]
+	if [[ ${ENABLE_MYSQLD_WRAPPER} == true ]]
 	then
 		if ! ps axo command \
 			| grep -qE "^${mysqld} "
