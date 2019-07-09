@@ -23,6 +23,20 @@ function __delete_lock ()
 	fi
 }
 
+function __get_bin ()
+{
+	local bin="/usr/sbin/mysqld"
+
+	if [[ -f /usr/bin/mysqld_safe ]]
+	then
+		bin="/usr/bin/mysqld_safe"
+	fi
+
+	printf -- \
+		'%s' \
+		"${bin}"
+}
+
 function __get_mysql_init_limit ()
 {
 	local -r default_value="${1:-10}"
@@ -40,13 +54,38 @@ function __get_mysql_init_limit ()
 function __get_options ()
 {
 	local -r options="${1}"
-	local -r pid_file="/var/run/mysqld/mysqld.pid"
 
-	printf -- \
-		'--pid-file=%s%s%s' \
-		"${pid_file}" \
-		"${options:+" "}" \
-		"${options}"
+	if [[ ${bin} == "/usr/bin/mysqld_safe" ]]
+	then
+		printf -- \
+			'%s%s' \
+			"${options:+" "}" \
+			"${options}"
+	else
+		printf -- \
+			'--pid-file=%s%s%s' \
+			"${pid_file}" \
+			"${options:+" "}" \
+			"${options}"
+	fi
+}
+
+function __get_proxy ()
+{
+	if [[ ${bin} == "/usr/bin/mysqld_safe" ]]
+	then
+		printf -- \
+			'%s -n %s %s %s' \
+			"${nice}" \
+			"${niceness}" \
+			"${pid_proxy}" \
+			"${pid_file}"
+	else
+		printf -- \
+			'%s -n %s' \
+			"${nice}" \
+			"${niceness}"
+	fi
 }
 
 function __is_valid_mysql_init_limit ()
@@ -64,7 +103,6 @@ function __is_valid_mysql_init_limit ()
 
 function main ()
 {
-	local -r bin="/usr/sbin/mysqld"
 	local -r bootstrap_state_file="/var/lib/misc/mysqld-bootstrap"
 	local -r bootstrap_timeout="$((
 		$(__get_mysql_init_limit) + 10
@@ -72,8 +110,12 @@ function main ()
 	local -r lock_file="/var/lock/subsys/mysqld-wrapper"
 	local -r nice="/bin/nice"
 	local -r niceness="10"
+	local -r pid_proxy="/usr/bin/pidproxy"
+	local -r pid_file="/var/run/mysqld/mysqld.pid"
 
+	local bin
 	local options
+	local proxy
 	local verbose="false"
 
 	while [[ "${#}" -gt 0 ]]
@@ -98,8 +140,14 @@ function main ()
 		EXIT INT TERM
 	__create_lock
 
+	bin="$(
+		__get_bin
+	)"
 	options="$(
 		__get_options
+	)"
+	proxy="$(
+		__get_proxy
 	)"
 
 	if [[ ${verbose} == true ]]
@@ -144,8 +192,8 @@ function main ()
 	trap - \
 		EXIT INT TERM
 
-	exec ${nice} \
-		-n ${niceness} \
+	exec \
+		${proxy} \
 		${bin} \
 		${options}
 }
