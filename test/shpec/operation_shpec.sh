@@ -316,6 +316,7 @@ function test_basic_operations ()
 					mysql_root_password="$(
 						docker logs \
 							mysql.1 \
+							2> /dev/null \
 						| grep 'user : root@localhost' \
 						| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 					)"
@@ -378,6 +379,7 @@ function test_basic_operations ()
 				it "Shows N/A in MySQL Details."
 					docker logs \
 						mysql.1 \
+						2> /dev/null \
 					| grep -q 'database : N/A' \
 					&> /dev/null
 
@@ -429,6 +431,7 @@ function test_basic_operations ()
 			it "Has database name in MySQL Details."
 				docker logs \
 					mysql.1 \
+					2> /dev/null \
 				| grep -q 'database : my-db' \
 				&> /dev/null
 
@@ -492,6 +495,7 @@ function test_basic_operations ()
 			it "Has user in MySQL Details."
 				docker logs \
 					mysql.1 \
+					2> /dev/null \
 				| grep -q 'user : my-user@localhost' \
 				&> /dev/null
 
@@ -589,8 +593,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.3 \
 					--network ${private_network_1} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -614,6 +618,7 @@ function test_custom_configuration ()
 				it "Has the database name."
 					docker logs \
 						mysql.2 \
+						2> /dev/null \
 					| grep -q 'database : app-db' \
 					&> /dev/null
 
@@ -627,6 +632,7 @@ function test_custom_configuration ()
 						mysql_root_password_log="$(
 							docker logs \
 								mysql.2 \
+								2> /dev/null \
 							| grep 'user : root@localhost' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
@@ -640,6 +646,7 @@ function test_custom_configuration ()
 						mysql_user_password_log="$(
 							docker logs \
 								mysql.2 \
+								2> /dev/null \
 							| grep 'user : app-user@172.172.40.0/255.255.255.0' \
 							| sed -e 's~^.*,.*password : \([^ ,:]*\).*$~\1~'
 						)"
@@ -955,8 +962,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.5 \
 					--network ${private_network_2} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -1096,8 +1103,8 @@ function test_custom_configuration ()
 					--detach \
 					--name mysql.7 \
 					--network ${private_network_1} \
-					--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
-					--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+					--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
+					--env "ENABLE_MYSQLD_WRAPPER=false" \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -1165,7 +1172,7 @@ function test_custom_configuration ()
 			docker run \
 				--detach \
 				--name mysql.1 \
-				--env "MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP=false" \
+				--env "ENABLE_MYSQLD_BOOTSTRAP=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
@@ -1178,8 +1185,10 @@ function test_custom_configuration ()
 			fi
 
 			it "Can disable mysqld-bootstrap."
-				docker logs mysql.1 \
-					| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
+				docker logs \
+					mysql.1 \
+					2> /dev/null \
+				| grep -qE 'INFO success: mysqld-bootstrap entered RUNNING state'
 
 				assert equal \
 					"${?}" \
@@ -1193,7 +1202,7 @@ function test_custom_configuration ()
 			docker run \
 				--detach \
 				--name mysql.1 \
-				--env "MYSQL_AUTOSTART_MYSQLD_WRAPPER=false" \
+				--env "ENABLE_MYSQLD_WRAPPER=false" \
 				jdeathe/centos-ssh-mysql:latest \
 			&> /dev/null
 
@@ -1312,7 +1321,7 @@ function test_healthcheck ()
 						-v event_lag="${event_lag_seconds}" \
 						-v interval="${interval_seconds}" \
 						-v retries="${retries}" \
-						'BEGIN { print event_lag + (interval * retries); }'
+						'BEGIN { print (2 * event_lag) + (interval * retries); }'
 				)"
 
 				health_status="$(
