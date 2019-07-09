@@ -1,7 +1,7 @@
 ## Tags and respective `Dockerfile` links
 
-- `centos-7-mysql57-community`, [`2.2.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.2.0)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, [`1.10.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.10.0) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-7-mysql57-community`, [`2.3.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.3.0)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
+- `centos-6`, [`1.11.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.11.0) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 ## Overview
 
@@ -25,7 +25,7 @@ $ docker run -d \
   --name mysql.1 \
   -p 3306:3306 \
   -v /var/lib/mysql \
-  jdeathe/centos-ssh-mysql:1.10.0
+  jdeathe/centos-ssh-mysql:1.11.0
 ```
 
 Verify the named container's process status and health.
@@ -114,7 +114,7 @@ $ docker stop mysql.1 && \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
   --volume mysql.1.data-mysql:/var/lib/mysql \
-  jdeathe/centos-ssh-mysql:1.10.0
+  jdeathe/centos-ssh-mysql:1.11.0
 ```
 
 The environmental variable `MYSQL_SUBNET` is optional but can be used to generate users with access to databases outside the `localhost`, (the default for the root user). In the example, the subnet definition `0.0.0.0/0.0.0.0` allows connections from any network which is equivalent to the wildcard symbol, `%`, in MySQL GRANT definitions.
