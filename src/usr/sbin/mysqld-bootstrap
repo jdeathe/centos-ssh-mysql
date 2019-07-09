@@ -618,20 +618,21 @@ function __init_datadir ()
 	then
 		mysql_install_db \
 			--force \
+			--log-warnings=0 \
 			--skip-name-resolve \
 			--skip-networking \
 			--tmpdir="${directory}" \
-			2> /dev/null
+			> /dev/null
 	else
 		mysqld \
 			--datadir="${directory}" \
 			--initialize-insecure \
+			--log_error_verbosity=1 \
 			--pid-file=/var/run/mysqld/mysqld.pid \
 			--skip-name-resolve \
 			--skip-networking \
 			--tmpdir="${directory}" \
-			--user=mysql \
-			2> /dev/null
+			--user=mysql
 	fi
 }
 
