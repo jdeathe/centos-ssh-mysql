@@ -1,12 +1,11 @@
-FROM jdeathe/centos-ssh:1.10.1
+FROM jdeathe/centos-ssh:1.11.0
 
-ARG RELEASE_VERSION="1.10.0"
+ARG RELEASE_VERSION="1.11.0"
 
 # ------------------------------------------------------------------------------
 # Base install of required packages
 # ------------------------------------------------------------------------------
-RUN rpm --rebuilddb \
-	&& yum -y install \
+RUN yum -y install \
 		--setopt=tsflags=nodocs \
 		--disableplugin=fastestmirror \
 		mysql-5.1.73-8.el6_8 \
@@ -33,7 +32,7 @@ RUN sed -i \
 	&& chmod 600 \
 		/etc/my.cnf \
 	&& chmod 644 \
-		/etc/supervisord.d/mysqld-{bootstrap,wrapper}.conf \
+		/etc/supervisord.d/{20-mysqld-bootstrap,50-mysqld-wrapper}.conf \
 	&& chmod 700 \
 		/usr/{bin/healthcheck,sbin/mysqld-{bootstrap,wrapper}}
 
@@ -42,9 +41,12 @@ EXPOSE 3306
 # ------------------------------------------------------------------------------
 # Set default environment variables
 # ------------------------------------------------------------------------------
-ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP="true" \
-	MYSQL_AUTOSTART_MYSQLD_WRAPPER="true" \
-	MYSQL_INIT_LIMIT="60" \
+ENV \
+	ENABLE_MYSQLD_BOOTSTRAP="true" \
+	ENABLE_MYSQLD_WRAPPER="true" \
+	ENABLE_SSHD_BOOTSTRAP="false" \
+	ENABLE_SSHD_WRAPPER="false" \
+	MYSQL_INIT_LIMIT="10" \
 	MYSQL_INIT_SQL="" \
 	MYSQL_ROOT_PASSWORD="" \
 	MYSQL_ROOT_PASSWORD_HASHED="false" \
@@ -53,9 +55,7 @@ ENV MYSQL_AUTOSTART_MYSQLD_BOOTSTRAP="true" \
 	MYSQL_USER_DATABASE="" \
 	MYSQL_USER_PASSWORD="" \
 	MYSQL_USER_PASSWORD_HASHED="false" \
-	SSH_AUTOSTART_SSHD="false" \
-	SSH_AUTOSTART_SSHD_BOOTSTRAP="false" \
-	SSH_AUTOSTART_SUPERVISOR_STDOUT="false"
+	SYSTEM_TIMEZONE="UTC"
 
 # -----------------------------------------------------------------------------
 # Set image metadata
@@ -88,7 +88,7 @@ jdeathe/centos-ssh-mysql:${RELEASE_VERSION} \
 	org.deathe.license="MIT" \
 	org.deathe.vendor="jdeathe" \
 	org.deathe.url="https://github.com/jdeathe/centos-ssh-mysql" \
-	org.deathe.description="CentOS-6 6.10 x86_64 - MySQL 5.1."
+	org.deathe.description="MySQL 5.1 - CentOS-6 6.10 x86_64."
 
 HEALTHCHECK \
 	--interval=1s \
