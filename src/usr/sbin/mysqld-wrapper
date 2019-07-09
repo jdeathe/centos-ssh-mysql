@@ -23,6 +23,20 @@ function __delete_lock ()
 	fi
 }
 
+function __get_bin ()
+{
+	local bin="/usr/sbin/mysqld"
+
+	if [[ -f /usr/bin/mysqld_safe ]]
+	then
+		bin="/usr/bin/mysqld_safe"
+	fi
+
+	printf -- \
+		'%s' \
+		"${bin}"
+}
+
 function __get_mysql_init_limit ()
 {
 	local -r default_value="${1:-10}"
@@ -89,7 +103,6 @@ function __is_valid_mysql_init_limit ()
 
 function main ()
 {
-	local -r bin="/usr/bin/mysqld_safe"
 	local -r bootstrap_state_file="/var/lib/misc/mysqld-bootstrap"
 	local -r bootstrap_timeout="$((
 		$(__get_mysql_init_limit) + 10
@@ -100,6 +113,7 @@ function main ()
 	local -r pid_proxy="/usr/bin/pidproxy"
 	local -r pid_file="/var/run/mysqld/mysqld.pid"
 
+	local bin
 	local options
 	local proxy
 	local verbose="false"
@@ -126,10 +140,12 @@ function main ()
 		EXIT INT TERM
 	__create_lock
 
+	bin="$(
+		__get_bin
+	)"
 	options="$(
 		__get_options
 	)"
-
 	proxy="$(
 		__get_proxy
 	)"
