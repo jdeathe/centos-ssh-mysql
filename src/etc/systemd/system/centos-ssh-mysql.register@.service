@@ -41,7 +41,7 @@
 # ------------------------------------------------------------------------------
 
 [Unit]
-Description=centos-mysql etcd registration // %p@%i
+Description=centos-ssh-mysql etcd registration // %p@%i
 After=etcd.service
 After=etcd2.service
 After={{SERVICE_UNIT_NAME}}@%i.service
