@@ -4,7 +4,7 @@
 
 Summary of release changes.
 
-### 2.3.0 - Unreleased
+### 2.3.0 - 2019-07-09
 
 - Updates source image to [2.6.0](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.0).
 - Updates `mysql-community-server` package to 5.7.26-1.
