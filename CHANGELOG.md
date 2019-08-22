@@ -4,6 +4,10 @@
 
 Summary of release changes.
 
+### 2.3.1 - Unreleased
+
+- Updates healthcheck script for consistency.
+
 ### 2.3.0 - 2019-07-09
 
 - Updates source image to [2.6.0](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.0).
