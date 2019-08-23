@@ -7,6 +7,7 @@ Summary of release changes.
 ### 2.3.1 - Unreleased
 
 - Updates healthcheck script for consistency.
+- Fixes container mount point for emulating and testing secrets.
 
 ### 2.3.0 - 2019-07-09
 
