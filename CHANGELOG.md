@@ -4,7 +4,7 @@
 
 Summary of release changes.
 
-### 1.11.1 - Unreleased
+### 1.11.1 - 2019-08-23
 
 - Updates healthcheck script for consistency.
 - Fixes container mount point for emulating and testing secrets.
