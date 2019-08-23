@@ -38,15 +38,6 @@ function __configure_mysql_client_root_password ()
 			mktemp -d
 		)"
 
-		if [[ ${?} -ne 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s failed to create directory %s - aborting\n' \
-				"${0##*/}" \
-				"${fifo_path}"
-			exit 1
-		fi
-
 		trap "__cleanup; \
 				rm -rf \"${fifo_path}\";" \
 			EXIT INT TERM
@@ -93,6 +84,7 @@ function __configure_mysql_client_root_password ()
 				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 			EXIT INT TERM
 
+		set +e
 		if [[ ${pids[1]} -gt 0 ]]
 		then
 			wait ${pids[1]}
@@ -105,6 +97,7 @@ function __configure_mysql_client_root_password ()
 				"${0##*/}"
 			exit 1
 		fi
+		set -e
 
 		trap - \
 			EXIT INT TERM
@@ -244,15 +237,6 @@ function __get_mysql_init_template ()
 		mktemp -d
 	)"
 
-	if [[ ${?} -ne 0 ]]
-	then
-		>&2 printf -- \
-			'ERROR: %s failed to create directory %s - aborting\n' \
-			"${0##*/}"
-			"${fifo_path}"
-		exit 1
-	fi
-
 	trap "__cleanup; \
 			rm -rf \"${fifo_path}\";" \
 		EXIT INT TERM
@@ -366,6 +350,7 @@ function __get_mysql_init_template ()
 			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 		EXIT INT TERM
 
+	set +e
 	if [[ ${pids[1]} -gt 0 ]]
 	then
 		wait ${pids[1]}
@@ -378,6 +363,7 @@ function __get_mysql_init_template ()
 			"${0##*/}"
 		exit 1
 	fi
+	set -e
 
 	rm -rf \
 		"${fifo_path}"
@@ -1067,15 +1053,6 @@ function main ()
 		server_key_path="$(
 			mktemp -d
 		)"
-
-		if [[ ${?} -ne 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s failed to create directory %s - aborting\n' \
-				"${0##*/}" \
-				"${server_key_path}"
-			exit 1
-		fi
 
 		trap "__cleanup; \
 				rm -rf \"${server_key_path}\";" \
