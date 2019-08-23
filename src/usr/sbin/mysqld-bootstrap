@@ -38,15 +38,6 @@ function __configure_mysql_client_root_password ()
 			mktemp -d
 		)"
 
-		if [[ ${?} -ne 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s failed to create directory %s - aborting\n' \
-				"${0##*/}" \
-				"${fifo_path}"
-			exit 1
-		fi
-
 		trap "__cleanup; \
 				rm -rf \"${fifo_path}\";" \
 			EXIT INT TERM
@@ -93,6 +84,7 @@ function __configure_mysql_client_root_password ()
 				[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 			EXIT INT TERM
 
+		set +e
 		if [[ ${pids[1]} -gt 0 ]]
 		then
 			wait ${pids[1]}
@@ -105,6 +97,7 @@ function __configure_mysql_client_root_password ()
 				"${0##*/}"
 			exit 1
 		fi
+		set -e
 
 		trap - \
 			EXIT INT TERM
@@ -244,15 +237,6 @@ function __get_mysql_init_template ()
 		mktemp -d
 	)"
 
-	if [[ ${?} -ne 0 ]]
-	then
-		>&2 printf -- \
-			'ERROR: %s failed to create directory %s - aborting\n' \
-			"${0##*/}"
-			"${fifo_path}"
-		exit 1
-	fi
-
 	trap "__cleanup; \
 			rm -rf \"${fifo_path}\";" \
 		EXIT INT TERM
@@ -366,6 +350,7 @@ function __get_mysql_init_template ()
 			[[ ${pids[2]} -gt 0 ]] && kill -9 ${pids[2]};" \
 		EXIT INT TERM
 
+	set +e
 	if [[ ${pids[1]} -gt 0 ]]
 	then
 		wait ${pids[1]}
@@ -378,6 +363,7 @@ function __get_mysql_init_template ()
 			"${0##*/}"
 		exit 1
 	fi
+	set -e
 
 	rm -rf \
 		"${fifo_path}"
@@ -664,6 +650,87 @@ function __init_mysql ()
 	fi
 }
 
+function __init_mysql_completion ()
+{
+	local counter
+
+	# Wait for initialisation to complete (poll for access) or timeout
+	counter="$((
+		2 * mysql_init_limit
+	))"
+
+	set +e
+	until (( counter == 0 ))
+	do
+		sleep 0.5
+
+		if __have_mysql_access
+		then
+			# Set the password if it was supplied pre-hashed.
+			if [[ ${mysql_root_password_hashed} == true ]]
+			then
+				if command -v mysqld_safe &> /dev/null
+				then
+					# MySQL version < 5.7
+					mysql \
+						-e "SET PASSWORD = '${mysql_root_password}'"
+				else
+					# MySQL version >= 5.7
+					mysql \
+						-e "UPDATE mysql.user \
+							SET authentication_string = '${mysql_root_password}' \
+							WHERE User = 'root' \
+							AND Host = 'localhost';"
+				fi
+
+				rm -f \
+					/root/.{my,mylogin}.cnf
+			fi
+
+			break
+		fi
+
+		(( counter -= 1 ))
+	done
+	set -e
+
+	if [[ ${counter} -eq 0 ]]
+	then
+		>&2 printf -- \
+			'ERROR: %s initilisation timed out - aborting\n' \
+			"${0##*/}"
+
+		killall \
+			-15 \
+			mysqld
+
+		exit 1
+	else
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				'INFO: %s stopping mysqld\n' \
+				"${0##*/}"
+		fi
+
+		# Prefer mysqladmin shutdown method if password is known
+		if [[ ${mysql_root_password_hashed} == true ]]
+		then
+			killall \
+				-w \
+				-15 \
+				mysqld
+		else
+			mysqladmin \
+				--user=root \
+				shutdown
+		fi
+
+		rm -rf \
+			"${init_path}"
+	fi
+}
+
 function __is_mysql_datadir_populated ()
 {
 	local -r directory="${1:-"$(
@@ -883,7 +950,6 @@ function main ()
 		date -u +%s.%N
 	)"
 
-	local counter
 	local datadir
 	local init_file
 	local init_path
@@ -976,7 +1042,7 @@ function main ()
 
 	# Certificate generation
 	if [[ -x /usr/bin/mysql_ssl_rsa_setup ]] \
-		&& [[ ! -e ${datadir}/server-key.pem ]]
+		&& [[ ! -f ${datadir}/server-key.pem ]]
 	then
 		if [[ ${verbose} == true ]]
 		then
@@ -987,15 +1053,6 @@ function main ()
 		server_key_path="$(
 			mktemp -d
 		)"
-
-		if [[ ${?} -ne 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s failed to create directory %s - aborting\n' \
-				"${0##*/}" \
-				"${server_key_path}"
-			exit 1
-		fi
 
 		trap "__cleanup; \
 				rm -rf \"${server_key_path}\";" \
@@ -1009,6 +1066,31 @@ function main ()
 		pids[2]="${!}"
 	fi
 
+	# Prepair initialisation path and file
+	init_path="$(
+		mktemp -d
+	)"
+
+	trap "__cleanup; \
+			rm -rf \"${server_key_path}\"; \
+			rm -rf \"${init_path}\";" \
+		EXIT INT TERM
+
+	chmod 750 \
+		"${init_path}"
+	chown root:mysql \
+		"${init_path}"
+
+	init_file="$(
+		mktemp \
+			--tmpdir="${init_path}"
+	)"
+
+	chmod 640 \
+		"${init_file}"
+	chown root:mysql \
+		"${init_file}"
+
 	# Initialisation is a one-shot process.
 	if __is_mysql_datadir_populated "${datadir}"
 	then
@@ -1018,6 +1100,41 @@ function main ()
 				'INFO: %s skipping data directory initialisation\n' \
 				"${0##*/}"
 		fi
+
+		if command -v mysqld_safe &> /dev/null
+		then
+			# MySQL version < 5.7.6
+			printf -v \
+				init_template \
+				-- "SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s');" \
+				"root" \
+				"localhost" \
+				"{{MYSQL_ROOT_PASSWORD}}"
+		else
+			# MySQL version >= 5.7.6
+			printf -v \
+				init_template \
+				-- "ALTER USER '%s'@'%s' IDENTIFIED BY '%s';" \
+				"root" \
+				"localhost" \
+				"{{MYSQL_ROOT_PASSWORD}}"
+		fi
+
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				'INFO: %s initialising\n' \
+				"${0##*/}"
+		fi
+
+		printf -- \
+			'%s\n' \
+			"${init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}" \
+			> "${init_file}"
+
+		__init_mysql \
+			"${init_file}" \
+			&
 
 		if [[ ${mysql_root_password_hashed} != true ]]
 		then
@@ -1029,10 +1146,27 @@ function main ()
 		if [[ -d ${server_key_path} ]]
 		then
 			trap "__cleanup; \
-					rm -rf \"${server_key_path}\";" \
+					rm -rf \"${server_key_path}\"; \
+					rm -rf \"${init_path}\";" \
 				EXIT INT TERM
 		else
-			trap "__cleanup;" \
+			trap "__cleanup; \
+				rm -rf \"${init_path}\";" \
+				EXIT INT TERM
+		fi
+
+		__init_mysql_completion
+
+		# Restore appropriate trap
+		if [[ -d ${server_key_path} ]]
+		then
+			trap "__cleanup; \
+					rm -rf \"${server_key_path}\"; \
+					rm -rf \"${init_path}\";" \
+				EXIT INT TERM
+		else
+			trap "__cleanup; \
+				rm -rf \"${init_path}\";" \
 				EXIT INT TERM
 		fi
 
@@ -1072,7 +1206,8 @@ function main ()
 		)"
 
 		trap "__cleanup; \
-				rm -rf \"${server_key_path}\";" \
+				rm -rf \"${server_key_path}\"; \
+				rm -rf \"${init_path}\";" \
 			EXIT INT TERM
 
 		init_template="${init_template//'{{MYSQL_USER}}'/${mysql_user}}"
@@ -1080,39 +1215,6 @@ function main ()
 		init_template="${init_template//'{{MYSQL_USER_HOST}}'/${mysql_user_host}}"
 		init_template="${init_template//'{{MYSQL_USER_PASSWORD}}'/${mysql_user_password}}"
 		init_template="${init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}"
-
-		init_path="$(
-			mktemp -d
-		)"
-
-		if [[ ${?} -ne 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s failed to create directory %s - aborting\n' \
-				"${0##*/}" \
-				"${init_path}"
-			exit 1
-		fi
-
-		trap "__cleanup; \
-				rm -rf \"${server_key_path}\"; \
-				rm -rf \"${init_path}\";" \
-			EXIT INT TERM
-
-		chmod 750 \
-			"${init_path}"
-		chown root:mysql \
-			"${init_path}"
-
-		init_file="$(
-			mktemp \
-				--tmpdir="${init_path}"
-		)"
-
-		chmod 640 \
-			"${init_file}"
-		chown root:mysql \
-			"${init_file}"
 
 		if [[ ${verbose} == true ]]
 		then
@@ -1144,84 +1246,11 @@ function main ()
 				rm -rf \"${init_path}\";" \
 			EXIT INT TERM
 
-		# Wait for initialisation to complete (poll for access) or timeout
-		counter="$((
-			2 * mysql_init_limit
-		))"
-		set +e
-		until (( counter == 0 ))
-		do
-			sleep 0.5
+		__init_mysql_completion
 
-			if __have_mysql_access
-			then
-				# Set the password if it was supplied pre-hashed.
-				if [[ ${mysql_root_password_hashed} == true ]]
-				then
-					if command -v mysqld_safe &> /dev/null
-					then
-						# MySQL version < 5.7
-						mysql \
-							-e "SET PASSWORD = '${mysql_root_password}'"
-					else
-						# MySQL version >= 5.7
-						mysql \
-							-e "UPDATE mysql.user \
-								SET authentication_string = '${mysql_root_password}' \
-								WHERE User = 'root' \
-								AND Host = 'localhost';"
-					fi
-
-					rm -f \
-						/root/.{my,mylogin}.cnf
-				fi
-
-				break
-			fi
-
-			(( counter -= 1 ))
-		done
-		set -e
-
-		if [[ ${counter} -eq 0 ]]
-		then
-			>&2 printf -- \
-				'ERROR: %s initilisation timed out - aborting\n' \
-				"${0##*/}"
-
-			killall \
-				-15 \
-				mysqld
-
-			exit 1
-		else
-			if [[ ${verbose} == true ]]
-			then
-				printf -- \
-					'INFO: %s stopping mysqld\n' \
-					"${0##*/}"
-			fi
-
-			# Prefer mysqladmin shutdown method if password is known
-			if [[ ${mysql_root_password_hashed} == true ]]
-			then
-				killall \
-					-w \
-					-15 \
-					mysqld
-			else
-				mysqladmin \
-					--user=root \
-					shutdown
-			fi
-
-			rm -rf \
-				"${init_path}"
-
-			trap "__cleanup; \
-					rm -rf \"${server_key_path}\";" \
-				EXIT INT TERM
-		fi
+		trap "__cleanup; \
+				rm -rf \"${server_key_path}\";" \
+			EXIT INT TERM
 
 		# Local root user details
 		if [[ ${verbose} == true ]]

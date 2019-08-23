@@ -1,7 +1,7 @@
 ## Tags and respective `Dockerfile` links
 
-- `centos-7-mysql57-community`, [`2.3.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.3.0)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, [`1.11.0`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.11.0) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- `centos-7-mysql57-community`, [`2.3.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.3.1)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
+- `centos-6`, [`1.11.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.11.1) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 ## Overview
 
@@ -25,7 +25,7 @@ $ docker run -d \
   --name mysql.1 \
   -p 3306:3306 \
   -v /var/lib/mysql \
-  jdeathe/centos-ssh-mysql:2.3.0
+  jdeathe/centos-ssh-mysql:2.3.1
 ```
 
 Verify the named container's process status and health.
@@ -60,11 +60,11 @@ $ docker exec -it \
   mysql.1 \
   mysql
 ```
-### Sakila Example
+### Sakila example
 
 Import the Sakila example database from the [MySQL Documentation](https://dev.mysql.com/doc/index-other.html) and view the first 2 records from the film table.
 
-#### Import Schema
+#### Import schema
 
 ```
 $ docker exec -i mysql.1 mysql \
@@ -74,7 +74,7 @@ $ docker exec -i mysql.1 mysql \
   )
 ```
 
-#### Import Data
+#### Import data
 
 ```
 $ docker exec -i mysql.1 mysql \
@@ -83,7 +83,7 @@ $ docker exec -i mysql.1 mysql \
   )
 ```
 
-#### Select Records
+#### Select records
 
 ```
 $ docker exec mysql.1 mysql \
@@ -104,7 +104,7 @@ The following example sets up a custom MySQL database, user and user password on
 
 ```
 $ docker stop mysql.1 && \
-  docker rm mysql.1 && \
+  docker rm mysql.1; \
   docker run \
   --detach \
   --name mysql.1 \
@@ -114,7 +114,7 @@ $ docker stop mysql.1 && \
   --env "MYSQL_USER_PASSWORD=" \
   --env "MYSQL_USER_DATABASE=app-db" \
   --volume mysql.1.data-mysql:/var/lib/mysql \
-  jdeathe/centos-ssh-mysql:2.3.0
+  jdeathe/centos-ssh-mysql:2.3.1
 ```
 
 The environmental variable `MYSQL_SUBNET` is optional but can be used to generate users with access to databases outside the `localhost`, (the default for the root user). In the example, the subnet definition `0.0.0.0/0.0.0.0` allows connections from any network which is equivalent to the wildcard symbol, `%`, in MySQL GRANT definitions.
@@ -125,7 +125,7 @@ Verify it's initialised and running successfully by inspecting the container's l
 $ docker logs mysql.1
 ```
 
-#### Environment Variables
+#### Environment variables
 
 There are several environmental variables defined at runtime these allow the operator to customise the running container.
 

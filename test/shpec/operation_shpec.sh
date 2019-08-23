@@ -727,13 +727,13 @@ function test_custom_configuration ()
 					--name mysql.2 \
 					--network-alias mysql.2 \
 					--network ${private_network_1} \
-					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
+					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app-user" \
-					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
+					--env "MYSQL_USER_PASSWORD=/var/run/secrets/mysql_user_password" \
 					--env "MYSQL_USER_DATABASE=app-db" \
 					--volume ${data_volume_1}:/var/lib/mysql \
-					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/var/run/secrets:ro \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -822,15 +822,15 @@ function test_custom_configuration ()
 					--name mysql.2 \
 					--network-alias mysql.2 \
 					--network ${private_network_1} \
-					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password_hashed" \
+					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password_hashed" \
 					--env "MYSQL_ROOT_PASSWORD_HASHED=true" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app-user" \
-					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password_hashed" \
+					--env "MYSQL_USER_PASSWORD=/var/run/secrets/mysql_user_password_hashed" \
 					--env "MYSQL_USER_PASSWORD_HASHED=true" \
 					--env "MYSQL_USER_DATABASE=app-db" \
 					--volume ${data_volume_1}:/var/lib/mysql \
-					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/var/run/secrets:ro \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 
@@ -1083,13 +1083,13 @@ function test_custom_configuration ()
 					--network ${private_network_1} \
 					--env "MYSQL_INIT_LIMIT=30" \
 					--env "MYSQL_INIT_SQL=CREATE DATABASE IF NOT EXISTS \`{{MYSQL_USER_DATABASE}}-1\`; GRANT ALL PRIVILEGES ON \`{{MYSQL_USER_DATABASE}}-%\`.* TO '{{MYSQL_USER}}'@'{{MYSQL_USER_HOST}}' IDENTIFIED BY '{{MYSQL_USER_PASSWORD}}'; CREATE TABLE \`{{MYSQL_USER_DATABASE}}-1\`.\`user\` (\`id\` int(10) unsigned NOT NULL AUTO_INCREMENT, \`email\` varchar(255), PRIMARY KEY (\`id\`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;" \
-					--env "MYSQL_ROOT_PASSWORD=/run/secrets/mysql_root_password" \
+					--env "MYSQL_ROOT_PASSWORD=/var/run/secrets/mysql_root_password" \
 					--env "MYSQL_SUBNET=172.172.40.0/255.255.255.0" \
 					--env "MYSQL_USER=app" \
-					--env "MYSQL_USER_PASSWORD=/run/secrets/mysql_user_password" \
+					--env "MYSQL_USER_PASSWORD=/var/run/secrets/mysql_user_password" \
 					--env "MYSQL_USER_DATABASE=appdb" \
 					--volume ${data_volume_3}:/var/lib/mysql \
-					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/run/secrets:ro \
+					--volume ${PWD}/${TEST_DIRECTORY}/fixture/secrets:/var/run/secrets:ro \
 					jdeathe/centos-ssh-mysql:latest \
 				&> /dev/null
 

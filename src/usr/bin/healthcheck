@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 function __get_system_timezone ()
 {
 	local -r default_value="${1:-UTC}"
@@ -97,14 +99,14 @@ function __last_check_passed ()
 {
 	local -i status=0
 
-	if [[ ! -f ${STATUS_PATH} ]]
+	if [[ ! -f ${status_path} ]]
 	then
 		return ${status}
 	else
 		read \
 			-n 1 \
 			status \
-		< "${STATUS_PATH}"
+			< "${status_path}"
 
 		if [[ ${status} =~ ^[01]$ ]]
 		then
@@ -130,8 +132,9 @@ function __mysql_get_option ()
 
 function __print_message ()
 {
+	local -r quiet="${quiet:-false}"
 	local -r type="${1:-}"
-	local -r quiet="${QUIET:-false}"
+
 	local message="${2:-}"
 	local prefix
 
@@ -168,10 +171,9 @@ function __print_message ()
 
 function __record_exit_status ()
 {
+	local -r status_directory="${status_path%/*}"
+
 	local -i status=${1:-${?}}
-	local status_directory="$(
-		dirname "${STATUS_PATH}"
-	)"
 
 	if [[ ! -d ${status_directory} ]]
 	then
@@ -183,20 +185,20 @@ function __record_exit_status ()
 			"${status_directory}"
 	fi
 
-	if [[ ! -f ${STATUS_PATH} ]]
+	if [[ ! -f ${status_path} ]]
 	then
 		install \
 			-m 0660 \
 			-o root \
 			-g root \
 			/dev/null \
-			"${STATUS_PATH}"
+			"${status_path}"
 	fi
 
 	printf -- \
 		'%d' \
 		"${status}" \
-	> "${STATUS_PATH}"
+		> "${status_path}"
 
 	trap - \
 		EXIT
@@ -208,8 +210,8 @@ function __usage ()
 {
 	cat <<-USAGE
 	
-	Usage: $(basename ${0}) [OPTIONS]
-	       $(basename ${0}) [-h|--help]
+	Usage: ${0##*/} [OPTIONS]
+	       ${0##*/} [-h|--help]
 	
 	Options:
 	  -i, --interval=<seconds>            After the first successful check the 
@@ -228,10 +230,10 @@ function __usage ()
 
 function main ()
 {
-	local -r STATUS_PATH="/var/lib/healthcheck/status"
 	local -r mysqld="/usr/sbin/mysqld"
 	local -r pattern_seconds_in_minute='^([1-9]|[1-5][0-9]|60)$'
 	local -r redacted_value="********"
+	local -r status_path="/var/lib/healthcheck/status"
 	local -r system_timezone="$(
 		__get_system_timezone
 	)"
@@ -239,7 +241,7 @@ function main ()
 		system-timezone -qq
 	)"
 
-	local QUIET="false"
+	local quiet="false"
 	local -i interval=10
 
 	# Trap and record the exit status
@@ -262,7 +264,7 @@ function main ()
 				shift 1
 				;;
 			-q|--quiet)
-				QUIET="true"
+				quiet="true"
 				shift 1
 				;;
 			*)
@@ -296,10 +298,9 @@ function main ()
 		exit 1
 	fi
 
-	# mysqld-bootstrap
 	if [[ ${ENABLE_MYSQLD_BOOTSTRAP} == true ]]
 	then
-		if [[ -e /var/lock/subsys/mysqld-bootstrap ]] \
+		if [[ -f /var/lock/subsys/mysqld-bootstrap ]] \
 			|| ! __is_mysql_data_directory_populated
 		then
 			__print_message \
@@ -309,7 +310,6 @@ function main ()
 		fi
 	fi
 
-	# mysqld-wrapper
 	if [[ ${ENABLE_MYSQLD_WRAPPER} == true ]]
 	then
 		if ! ps axo command \
@@ -338,6 +338,7 @@ function main ()
 		if ! __have_mysql_access
 		then
 			__print_message \
+				"error" \
 				"root@localhost access failed."
 			exit 1
 		fi
