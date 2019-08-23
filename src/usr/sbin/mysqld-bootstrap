@@ -1124,11 +1124,61 @@ function main ()
 				"${0##*/}"
 		fi
 
+		if command -v mysqld_safe &> /dev/null
+		then
+			# MySQL version < 5.7.6
+			printf -v \
+				init_template \
+				-- "SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s');" \
+				"root" \
+				"localhost" \
+				"{{MYSQL_ROOT_PASSWORD}}"
+		else
+			# MySQL version >= 5.7.6
+			printf -v \
+				init_template \
+				-- "ALTER USER '%s'@'%s' IDENTIFIED BY '%s';" \
+				"root" \
+				"localhost" \
+				"{{MYSQL_ROOT_PASSWORD}}"
+		fi
+
+		if [[ ${verbose} == true ]]
+		then
+			printf -- \
+				'INFO: %s initialising\n' \
+				"${0##*/}"
+		fi
+
+		printf -- \
+			'%s\n' \
+			"${init_template//'{{MYSQL_ROOT_PASSWORD}}'/${mysql_root_password}}" \
+			> "${init_file}"
+
+		__init_mysql \
+			"${init_file}" \
+			&
+
 		if [[ ${mysql_root_password_hashed} != true ]]
 		then
 			__configure_mysql_client_root_password \
 				"${mysql_root_password}"
 		fi
+
+		# Restore appropriate trap
+		if [[ -d ${server_key_path} ]]
+		then
+			trap "__cleanup; \
+					rm -rf \"${server_key_path}\"; \
+					rm -rf \"${init_path}\";" \
+				EXIT INT TERM
+		else
+			trap "__cleanup; \
+				rm -rf \"${init_path}\";" \
+				EXIT INT TERM
+		fi
+
+		__init_mysql_completion
 
 		# Restore appropriate trap
 		if [[ -d ${server_key_path} ]]

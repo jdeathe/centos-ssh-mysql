@@ -8,6 +8,7 @@ Summary of release changes.
 
 - Updates healthcheck script for consistency.
 - Fixes container mount point for emulating and testing secrets.
+- Fixes issue with automatically generated root password initialisation when running with existing datadir volume.
 
 ### 2.3.0 - 2019-07-09
 
