@@ -60,11 +60,11 @@ $ docker exec -it \
   mysql.1 \
   mysql
 ```
-### Sakila Example
+### Sakila example
 
 Import the Sakila example database from the [MySQL Documentation](https://dev.mysql.com/doc/index-other.html) and view the first 2 records from the film table.
 
-#### Import Schema
+#### Import schema
 
 ```
 $ docker exec -i mysql.1 mysql \
@@ -74,7 +74,7 @@ $ docker exec -i mysql.1 mysql \
   )
 ```
 
-#### Import Data
+#### Import data
 
 ```
 $ docker exec -i mysql.1 mysql \
@@ -83,7 +83,7 @@ $ docker exec -i mysql.1 mysql \
   )
 ```
 
-#### Select Records
+#### Select records
 
 ```
 $ docker exec mysql.1 mysql \
@@ -104,7 +104,7 @@ The following example sets up a custom MySQL database, user and user password on
 
 ```
 $ docker stop mysql.1 && \
-  docker rm mysql.1 && \
+  docker rm mysql.1; \
   docker run \
   --detach \
   --name mysql.1 \
@@ -125,7 +125,7 @@ Verify it's initialised and running successfully by inspecting the container's l
 $ docker logs mysql.1
 ```
 
-#### Environment Variables
+#### Environment variables
 
 There are several environmental variables defined at runtime these allow the operator to customise the running container.
 
