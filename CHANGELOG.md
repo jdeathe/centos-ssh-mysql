@@ -4,6 +4,12 @@
 
 Summary of release changes.
 
+### 1.11.1 - Unreleased
+
+- Updates healthcheck script for consistency.
+- Fixes container mount point for emulating and testing secrets.
+- Fixes issue with automatically generated root password initialisation when running with existing datadir volume.
+
 ### 1.11.0 - 2019-07-09
 
 - Updates source image to [1.11.0](https://github.com/jdeathe/centos-ssh/releases/tag/1.11.0).
