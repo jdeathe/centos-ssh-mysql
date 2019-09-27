@@ -1,4 +1,4 @@
-FROM jdeathe/centos-ssh:2.6.0
+FROM jdeathe/centos-ssh:2.6.1
 
 ARG RELEASE_VERSION="2.3.1"
 
