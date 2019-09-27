@@ -8,6 +8,8 @@ Summary of release changes.
 
 - Deprecate Makefile target `logs-delayed`; replaced with `logsdef`.
 - Updates source image to [2.6.1](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.1).
+- Updates `mysql-community-server` package to 5.7.27-1.
+- Updates `psmisc` package to 22.20-16.
 - Updates `test/health_status` helper script with for consistency.
 - Updates Makefile target `logs` to accept `[OPTIONS]` (e.g `make -- logs -ft`).
 - Updates info/error output for consistency.
