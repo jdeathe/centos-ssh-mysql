@@ -130,45 +130,6 @@ function __mysql_get_option ()
 		"${value:-$3}"
 }
 
-function __print_message ()
-{
-	local -r quiet="${quiet:-false}"
-	local -r type="${1:-}"
-
-	local message="${2:-}"
-	local prefix
-
-	case "${type}" in
-		error)
-			prefix="ERROR: "
-			;;
-		info)
-			prefix="INFO: "
-			;;
-		*)
-			message="${type}"
-			;;
-	esac
-
-	if [[ ${quiet} == true ]] \
-		&& [[ ${type} != error ]]
-	then
-		return 0
-	elif [[ ${quiet} == true ]] \
-		&& [[ ${type} == error ]]
-	then
-		>&2 printf -- \
-			'%s%s\n' \
-			"${prefix}" \
-			"${message}"
-	else
-		printf -- \
-			'%s%s\n' \
-			"${prefix}" \
-			"${message}"
-	fi
-}
-
 function __record_exit_status ()
 {
 	local -r status_directory="${status_path%/*}"
@@ -255,13 +216,13 @@ function main ()
 				__usage
 				break
 				;;
-			-i)
-				interval="${2}"
-				shift 2 || break
-				;;
 			--interval=*)
 				interval="${1#*=}"
 				shift 1
+				;;
+			-i|--interval)
+				interval="${2}"
+				shift 2 || break
 				;;
 			-q|--quiet)
 				quiet="true"
@@ -275,26 +236,24 @@ function main ()
 
 	if [[ ! ${interval} =~ ${pattern_seconds_in_minute} ]]
 	then
-		__print_message \
-			"error" \
-			"Invalid interval."
+		>&2 printf -- \
+			'ERROR: %s invalid interval' \
+			"${0##*/}"
 		exit 1
 	fi
 
 	if ! ps axo command \
 		| grep -qE '^/usr/bin/python /usr/bin/supervisord'
 	then
-		__print_message \
-			"error" \
-			"supervisord not running."
+		>&2 printf -- \
+			"supervisord not running"
 		exit 1
 	fi
 
 	if [[ ${system_timezone} != "${zone}" ]]
 	then
-		__print_message \
-			"error" \
-			"system-timezone zone mismatch."
+		>&2 printf -- \
+			"system-timezone zone mismatch"
 		exit 1
 	fi
 
@@ -303,9 +262,8 @@ function main ()
 		if [[ -f /var/lock/subsys/mysqld-bootstrap ]] \
 			|| ! __is_mysql_data_directory_populated
 		then
-			__print_message \
-				"error" \
-				"Bootstrap failed to complete."
+			>&2 printf -- \
+				"bootstrap failed to complete"
 			exit 1
 		fi
 	fi
@@ -315,9 +273,8 @@ function main ()
 		if ! ps axo command \
 			| grep -qE "^${mysqld} "
 		then
-			__print_message \
-				"error" \
-				"Service process not running."
+			>&2 printf -- \
+				"service process not running"
 			exit 1
 		fi
 
@@ -337,9 +294,8 @@ function main ()
 
 		if ! __have_mysql_access
 		then
-			__print_message \
-				"error" \
-				"root@localhost access failed."
+			>&2 printf -- \
+				"root@localhost access failed"
 			exit 1
 		fi
 	fi
