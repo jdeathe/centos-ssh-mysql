@@ -4,7 +4,7 @@
 
 Summary of release changes.
 
-### 2.3.2 - Unreleased
+### 2.3.2 - 2019-09-28
 
 - Deprecate Makefile target `logs-delayed`; replaced with `logsdef`.
 - Updates source image to [2.6.1](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.1).
