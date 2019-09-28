@@ -1,6 +1,6 @@
 FROM jdeathe/centos-ssh:1.11.2
 
-ARG RELEASE_VERSION="1.11.2"
+ARG RELEASE_VERSION="1.11.1"
 
 # ------------------------------------------------------------------------------
 # Base install of required packages
