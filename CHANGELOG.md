@@ -4,7 +4,7 @@
 
 Summary of release changes.
 
-### 1.11.2 - Unreleased
+### 1.11.2 - 2019-09-28
 
 - Deprecate Makefile target `logs-delayed`; replaced with `logsdef`.
 - Updates source image to [1.11.1](https://github.com/jdeathe/centos-ssh/releases/tag/1.11.1).
