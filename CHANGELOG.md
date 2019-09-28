@@ -4,6 +4,23 @@
 
 Summary of release changes.
 
+### 2.3.2 - Unreleased
+
+- Deprecate Makefile target `logs-delayed`; replaced with `logsdef`.
+- Updates source image to [2.6.1](https://github.com/jdeathe/centos-ssh/releases/tag/2.6.1).
+- Updates `mysql-community-server` package to 5.7.27-1.
+- Updates `psmisc` package to 22.20-16.
+- Updates `test/health_status` helper script with for consistency.
+- Updates Makefile target `logs` to accept `[OPTIONS]` (e.g `make -- logs -ft`).
+- Updates info/error output for consistency.
+- Updates healthcheck failure messages to remove EOL character that is rendered in status response.
+- Updates wrapper script; only emit "waiting on" info message if bootstrap hasn't completed.
+- Updates ordering of Tags and respective Dockerfile links in README.md for readability.
+- Adds improved test workflow; added `test-setup` target to Makefile.
+- Adds Makefile target `logsdef` to handle deferred logs output within a target chain.
+- Adds `/docs` directory for supplementary documentation.
+- Fixes validation failure of 0 second --timeout value in `test/health_status`.
+
 ### 2.3.1 - 2019-08-23
 
 - Updates healthcheck script for consistency.

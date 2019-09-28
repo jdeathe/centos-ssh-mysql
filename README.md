@@ -1,7 +1,7 @@
 ## Tags and respective `Dockerfile` links
 
-- `centos-7-mysql57-community`, [`2.3.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.3.1)  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
-- `centos-6`, [`1.11.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.11.1) [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
+- [`2.3.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/2.3.1), `centos-7-mysql57-community`  [(centos-7-mysql57-community/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-7-mysql57-community/Dockerfile)
+- [`1.11.1`](https://github.com/jdeathe/centos-ssh-mysql/tree/1.11.1), `centos-6` [(centos-6/Dockerfile)](https://github.com/jdeathe/centos-ssh-mysql/blob/centos-6/Dockerfile)
 
 ## Overview
 
